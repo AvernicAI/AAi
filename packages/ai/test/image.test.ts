@@ -169,6 +169,38 @@ describe("Image", () => {
     }),
   )
 
+  it.effect("classifies an OpenAI stream moderation error event as a content policy rejection", () =>
+    Effect.gen(function* () {
+      const error = yield* Image.stream({
+        model: OpenAI.configure({ apiKey: "test", baseURL: "https://openai.test/v1" }).image("gpt-image-1-mini"),
+        prompt: "A lighthouse",
+      }).pipe(Stream.runDrain, Effect.flip)
+      expect(error.reason._tag).toBe("ContentPolicy")
+      expect(error.message).toContain("rejected by the safety system")
+    }).pipe(
+      Effect.provide(
+        layer((input) =>
+          Effect.succeed(
+            input.respond(
+              `event: error\ndata: ${JSON.stringify({
+                type: "error",
+                error: {
+                  type: "image_generation_user_error",
+                  code: "moderation_blocked",
+                  message:
+                    "Your request was rejected by the safety system. If you believe this is an error, contact us at help.openai.com and include the request ID req_123.",
+                  param: null,
+                },
+                sequence_number: 0,
+              })}\n\n`,
+              { headers: { "content-type": "text/event-stream" } },
+            ),
+          ),
+        ),
+      ),
+    ),
+  )
+
   it.effect("lowers aspect to the nearest OpenAI size and reports the substitution", () =>
     Effect.gen(function* () {
       const openai = OpenAI.configure({ apiKey: "test", baseURL: "https://openai.test/v1" })

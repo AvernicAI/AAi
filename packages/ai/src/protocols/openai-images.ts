@@ -8,10 +8,11 @@ import {
   type ImageRequestFor,
 } from "../image.js"
 import { Media } from "../media.js"
+import { classifyProviderFailure } from "../provider-error.js"
 import { Framing } from "../route/framing.js"
 import { MediaProtocol } from "../route/media-protocol.js"
 import { MediaRoute } from "../route/media.js"
-import { mergeJsonRecords, ProviderID, type MediaUsage, type OpenString } from "../schema/index.js"
+import { AIError, mergeJsonRecords, ProviderID, type MediaUsage, type OpenString } from "../schema/index.js"
 import { ProviderShared } from "./shared.js"
 import { ImageSizing } from "./utils/image-sizing.js"
 import { MediaInput } from "./utils/media-input.js"
@@ -86,6 +87,10 @@ const StreamEvent = Schema.Union([
     ...Settings,
     output_format: Schema.String,
     usage: Schema.optional(Usage),
+  }),
+  Schema.Struct({
+    type: Schema.Literal("error"),
+    error: Schema.optional(Schema.Struct({ message: Schema.optional(Schema.String) })),
   }),
 ])
 
@@ -249,6 +254,13 @@ const eventImage = (frame: string, label: string, data: string, format: string, 
 
 const onEvent = Effect.fnUntraced(function* (state: State, frame: string) {
   const event = yield* decodeEvent(frame)
+  if (event.type === "error")
+    return yield* new AIError({
+      reason: classifyProviderFailure({
+        message: `${route.name} stream failed: ${event.error?.message ?? "unknown error"}`,
+        rawBody: frame,
+      }),
+    })
   const format = event.output_format
   if ("partial_image_index" in event) {
     const image = yield* eventImage(frame, `${route.name} partial image`, event.b64_json, format, event.size)
