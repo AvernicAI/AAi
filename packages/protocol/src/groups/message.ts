@@ -96,7 +96,7 @@ export const MessageGroup = HttpApiGroup.make("server.message")
       success: Schema.Struct(SessionMessagesPage).annotate({
         identifier: "SessionTimelineResponse",
         description:
-          "Messages for display. User attachment bytes are replaced by experimental opencode-attachment:<sessionID>/<messageID>/<index> URIs with empty data; resolve them with session.message.get before display or reuse.",
+          "Messages for display. User attachment bytes are replaced by experimental opencode-attachment:<sessionID>/<messageID>/<index> URIs with empty data; resolve them with session.message.get before display or reuse. Inline read-tool files are omitted (open them by path); execute media stays inline.",
       }),
       error: [InvalidCursorError, SessionNotFoundError, UnknownError],
     }).annotateMerge(
@@ -104,7 +104,7 @@ export const MessageGroup = HttpApiGroup.make("server.message")
         identifier: "experimental.session.message.timeline",
         summary: "Get session timeline",
         description:
-          "Retrieve the same pages as session.message.list, with user attachment bytes replaced by references. Experimental: may change without compatibility guarantees.",
+          "Retrieve the same pages as session.message.list, with user attachment bytes replaced by references and inline read-tool files omitted. Experimental: may change without compatibility guarantees.",
       }),
     ),
   )
