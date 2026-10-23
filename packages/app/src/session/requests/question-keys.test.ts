@@ -38,7 +38,7 @@ describe("questionKey", () => {
     expect(press("Escape")).toEqual({ type: "dismiss" })
   })
 
-  test("Up and Down move through the answers", () => {
+  test("Up and Down move the highlight", () => {
     expect(press("ArrowDown")).toEqual({ type: "move", step: 1 })
     expect(press("ArrowUp", { zone: "custom" })).toEqual({ type: "move", step: -1 })
     expect(press("Home")).toEqual({ type: "edge", to: "first" })
@@ -84,8 +84,22 @@ describe("questionKey", () => {
     expect(press("Enter", { meta: true, repeat: true })).toEqual({ type: "none" })
   })
 
-  test("typing on the custom answer's toggle starts the answer", () => {
+  test("Enter commits the highlighted answer once per press", () => {
+    expect(press("Enter")).toEqual({ type: "commit" })
+    expect(press("Enter", { zone: "custom" })).toEqual({ type: "commit" })
+    expect(press("Enter", { repeat: true })).toEqual({ type: "swallow" })
+    expect(press("Enter", { shift: true })).toEqual({ type: "none" })
+    expect(press("Enter", { zone: "input" })).toEqual({ type: "none" })
+    expect(press("Enter", { zone: "other" })).toEqual({ type: "none" })
+  })
+
+  test("typing on the custom answer starts the answer", () => {
     expect(press("a", { zone: "custom" })).toEqual({ type: "type" })
+    expect(press("A", { zone: "custom", shift: true })).toEqual({ type: "type" })
+    expect(press("å", { zone: "custom", alt: true })).toEqual({ type: "type" })
+    expect(press("0", { zone: "custom" })).toEqual({ type: "type" })
+    expect(press("1", { zone: "custom" })).toEqual({ type: "number", index: 0 })
+    expect(press("a", { zone: "custom", meta: true })).toEqual({ type: "none" })
     expect(press("a")).toEqual({ type: "none" })
     expect(press("Tab", { zone: "custom" })).toEqual({ type: "none" })
   })

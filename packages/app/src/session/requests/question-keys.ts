@@ -10,6 +10,7 @@ export type QuestionKeyIntent =
   | { type: "edge"; to: "first" | "last" }
   | { type: "number"; index: number }
   | { type: "activate" }
+  | { type: "commit" }
   | { type: "type" }
   | { type: "swallow" }
   | { type: "none" }
@@ -19,7 +20,8 @@ type Key = Pick<
   "key" | "keyCode" | "repeat" | "metaKey" | "ctrlKey" | "altKey" | "shiftKey" | "isComposing"
 >
 
-// Maps one keydown to what the dock should do. Answers act on key down, so Space never waits for its release.
+// Maps one keydown to what the dock should do. The arrows only move the highlight; Space marks the highlighted answer and
+// Enter commits it and moves on. Answers act on key down, so Space never waits for its release.
 export function questionKey(
   event: Key,
   context: { mac: boolean; zone: QuestionKeyZone; count: number },
@@ -38,9 +40,16 @@ export function questionKey(
   if ((event.metaKey || event.ctrlKey) && !event.altKey && event.key === "Enter")
     return event.repeat ? { type: "none" } : { type: "advance" }
 
-  if (context.zone === "input" || event.metaKey || event.ctrlKey || event.altKey) return { type: "none" }
+  if (context.zone === "input" || event.metaKey || event.ctrlKey) return { type: "none" }
 
-  if (/^[1-9]$/.test(event.key)) {
+  const digit = /^[1-9]$/.test(event.key)
+
+  // A printable key on the custom answer starts typing it; Option combinations are printable on macOS.
+  if (context.zone === "custom" && !digit && event.key.length === 1 && event.key !== " ") return { type: "type" }
+
+  if (event.altKey) return { type: "none" }
+
+  if (digit) {
     const index = Number(event.key) - 1
 
     if (event.repeat || index >= context.count) return { type: "none" }
@@ -66,8 +75,7 @@ export function questionKey(
 
   if (event.key === " ") return event.repeat ? { type: "swallow" } : { type: "activate" }
 
-  // A printable key on the custom answer's toggle starts typing the answer.
-  if (context.zone === "custom" && event.key.length === 1) return { type: "type" }
+  if (event.key === "Enter" && !event.shiftKey) return event.repeat ? { type: "swallow" } : { type: "commit" }
 
   return { type: "none" }
 }

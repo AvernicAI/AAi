@@ -55,6 +55,7 @@ function Option(props: {
   tabbable: boolean
   ref?: (el: HTMLButtonElement) => void
   onFocus?: VoidFunction
+  onPointerMove?: (event: PointerEvent) => void
   onClick: VoidFunction
 }) {
   return (
@@ -69,9 +70,9 @@ function Option(props: {
       tabindex={props.tabbable ? 0 : -1}
       disabled={props.disabled}
       onFocus={props.onFocus}
+      onPointerMove={props.onPointerMove}
       onClick={props.onClick}
     >
-      <span data-slot="question-option-ring" aria-hidden="true" />
       <Mark multi={props.multi} picked={props.picked} />
       <span data-slot="question-option-main">
         <span data-slot="option-label">
@@ -123,6 +124,8 @@ export const SessionQuestionDock: Component<{ request: FormInfo; onSubmit: () =>
   let optionsRef: HTMLDivElement | undefined
   let listRef: HTMLDivElement | undefined
   let customRef: HTMLButtonElement | undefined
+  let customRow: HTMLDivElement | undefined
+  let highlightRef: HTMLSpanElement | undefined
   let customInput: HTMLInputElement | undefined
   let optsRef: HTMLButtonElement[] = []
   let replied = false
@@ -268,6 +271,37 @@ export const SessionQuestionDock: Component<{ request: FormInfo; onSubmit: () =>
     onCleanup(() => observer.disconnect())
   })
 
+  // One highlight card glides between answers by its clip, so only one answer ever looks highlighted. It lands at once
+  // on a new question, and under reduced motion it fades in at its new answer instead of gliding.
+  let placed = { tab: -1, index: -1 }
+  createEffect(() => {
+    const el = highlightRef
+    const index = store.focus
+    const row = index === options().length ? customRow : optsRef[index]
+    void store.listHeight
+
+    if (!el || !row || !listRef) return
+    const clip = `inset(${row.offsetTop}px 0 ${listRef.offsetHeight - row.offsetTop - row.offsetHeight}px round 6px)`
+    const fresh = placed.tab !== store.tab
+    const moved = fresh || placed.index !== index
+    const reduced = prefersReducedMotion()
+    placed = { tab: store.tab, index }
+
+    if (!fresh && !reduced) {
+      el.style.clipPath = clip
+
+      return
+    }
+
+    el.style.transition = "none"
+    el.style.clipPath = clip
+    void el.offsetHeight
+    el.style.removeProperty("transition")
+
+    if (reduced && moved && el.animate)
+      el.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 150, easing: "linear" })
+  })
+
   onCleanup(() => {
     arrivals.forEach((animation) => animation.cancel())
 
@@ -363,6 +397,7 @@ export const SessionQuestionDock: Component<{ request: FormInfo; onSubmit: () =>
     setStore("editing", true)
     customUpdate(input(), true)
     customInput?.focus()
+    customInput?.setSelectionRange(input().length, input().length)
   }
 
   const customToggle = () => {
@@ -378,17 +413,27 @@ export const SessionQuestionDock: Component<{ request: FormInfo; onSubmit: () =>
     focus(options().length)
   }
 
-  // A radio group's selection follows its focus; a checkbox group only moves focus.
-  const select = (i: number) => {
-    const index = clamp(i)
+  // The pointer moves the highlight like the arrows do, but never takes focus from the custom answer's field.
+  const hover = (i: number, event: PointerEvent) => {
+    if (event.pointerType !== "mouse" || store.editing || sending()) return
+    setStore("focus", i)
+  }
 
-    if (!multi() && index === options().length) {
-      setStore("customOn", store.tab, true)
-      customUpdate(input(), true)
+  // Enter picks the highlighted answer of a single-choice question, then moves on. An empty custom answer opens its
+  // field instead, since there is nothing to pick yet.
+  const commit = () => {
+    if (multi()) return next()
+
+    if (store.focus < options().length) {
+      selectOption(store.focus)
+
+      return next()
     }
 
-    if (!multi() && index < options().length) selectOption(index)
-    focus(index)
+    if (!input().trim()) return startCustom()
+    setStore("customOn", store.tab, true)
+    customUpdate(input(), true)
+    next()
   }
 
   const zone = (target: EventTarget | null): QuestionKeyZone => {
@@ -451,11 +496,18 @@ export const SessionQuestionDock: Component<{ request: FormInfo; onSubmit: () =>
       return
     }
 
-    if (intent.type === "type") return startCustom()
-
     event.preventDefault()
 
+    if (intent.type === "type") {
+      setStore("customOn", store.tab, true)
+      customUpdate(input() + event.key, true)
+
+      return startCustom()
+    }
+
     if (intent.type === "swallow") return
+
+    if (intent.type === "commit") return commit()
 
     if (intent.type === "activate") {
       if (store.focus === options().length) return customToggle()
@@ -463,11 +515,7 @@ export const SessionQuestionDock: Component<{ request: FormInfo; onSubmit: () =>
       return selectOption(store.focus)
     }
 
-    const target = intent.type === "edge" ? (intent.to === "first" ? 0 : count() - 1) : store.focus + intent.step
-
-    if (multi()) return focus(target)
-
-    select(target)
+    focus(intent.type === "edge" ? (intent.to === "first" ? 0 : count() - 1) : store.focus + intent.step)
   }
 
   const selectOption = (optIndex: number) => {
@@ -535,6 +583,9 @@ export const SessionQuestionDock: Component<{ request: FormInfo; onSubmit: () =>
   const jump = (tab: number) => {
     if (sending() || tab === store.tab) return
     const step = Math.sign(tab - store.tab)
+    // The highlight's index moves before the question does, so it lands on the new question's answer instead of
+    // gliding from the old one.
+    setStore("focus", pickFocus(tab))
     setStore("tab", tab)
     setStore("editing", false)
 
@@ -708,6 +759,7 @@ export const SessionQuestionDock: Component<{ request: FormInfo; onSubmit: () =>
           }}
         >
           <div data-slot="question-options-list" ref={(el) => (listRef = el)}>
+            <span data-slot="question-highlight" ref={(el) => (highlightRef = el)} aria-hidden="true" />
             <For each={options()}>
               {(opt, i) => (
                 <Option
@@ -720,23 +772,25 @@ export const SessionQuestionDock: Component<{ request: FormInfo; onSubmit: () =>
                   tabbable={store.focus === i()}
                   ref={(el) => (optsRef[i()] = el)}
                   onFocus={() => setStore("focus", i())}
+                  onPointerMove={(event) => hover(i(), event)}
                   onClick={() => selectOption(i())}
                 />
               )}
             </For>
 
             <div
+              ref={(el) => (customRow = el)}
               data-slot="question-option"
               data-custom="true"
               data-picked={on()}
               data-editing={store.editing}
               data-disabled={sending()}
+              onPointerMove={(event) => hover(options().length, event)}
               onClick={(event) => {
                 if (event.target !== event.currentTarget || sending()) return
                 startCustom()
               }}
             >
-              <span data-slot="question-option-ring" aria-hidden="true" />
               <button
                 type="button"
                 ref={customRef}
@@ -784,7 +838,8 @@ export const SessionQuestionDock: Component<{ request: FormInfo; onSubmit: () =>
 
                   if (e.key !== "Enter") return
                   e.preventDefault()
-                  commitCustom()
+
+                  if (!e.repeat) next()
                 }}
                 onInput={(e) => {
                   setStore("customOn", store.tab, true)

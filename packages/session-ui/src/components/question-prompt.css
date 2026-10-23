@@ -31,7 +31,7 @@
   max-block-size: var(--question-prompt-max-height, 100dvh);
   font-family: var(--v2-font-family-sans);
 
-  [data-color-scheme="dark"] & [data-slot="question-option"] {
+  [data-color-scheme="dark"] & [data-slot="question-option"]::before {
     background-color: var(--v2-background-bg-layer-02);
   }
 
@@ -212,6 +212,22 @@
     display: flex;
     flex-direction: column;
     gap: 6px;
+    position: relative;
+    isolation: isolate;
+  }
+
+  /* One highlight for the whole list, painted between the cards and their content. It glides to the highlighted
+     answer by its clip; the pick itself shows only as the radio dot or the check. */
+  [data-slot="question-highlight"] {
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    background:
+      linear-gradient(var(--v2-question-answer-bg-selected), var(--v2-question-answer-bg-selected)),
+      var(--v2-background-bg-layer-01);
+    clip-path: inset(0 0 100% round 6px);
+    pointer-events: none;
+    transition: clip-path var(--question-settle) var(--question-spring);
   }
 
   [data-slot="question-option"] {
@@ -222,45 +238,34 @@
     box-sizing: border-box;
     inline-size: 100%;
     position: relative;
-    isolation: isolate;
     padding: 10px;
     border: 0;
     border-radius: 6px;
     outline: none;
-    background-color: var(--v2-background-bg-layer-01);
-    box-shadow: inset 0 0 0 0.5px var(--v2-border-border-base);
+    background: transparent;
     color: var(--v2-text-text-base);
     text-align: start;
     cursor: pointer;
     touch-action: manipulation;
 
-    /* Hover and selection are layers that fade, never property swaps, so an answer losing its selection and the one
-       gaining it cross in the same frames. */
+    /* The card is drawn under the list's highlight and its hairline over it, so the highlight never hides an edge. */
     &::before,
     &::after {
       content: "";
       position: absolute;
       inset: 0;
-      z-index: -1;
       border-radius: inherit;
-      opacity: 0;
       pointer-events: none;
-      transition: opacity var(--question-quick) var(--question-spring);
     }
 
     &::before {
-      background-color: var(--v2-background-bg-layer-02);
+      z-index: -2;
+      background-color: var(--v2-background-bg-layer-01);
     }
 
     &::after {
-      background:
-        linear-gradient(var(--v2-question-answer-bg-selected), var(--v2-question-answer-bg-selected)),
-        var(--v2-background-bg-layer-01);
-      box-shadow: inset 0 0 0 0.5px var(--v2-border-border-focus);
-    }
-
-    &[data-picked="true"]::after {
-      opacity: 1;
+      z-index: -1;
+      box-shadow: inset 0 0 0 0.5px var(--v2-border-border-base);
     }
 
     &:disabled,
@@ -351,32 +356,6 @@
       [data-slot="question-option-radio-dot"] {
         transform: none;
       }
-    }
-  }
-
-  /* Keyboard focus is a quiet ring that fades between answers. In a radio group the selection follows focus and is
-     already the indicator, so a focused, selected radio shows no ring. */
-  [data-slot="question-option-ring"] {
-    position: absolute;
-    inset: 0;
-    border-radius: inherit;
-    box-shadow: inset 0 0 0 1.5px var(--v2-border-border-focus);
-    opacity: 0;
-    pointer-events: none;
-    transition: opacity var(--question-quick) var(--question-spring);
-  }
-
-  [data-slot="question-option"]:focus-visible,
-  [data-slot="question-option"][data-custom="true"]:has([data-slot="question-custom-toggle"]:focus-visible) {
-    > [data-slot="question-option-ring"] {
-      opacity: 1;
-    }
-  }
-
-  [data-slot="question-option"][role="radio"][data-picked="true"]:focus-visible,
-  [data-slot="question-option"][data-custom="true"][data-picked="true"]:has([role="radio"]:focus-visible) {
-    > [data-slot="question-option-ring"] {
-      opacity: 0;
     }
   }
 
@@ -539,14 +518,14 @@
     [data-slot="question-progress-segment"]:hover:not(:disabled) {
       background-color: var(--v2-overlay-simple-overlay-hover);
     }
-
-    [data-slot="question-option"]:hover:not(:disabled):not([data-disabled="true"])::before {
-      opacity: 1;
-    }
   }
 
   /* Reduced motion keeps the fades and drops the movement. */
   :root[data-motion="reduce"] & {
+    [data-slot="question-highlight"] {
+      transition: none;
+    }
+
     [data-slot="question-option-box"] [data-slot="icon-svg"] {
       clip-path: none;
       transition: opacity var(--question-quick) linear;
