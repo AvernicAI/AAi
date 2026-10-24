@@ -27,6 +27,7 @@
     "typecheck": "bun turbo typecheck --concurrency=3",
     "typecheck:tsc": "bun turbo typecheck:tsc --concurrency=3",
     "check": "bun run lint && bun run typecheck",
+    "sync:upstream": "bun script/sync-upstream.ts",
     "typecheck:profile": "bun script/profile-typecheck.ts",
     "typecheck:profile:packages": "bun script/profile-typecheck-packages.ts",
     "upgrade-opentui": "bun run script/upgrade-opentui.ts",

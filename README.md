@@ -25,6 +25,7 @@ Every workflow has a double-clickable batch file at the repository root:
 | `desktop.bat`         | Run the desktop app in development mode.                           |
 | `web.bat`             | Run the web app in development mode.                               |
 | `check.bat`           | Run lint and type checking across the workspace.                   |
+| `sync.bat`            | Merge upstream OpenCode and verify the AAi rebrand.                |
 
 `build.bat` uses `--single`, so it only compiles the current platform/architecture. The executable lands in
 `packages\cli\dist\cli-<os>-<arch>\bin\opencode.exe`; `run.bat` finds it automatically.
@@ -123,6 +124,31 @@ Per-model `capabilities`, `limit`, and `options` follow the normal OpenCode prov
 | `packages/app`     | Shared web/desktop renderer.                      |
 | `packages/server`  | HTTP API and background service.                  |
 | `packages/schema`  | Shared wire and storage contracts.                |
+
+## Staying up to date with OpenCode
+
+AAi tracks upstream OpenCode's `dev` branch. `sync.bat` (or `bun run sync:upstream`) performs the whole merge:
+
+```bash
+bun run sync:upstream               # fetch, merge, install changed dependencies, run checks
+bun run sync:upstream --dry-run     # show what would come in; change nothing
+bun run sync:upstream --no-check    # merge, audit, and install, but skip the checks
+bun run sync:upstream --no-install  # merge without installing
+bun run sync:upstream --branch=fix-1 # merge into another local branch instead of dev
+```
+
+The script:
+
+- refuses to run on a dirty worktree or a branch other than `dev`;
+- keeps `backup/pre-upstream-sync` at the commit it started from, so `git reset --hard backup/pre-upstream-sync` undoes a sync;
+- merges with `--no-ff`, so published history is never rewritten;
+- verifies the AAi brand surface (desktop app names, renderer title, `aai` alias, AvernicAi provider registration) and fails when a merge drops any of it;
+- lists `OpenCode` names that upstream adds to client code. Product names and identifiers such as `OpenCode Go`, `OpenCode Console`, `opencode pair` and `OPENCODE_*` variables are kept on purpose so OpenCode keeps working out of the box;
+- reinstalls dependencies when `bun.lock` or a `package.json` changed, then runs `bun run check`.
+
+When upstream and the fork touch the same file, the merge stops before committing: resolve the files it lists and
+commit, or run `git merge --abort`. The script never pushes; publish with `git push origin dev` once the result
+looks right.
 
 ## Contributing
 
