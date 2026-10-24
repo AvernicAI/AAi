@@ -11,6 +11,7 @@ export const ID = Schema.String.pipe(
   Schema.annotate({ identifier: "Provider.ID" }),
   statics((schema) => ({
     opencode: schema.make("opencode"),
+    avernicai: schema.make("avernicai"),
     anthropic: schema.make("anthropic"),
     openai: schema.make("openai"),
     google: schema.make("google"),

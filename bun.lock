@@ -117,6 +117,8 @@
       "bin": {
         "opencode": "./bin/opencode.cjs",
         "opencode2": "./bin/opencode2.cjs",
+        "aai": "./bin/opencode.cjs",
+        "avernicai": "./bin/opencode.cjs",
       },
       "dependencies": {
         "@agentclientprotocol/sdk": "1.6.0",

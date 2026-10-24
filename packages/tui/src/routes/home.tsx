@@ -97,7 +97,7 @@ export function Home() {
           <Logo />
         </box>
         <box height={1} flexShrink={0} />
-        <UpdateNotification width={logoWidth()} />
+        <UpdateNotification width={Math.max(logoWidth(), 44)} />
         <box width="100%" maxWidth={75} zIndex={1000} paddingTop={1} flexShrink={0} position="relative">
           <Prompt ref={bind} placeholders={placeholder} disabled={forms().length > 0} />
         </box>

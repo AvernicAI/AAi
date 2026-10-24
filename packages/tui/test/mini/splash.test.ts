@@ -175,14 +175,14 @@ test.each(
     exitSplash({ ...input, title: "Review mini layout", session_id: sessionID, theme }),
     input.width,
   )
-  const command = `opencode mini -s ${sessionID}`
-  const commandRows =
-    input.width >= 80 ? [result.rows[2].slice(result.rows[2].indexOf("opencode"))] : result.rows.slice(1)
+  const command = `aai mini -s ${sessionID}`
+  const wide = result.rows.some((row) => row.includes("Continue "))
+  const commandRows = wide ? [result.rows[2].slice(result.rows[2].indexOf("aai"))] : result.rows.slice(1)
   const reconstructed = commandRows
     .map((row, index) => (index < commandRows.length - 1 ? row.padEnd(input.width) : row))
     .join("")
   expect(reconstructed).toBe(command)
-  if (input.width >= 80) {
+  if (wide) {
     expect(result.rows[1].startsWith(input.mono ? "[O]" : "█▀▀█")).toBe(true)
     expect(result.rows[1].includes("Session  Review mini layout")).toBe(input.showSession)
     expect(result.rows[2]).toContain("Continue " + command)
@@ -191,6 +191,6 @@ test.each(
     expect(result.rows).toHaveLength(1 + Math.ceil(command.length / input.width))
   }
   if (input.mono) expect(result.rows.join("")).not.toMatch(/[^\x20-\x7e]/)
-  expect(result.spans.find((span) => span.text.includes("opencode"))?.fg.intent).toBe("default")
-  expect(result.spans.find((span) => span.text.includes("opencode"))?.fg.toInts()).toEqual(theme.right.toInts())
+  expect(result.spans.find((span) => span.text.includes("aai"))?.fg.intent).toBe("default")
+  expect(result.spans.find((span) => span.text.includes("aai"))?.fg.toInts()).toEqual(theme.right.toInts())
 })

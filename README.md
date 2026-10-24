@@ -1,114 +1,135 @@
-<p align="center">
-  <a href="https://opencode.ai">
-    <picture>
-      <source srcset="packages/console/app/src/asset/logo-ornate-dark.svg" media="(prefers-color-scheme: dark)">
-      <source srcset="packages/console/app/src/asset/logo-ornate-light.svg" media="(prefers-color-scheme: light)">
-      <img src="packages/console/app/src/asset/logo-ornate-light.svg" alt="OpenCode logo">
-    </picture>
-  </a>
-</p>
-<p align="center">The open source AI coding agent.</p>
-<p align="center">
-  <a href="https://opencode.ai/discord"><img alt="Discord" src="https://img.shields.io/discord/1391832426048651334?style=flat-square&label=discord" /></a>
-  <a href="https://www.npmjs.com/package/@opencode/cli"><img alt="npm" src="https://img.shields.io/npm/v/@opencode/cli?style=flat-square" /></a>
-  <a href="https://github.com/anomalyco/opencode/actions/workflows/publish.yml"><img alt="Build status" src="https://img.shields.io/github/actions/workflow/status/anomalyco/opencode/publish.yml?style=flat-square&branch=dev" /></a>
-</p>
+# AAi (AvernicAi)
 
-<p align="center">
-  <a href="README.md">English</a> |
-  <a href="README.zh.md">简体中文</a> |
-  <a href="README.zht.md">繁體中文</a> |
-  <a href="README.ko.md">한국어</a> |
-  <a href="README.de.md">Deutsch</a> |
-  <a href="README.es.md">Español</a> |
-  <a href="README.fr.md">Français</a> |
-  <a href="README.it.md">Italiano</a> |
-  <a href="README.da.md">Dansk</a> |
-  <a href="README.ja.md">日本語</a> |
-  <a href="README.pl.md">Polski</a> |
-  <a href="README.ru.md">Русский</a> |
-  <a href="README.bs.md">Bosanski</a> |
-  <a href="README.ar.md">العربية</a> |
-  <a href="README.no.md">Norsk</a> |
-  <a href="README.br.md">Português (Brasil)</a> |
-  <a href="README.th.md">ไทย</a> |
-  <a href="README.tr.md">Türkçe</a> |
-  <a href="README.uk.md">Українська</a> |
-  <a href="README.bn.md">বাংলা</a> |
-  <a href="README.gr.md">Ελληνικά</a> |
-  <a href="README.vi.md">Tiếng Việt</a>
-</p>
+<p align="center">An AI coding agent for the terminal, desktop, and web — built on <a href="https://opencode.ai">OpenCode</a>.</p>
 
-[![OpenCode Terminal UI](packages/web/src/assets/lander/screenshot.png)](https://opencode.ai)
+AAi keeps OpenCode's model catalog, **OpenCode Zen**, and **OpenCode Go** connectivity as its default provider
+story. AvernicAi is an additional, optional OpenAI-compatible provider: it stays hidden until you give it a key,
+so existing OpenCode accounts and models keep working exactly as before.
 
----
+> This repository is a rebrand of OpenCode. Package names (`@opencode/*`), config files (`opencode.json`),
+> config directories, and `OPENCODE_*` environment variables are intentionally unchanged so existing sessions,
+> credentials, plugins, and updates keep working.
 
-### Installation
+## Quick start (Windows)
+
+Every workflow has a double-clickable batch file at the repository root:
+
+| Script                | What it does                                                       |
+| --------------------- | ------------------------------------------------------------------ |
+| `install.bat`         | Install Bun dependencies for the workspace.                        |
+| `dev.bat`             | Run the AAi CLI/TUI from source. Pass extra args, e.g. `dev.bat .` |
+| `build.bat`           | Compile a standalone AAi executable for this machine.              |
+| `run.bat`             | Run the executable produced by `build.bat`.                        |
+| `build-desktop.bat`   | Build the Electron desktop app bundles.                            |
+| `package-desktop.bat` | Build desktop installers into `packages\desktop\dist`.             |
+| `desktop.bat`         | Run the desktop app in development mode.                           |
+| `web.bat`             | Run the web app in development mode.                               |
+| `check.bat`           | Run lint and type checking across the workspace.                   |
+
+`build.bat` uses `--single`, so it only compiles the current platform/architecture. The executable lands in
+`packages\cli\dist\cli-<os>-<arch>\bin\opencode.exe`; `run.bat` finds it automatically.
+
+Manual equivalents:
 
 ```bash
-# YOLO
-curl -fsSL https://opencode.ai/v2/install | bash
-
-# Package managers
-npm i -g @opencode/cli@latest      # or bun/pnpm/yarn
-brew install anomalyco/tap/opencode-v2 # macOS and Linux (recommended, always up to date)
-brew install opencode              # macOS and Linux (official brew formula, updated less)
-sudo pacman -S opencode            # Arch Linux (Stable)
-paru -S opencode-beta              # Arch Linux (Latest from AUR)
-mise use -g opencode               # Any OS
-nix run github:anomalyco/opencode  # Nix
+bun install
+bun run dev                # CLI/TUI from source
+bun run --cwd packages/cli build --single
+bun run dev:desktop
+bun run dev:web
+bun run check
 ```
 
-> [!TIP]
-> Remove versions older than 0.1.x before installing.
+## Connecting to OpenCode
 
-### Desktop App (BETA)
-
-OpenCode is also available as a desktop application. Download it from [opencode.ai/download](https://opencode.ai/download).
-
-| Platform              | Download                           |
-| --------------------- | ---------------------------------- |
-| macOS (Apple Silicon) | `opencode-desktop-mac-arm64.dmg`   |
-| macOS (Intel)         | `opencode-desktop-mac-x64.dmg`     |
-| Windows               | `opencode-desktop-win-x64.exe`     |
-| Linux                 | `.deb`, `.rpm`, or `.AppImage`     |
+No setup is required. AAi loads the same models.dev catalog as OpenCode, and the OpenCode Zen provider remains
+available through the normal `auth login` flow. OpenCode Go models work the same way.
 
 ```bash
-# macOS (Homebrew)
-brew install --cask opencode-desktop
+aai auth login   # choose OpenCode / OpenCode Go
+aai models       # list what is available
 ```
 
-#### Installation Directory
+The `aai` command is an alias for the built-in `opencode` binary command, so either name works.
 
-The install script installs OpenCode to `$HOME/.opencode/bin`.
+## Optional: AvernicAi provider
 
-### Agents
+AvernicAi is registered as an OpenAI-compatible provider at `https://api.avernic.ai/v1`. It is **disabled by
+default** and only appears once a credential exists.
 
-OpenCode includes two built-in agents you can switch between with the `Tab` key.
+### Enable with an environment variable
 
-- **build** - Default, full-access agent for development work
-- **plan** - Read-only agent for analysis and code exploration
-  - Denies file edits by default
-  - Asks permission before running bash commands
-  - Ideal for exploring unfamiliar codebases or planning changes
+```powershell
+setx AVERNICAI_API_KEY "your-key"
+```
 
-Also included is a **general** subagent for complex searches and multistep tasks.
-This is used internally and can be invoked using `@general` in messages.
+```bash
+export AVERNICAI_API_KEY="your-key"
+```
 
-Learn more about [agents](https://opencode.ai/v2/docs/agents).
+Restart AAi. AAi discovers the account's models from `GET /v1/models` and adds them to the model picker.
 
-### Documentation
+Optional overrides:
 
-For more info on how to configure OpenCode, [**head over to our docs**](https://opencode.ai/v2/docs).
+| Variable             | Purpose                                                          |
+| -------------------- | ---------------------------------------------------------------- |
+| `AVERNICAI_API_KEY`  | API key (also accepts `AVERNIC_AI_API_KEY`).                     |
+| `AVERNICAI_BASE_URL` | Override the API base URL (default `https://api.avernic.ai/v1`). |
 
-### Contributing
+### Enable interactively
 
-If you're interested in contributing to OpenCode, please read our [contributing docs](./CONTRIBUTING.md) before submitting a pull request.
+```bash
+aai auth login   # choose AvernicAi, then paste the key
+```
 
-### Building on OpenCode
+### Configure manually
 
-If you are working on a project that's related to OpenCode and is using "opencode" as part of its name, for example "opencode-dashboard" or "opencode-mobile", please add a note to your README to clarify that it is not built by the OpenCode team and is not affiliated with us in any way.
+If model discovery is unavailable, or you want explicit model metadata, add the provider to `opencode.json`:
 
----
+```jsonc
+{
+  "$schema": "https://opencode.ai/config.json",
+  "providers": {
+    "avernicai": {
+      "name": "AvernicAi",
+      "env": ["AVERNICAI_API_KEY"],
+      "package": "@opencode/ai/providers/openai-compatible",
+      "settings": {
+        "baseURL": "https://api.avernic.ai/v1",
+        "provider": "avernicai",
+      },
+      "models": {
+        "avernic-1": {
+          "name": "Avernic 1",
+          "capabilities": { "tools": true, "input": ["text"], "output": ["text"] },
+          "limit": { "context": 128000, "output": 16384 },
+        },
+      },
+    },
+  },
+}
+```
 
-**Join our community** [Discord](https://discord.gg/opencode) | [X.com](https://x.com/opencode)
+Per-model `capabilities`, `limit`, and `options` follow the normal OpenCode provider configuration rules.
+
+## Repository layout
+
+| Path               | Contents                                          |
+| ------------------ | ------------------------------------------------- |
+| `packages/cli`     | CLI entrypoint, commands, and standalone builds.  |
+| `packages/tui`     | Terminal UI.                                      |
+| `packages/core`    | Sessions, providers, tools, and runtime services. |
+| `packages/desktop` | Electron desktop application.                     |
+| `packages/app`     | Shared web/desktop renderer.                      |
+| `packages/server`  | HTTP API and background service.                  |
+| `packages/schema`  | Shared wire and storage contracts.                |
+
+## Contributing
+
+- Use conventional commit messages: `type(scope): summary` (for example `feat(core): add AvernicAi provider`).
+- Run `check.bat` (or `bun run check`) before opening a pull request.
+- See `AGENTS.md` for repository-specific engineering rules and `.opencode/skills` for testing guides.
+
+## License
+
+MIT. AAi is based on OpenCode; see [LICENSE](LICENSE).
