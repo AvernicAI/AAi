@@ -127,6 +127,8 @@ Per-model `capabilities`, `limit`, and `options` follow the normal OpenCode prov
 
 ## Staying up to date with OpenCode
 
+Fork-level history, brand rules, and environment notes live in [AAI_CHANGELOG.md](AAI_CHANGELOG.md).
+
 AAi tracks upstream OpenCode's `dev` branch. `sync.bat` (or `bun run sync:upstream`) performs the whole merge:
 
 ```bash
