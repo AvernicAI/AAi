@@ -18,24 +18,46 @@ Every workflow has a double-clickable batch file at the repository root:
 | --------------------- | ------------------------------------------------------------------ |
 | `install.bat`         | Install Bun dependencies for the workspace.                        |
 | `dev.bat`             | Run the AAi CLI/TUI from source. Pass extra args, e.g. `dev.bat .` |
-| `build.bat`           | Compile a standalone AAi executable for this machine.              |
-| `run.bat`             | Run the executable produced by `build.bat`.                        |
-| `build-desktop.bat`   | Build the Electron desktop app bundles.                            |
-| `package-desktop.bat` | Build desktop installers into `packages\desktop\dist`.             |
+| `build.bat`           | Build a matching CLI, desktop app, and Windows installer.          |
+| `run.bat`             | Launch the built AAi desktop app.                                 |
+| `build-desktop.bat`   | Run the complete desktop and installer build.                     |
+| `package-desktop.bat` | Rebuild everything and package a fresh Windows installer.         |
+| `build-cli.bat`       | Build only the standalone CLI/TUI executable.                     |
+| `run-cli.bat`         | Run the built CLI/TUI. Pass a directory or CLI arguments.          |
 | `desktop.bat`         | Run the desktop app in development mode.                           |
 | `web.bat`             | Run the web app in development mode.                               |
 | `check.bat`           | Run lint and type checking across the workspace.                   |
 | `sync.bat`            | Merge upstream OpenCode and verify the AAi rebrand.                |
 
-`build.bat` uses `--single`, so it only compiles the current platform/architecture. The executable lands in
-`packages\cli\dist\cli-<os>-<arch>\bin\opencode.exe`; `run.bat` finds it automatically.
+Install the Bun version listed in `package.json` (currently 1.4.4), Node.js 24 or newer, and Git, then double-click `build.bat`.
+The scripts find both native and npm-installed Bun. They install the locked dependencies, build the CLI
+and its embedded web UI from this checkout, bundle the desktop renderer and all built-in extensions,
+and create the Windows installer. They never substitute a downloaded OpenCode server for your AAi build.
+
+Outputs:
+
+- `artifacts\AAi-Setup-x64.exe` (or `-arm64.exe`): Windows installer.
+- `packages\desktop\dist\win-unpacked\AAi Dev.exe`: runnable desktop app; keep its adjacent files together.
+- `artifacts\aai.exe`: standalone CLI/TUI, including the embedded web app.
+
+`run.bat` launches the desktop. `run-cli.bat` launches the terminal UI. The default channel is `dev`,
+with AAi Dev branding and automatic updates disabled. Set `OPENCODE_CHANNEL=prod` before building for
+the existing AAi production identity, or `beta` for AAi Beta. Themes, providers, credentials, protocols,
+and OpenCode integrations retain their existing behavior. The IDE is under **View → Open IDE** or
+**Ctrl/Cmd+Shift+I**; backgrounds are under **Settings → AAi backgrounds**.
+
+Build errors return a nonzero exit code and remain visible for double-click launches. Set `AAI_NO_PAUSE=1`
+when running the scripts in automation. Arguments to dev/run scripts are forwarded unchanged.
+Set `OPENCODE_DESKTOP_DISABLE_PROTOCOL_REGISTRATION=1` when launching an isolated verification instance
+to leave the installed OpenCode URL handler untouched. Normal launches keep the existing registration behavior.
 
 Manual equivalents:
 
 ```bash
 bun install
 bun run dev                # CLI/TUI from source
-bun run --cwd packages/cli build --single
+bun run script/windows.ts build
+bun run script/windows.ts run
 bun run dev:desktop
 bun run dev:web
 bun run check

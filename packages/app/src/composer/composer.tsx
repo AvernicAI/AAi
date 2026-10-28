@@ -12,6 +12,7 @@ import { DialogSelectModelUnpaid } from "@/providers/models/unpaid"
 import { formatKeybind, useCommand } from "@/shell/commands/command"
 import { useLanguage } from "@/runtime/i18n/language"
 import type { ComposerModel } from "./model"
+import { ExtensionPromptControls } from "@/runtime/extension/prompt-context"
 
 export function Composer(props: {
   class?: string
@@ -38,17 +39,20 @@ export function Composer(props: {
         exitShellKeybind={[formatKeybind("esc", language.t)]}
         suggestionBoundary={props.suggestionBoundary}
         modelControl={
-          <ComposerModelControl
-            loading={props.model.model.loading}
-            paid={props.model.model.paid}
-            title={language.t("command.model.choose")}
-            keybind={command.keybindParts("model.choose")}
-            model={props.model.model.selection}
-            provider={props.model.model.selection.current()?.provider}
-            modelName={props.model.model.selection.current()?.name ?? language.t("dialog.model.select.title")}
-            onClose={props.model.restoreFocus}
-            onUnpaidClick={() => dialog.show(() => <DialogSelectModelUnpaid model={props.model.model.selection} />)}
-          />
+          <>
+            <ExtensionPromptControls />
+            <ComposerModelControl
+              loading={props.model.model.loading}
+              paid={props.model.model.paid}
+              title={language.t("command.model.choose")}
+              keybind={command.keybindParts("model.choose")}
+              model={props.model.model.selection}
+              provider={props.model.model.selection.current()?.provider}
+              modelName={props.model.model.selection.current()?.name ?? language.t("dialog.model.select.title")}
+              onClose={props.model.restoreFocus}
+              onUnpaidClick={() => dialog.show(() => <DialogSelectModelUnpaid model={props.model.model.selection} />)}
+            />
+          </>
         }
       />
     </div>

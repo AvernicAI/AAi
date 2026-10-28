@@ -17,6 +17,32 @@ const contributors = "https://api.github.com/repos/anomalyco/opencode/contributo
 
 test.use({ serviceWorkers: "block" })
 
+test("AAi backgrounds persist independently of the theme and restore the default", async ({ page }) => {
+  const { settings } = await open(page, { seed: { theme: { id: "oc-2", scheme: "dark" } } })
+  await settings.getByRole("tab", { name: "AAi backgrounds", exact: true }).click()
+  const choices = settings.getByRole("group", { name: "AAi backgrounds", exact: true })
+  const background = page.locator(".aai-background-layer")
+  await expect(choices.getByRole("button", { name: /^OpenCode default/ })).toHaveAttribute("aria-pressed", "true")
+  await expect(background).toHaveCount(0)
+
+  for (const design of ["AAi Aurora", "Avernic Ember", "AAi Blueprint"]) {
+    await choices.getByRole("button", { name: new RegExp(`^${design}`) }).click()
+    await expect(choices.getByRole("button", { name: new RegExp(`^${design}`) })).toHaveAttribute("aria-pressed", "true")
+    await expect(background).toBeVisible()
+    await expect(background).toHaveCSS("pointer-events", "none")
+    await expect(background).not.toHaveCSS("background-image", "none")
+  }
+
+  await page.reload()
+  await settings.getByRole("tab", { name: "AAi backgrounds", exact: true }).click()
+  await expect(choices.getByRole("button", { name: /^AAi Blueprint/ })).toHaveAttribute("aria-pressed", "true")
+  await settings.getByRole("button", { name: "Restore OpenCode default", exact: true }).click()
+  await expect(background).toHaveCount(0)
+  await expect(choices.getByRole("button", { name: /^OpenCode default/ })).toHaveAttribute("aria-pressed", "true")
+  expect(await page.evaluate(() => localStorage.getItem("opencode-theme-id"))).toBe("oc-2")
+  expect(await page.evaluate(() => localStorage.getItem("opencode-color-scheme"))).toBe("dark")
+})
+
 // One project with 12 worktrees, each with one session, and a configured zsh shell.
 function open(page: Page, input: Partial<WorkspaceInput> = {}) {
   return openSettings(page, {

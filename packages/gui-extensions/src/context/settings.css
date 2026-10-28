@@ -1,0 +1,45 @@
+.aai-context-settings {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 20px;
+  color: var(--v2-text-text-base);
+  font-size: 13px;
+  line-height: var(--line-height-base);
+}
+.aai-context-settings p,
+.aai-context-settings small {
+  color: var(--v2-text-text-subtle);
+  line-height: var(--line-height-base);
+}
+.aai-context-settings label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.aai-context-settings :is(textarea, input, select) {
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid var(--v2-border-border-base);
+  border-radius: 6px;
+  background: var(--v2-background-bg-base);
+  color: var(--v2-text-text-base);
+  font: inherit;
+  line-height: var(--line-height-base);
+}
+.aai-context-settings textarea {
+  resize: vertical;
+}
+.aai-context-settings :is(textarea, input, select):focus-visible {
+  outline: 2px solid var(--v2-border-border-focus);
+  outline-offset: 2px;
+}
+.aai-context-settings h3 {
+  font-size: 14px;
+  font-weight: 600;
+}
+.aai-context-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}

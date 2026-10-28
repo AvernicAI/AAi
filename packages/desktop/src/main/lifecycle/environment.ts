@@ -37,7 +37,7 @@ export const prepareDesktop = Effect.gen(function* () {
   const path = yield* Path.Path
   const paths = yield* DesktopPaths.resolve
 
-  if (app.isPackaged || process.env.OPENCODE_DESKTOP_DISABLE_PROTOCOL_REGISTRATION !== "1")
+  if (process.env.OPENCODE_DESKTOP_DISABLE_PROTOCOL_REGISTRATION !== "1")
     app.setAsDefaultProtocolClient("opencode")
   const runFork = Effect.runForkWith(yield* Effect.context())
   setProtocolReporter((level, message, data) =>
@@ -50,7 +50,7 @@ export const prepareDesktop = Effect.gen(function* () {
 export const loadProxyEnvironment = Effect.gen(function* () {
   yield* Effect.try(() => {
     ensureLoopbackNoProxy()
-    // Electron 41.2 has a newer Node API than the current @types/node package.
+    // SAFETY: Electron's embedded Node exposes this API; the pinned @types/node package omits it.
     const proxyAwareHttp = http as typeof http & { setGlobalProxyFromEnv(): void }
     proxyAwareHttp.setGlobalProxyFromEnv()
   }).pipe(Effect.catch((error) => Effect.logWarning("failed to load proxy environment", { error })))

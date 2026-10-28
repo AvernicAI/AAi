@@ -6,6 +6,12 @@ Every feature of the desktop and web app that is not the core shell is an extens
 - Main-process SDK: `@opencode/gui-extensions/sdk/main` ([`main.ts`](src/sdk/main.ts))
 - Rules for agents: [`AGENTS.md`](AGENTS.md)
 
+`PromptContext` contributes a control beside the prompt and a `text()` getter read once when a normal prompt is
+submitted. The host captures that text as an additional user-context note, alongside existing attachments; it
+does not alter system instructions or add context to shell/slash commands. Captured text stays with that admitted
+message when an admission is retried. The context extension uses this registry for saved instructions and background
+information, with defaults managed by its Context configuration Settings page.
+
 ```mermaid
 flowchart LR
   subgraph main["Electron main (desktop only)"]
@@ -666,6 +672,8 @@ export const builtins = Extension.compose(
   { ...debug, main: () => import("./debug/main") },
   terminal,
   file,
+  { ...ide, main: () => import("./ide/main") },
+  backgrounds,
   review,
   details,
   { ...browser, main: () => import("./browser/main") },
@@ -692,6 +700,8 @@ export const builtins = Extension.compose(
   { ...debug, renderer: eager(debugRenderer) },
   { ...terminal, renderer: eager(terminalRenderer) },
   { ...file, renderer: eager(fileRenderer) },
+  { ...ide, renderer: eager(ideRenderer) },
+  { ...backgrounds, renderer: eager(backgroundsRenderer) },
   { ...review, renderer: eager(reviewRenderer) },
   { ...details, renderer: eager(detailsRenderer) },
   { ...browser, renderer: eager(browserRenderer) },

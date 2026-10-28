@@ -2,22 +2,16 @@
 setlocal
 cd /d "%~dp0"
 
-set "AAI_BIN="
-for /r "packages\cli\dist" %%f in (opencode.exe) do set "AAI_BIN=%%f"
-
-if not defined AAI_BIN (
-  echo [AAi] No built executable was found under packages\cli\dist.
-  echo        Run build.bat first.
-  pause
-  exit /b 1
-)
-
-echo [AAi] Running "%AAI_BIN%"
-"%AAI_BIN%" %*
+call "%~dp0script\windows-env.bat"
+if errorlevel 1 goto failed
+"%AAI_BUN%" run script/windows.ts run %*
 if errorlevel 1 (
-  echo [AAi] AAi exited with an error.
-  pause
-  exit /b 1
+  goto failed
 )
 
-endlocal
+exit /b 0
+
+:failed
+echo [AAi] Desktop launch failed. Run build.bat if the executable is missing.
+if not defined AAI_NO_PAUSE pause
+exit /b 1

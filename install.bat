@@ -2,21 +2,21 @@
 setlocal
 cd /d "%~dp0"
 
-where bun >nul 2>nul
-if errorlevel 1 (
-  echo [AAi] Bun is required but was not found on PATH.
-  echo        Install it from https://bun.sh and run this script again.
-  pause
-  exit /b 1
-)
+call "%~dp0script\windows-env.bat"
+if errorlevel 1 goto failed
 
 echo [AAi] Installing workspace dependencies...
-call bun install %*
+"%AAI_BUN%" run script/windows.ts install %*
 if errorlevel 1 (
   echo [AAi] Install failed.
-  pause
+  if not defined AAI_NO_PAUSE pause
   exit /b 1
 )
 
 echo [AAi] Dependencies installed.
 endlocal
+exit /b 0
+
+:failed
+if not defined AAI_NO_PAUSE pause
+exit /b 1

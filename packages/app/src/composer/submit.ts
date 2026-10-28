@@ -29,6 +29,7 @@ type ComposerSubmission = {
 
 type ComposerSubmitInput = {
   adapter: ComposerAdapter
+  additionalContext?: () => ComposerSubmission["context"]
   mode: Accessor<"normal" | "shell">
   commands: Accessor<readonly { name: string }[] | undefined>
   editor: () => HTMLDivElement | undefined
@@ -119,6 +120,10 @@ export function createComposerSubmit(input: ComposerSubmitInput) {
     // Images restored from a draft or history carry ids only; the optimistic message shows their URLs.
     const value = {
       ...read,
+      context: [
+        ...read.context,
+        ...(read.mode === "normal" && !parseSlashCommand(text) ? (input.additionalContext?.() ?? []) : []),
+      ],
       images: await Promise.all(
         read.images.map(async (image) => ({
           ...image,

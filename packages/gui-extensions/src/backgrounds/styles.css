@@ -1,0 +1,95 @@
+.aai-background-layer,
+.aai-background-preview {
+  background-position: center;
+  background-size: cover;
+  background-repeat: no-repeat;
+}
+
+/* A quiet, non-interactive wash keeps the theme's surfaces and text legible. */
+.aai-background-layer {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  opacity: 0.12;
+  border-radius: inherit;
+}
+
+.aai-background-layer[data-design="aurora"],
+.aai-background-preview[data-design="aurora"] {
+  background-image: url("./art/aurora.svg");
+}
+
+.aai-background-layer[data-design="ember"],
+.aai-background-preview[data-design="ember"] {
+  background-image: url("./art/ember.svg");
+}
+
+.aai-background-layer[data-design="blueprint"],
+.aai-background-preview[data-design="blueprint"] {
+  background-image: url("./art/blueprint.svg");
+}
+
+.aai-background-choices {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.aai-background-choice {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+  padding: 12px;
+  border: 1px solid var(--v2-border-border-base);
+  border-radius: 12px;
+  text-align: start;
+  color: var(--v2-text-text-base);
+  background: var(--v2-background-bg-base);
+  cursor: pointer;
+}
+
+.aai-background-choice[aria-pressed="true"],
+.aai-background-choice:focus-visible {
+  outline: 2px solid var(--v2-border-border-focus);
+  outline-offset: 2px;
+}
+
+.aai-background-preview {
+  display: block;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  border-radius: 6px;
+  background-color: var(--v2-background-bg-deep);
+}
+
+.aai-background-name {
+  font-size: 14px;
+  font-weight: 600;
+  line-height: var(--line-height-base);
+}
+
+.aai-background-description,
+.aai-background-selected {
+  font-size: 12px;
+  line-height: var(--line-height-base);
+  color: var(--v2-text-text-subtle);
+}
+
+.aai-background-selected {
+  min-height: var(--line-height-base);
+}
+
+@media (max-width: 600px) {
+  .aai-background-choices {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (forced-colors: active) {
+  .aai-background-layer {
+    display: none;
+  }
+}

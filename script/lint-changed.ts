@@ -1,7 +1,7 @@
 #!/usr/bin/env bun
 // Fails when a GUI package file this branch adds or edits has any oxlint problem, including warn-level rules (anti-slop):
 // a change that touches a file leaves the whole file clean. Untouched files and other packages are not checked.
-// Usage: bun script/lint-changed.ts [base-ref]   (default: merge base with upstream/dev, origin/dev, or dev)
+// Usage: bun script/lint-changed.ts [base-ref]   (default: merge base with origin/dev, upstream/dev, or dev)
 import { $ } from "bun"
 
 type Diagnostic = {
@@ -30,7 +30,13 @@ if (files.length === 0) {
   process.exit(0)
 }
 
-const report = JSON.parse(await $`bunx oxlint --format json ${files}`.nothrow().quiet().text()) as {
+const lint = Bun.spawn(["bunx", "oxlint", "--format", "json", ...files], { stdout: "pipe", stderr: "inherit" })
+const output = await new Response(lint.stdout).text()
+const exitCode = await lint.exited
+
+if (!output.trim()) throw new Error(`lint:changed: oxlint returned no diagnostics (exit ${exitCode})`)
+
+const report = JSON.parse(output) as {
   diagnostics: Diagnostic[]
 }
 
@@ -46,7 +52,7 @@ process.exit(report.diagnostics.length > 0 ? 1 : 0)
 
 async function resolveBase(explicit: string | undefined) {
   if (explicit) return (await $`git rev-parse ${explicit}`.text()).trim()
-  const refs = ["upstream/dev", "origin/dev", "dev"]
+  const refs = ["origin/dev", "upstream/dev", "dev"]
   const found = await Promise.all(
     refs.map(async (ref) => (await $`git rev-parse --verify --quiet ${ref}`.nothrow().quiet()).exitCode === 0),
   )

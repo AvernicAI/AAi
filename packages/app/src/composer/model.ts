@@ -26,6 +26,7 @@ import { createComposerHistory } from "./history/store"
 import { createComposerSubmit } from "./submit"
 import { useAttachmentDestination } from "./attachments/destination"
 import { parseClientSlashCommand } from "./client-slash-command"
+import { PromptContext } from "@opencode/gui-extensions/sdk"
 
 export type ComposerModel = ComposerEditorModel & {
   readonly model: ComposerControls["model"]
@@ -46,7 +47,8 @@ export function createComposerModel(adapter: ComposerAdapter, options?: { queue?
     server.conn.type !== "extension" || !server.conn.managed || server.ctx.sdk.connection.status() === "connected"
 
   const files = useFile()
-  const links = useExtensionHost().links
+  const host = useExtensionHost()
+  const links = host.links
   const extensions = useExtensionAttachment()
   const comments = useComments()
   const dialog = useDialog()
@@ -258,6 +260,25 @@ export function createComposerModel(adapter: ComposerAdapter, options?: { queue?
 
   const submission = createComposerSubmit({
     adapter,
+    additionalContext: () =>
+      host.items(PromptContext).flatMap((item) => {
+        const text = item.value.text().trim()
+
+        return text
+          ? [
+              {
+                type: "note" as const,
+                key: `${item.extension}:${item.value.id}`,
+                origin: item.extension,
+                commentID: `${item.extension}:${item.value.id}`,
+                label: item.value.title,
+                icon: "status" as const,
+                subject: item.value.title,
+                comment: text,
+              },
+            ]
+          : []
+      }),
     mode,
     commands: () => data.location.command.list({ directory: sdk().directory }),
     editor: () => editor,

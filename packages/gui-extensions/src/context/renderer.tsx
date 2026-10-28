@@ -1,10 +1,71 @@
 import { lazy, onCleanup, Show, Suspense } from "solid-js"
-import { onIdle, Panel, Slot, usePanel, type PanelTab, type Setup } from "../sdk"
+import { onIdle, Panel, PromptContext, SettingsPage, Slot, Style, usePanel, type PanelTab, type Setup } from "../sdk"
 import type definition from "./index"
 import { SessionContextUsage } from "./indicator"
+import css from "./settings.css?inline"
 
 const setup: Setup<typeof definition> = (ctx) => {
   const SessionContextTab = lazy(() => import("./tab"))
+  const ContextSettings = lazy(() => import("./settings"))
+
+  const ContextControl = lazy(async () => {
+    const module = await import("./settings")
+
+    return { default: module.ContextControl }
+  })
+
+  ctx.add(Style, css)
+  onCleanup(
+    onIdle(() => {
+      void ContextSettings.preload()
+      void ContextControl.preload()
+    }),
+  )
+  ctx.add(SettingsPage, {
+    id: "context-configuration",
+    icon: "status",
+    get title() {
+      return ctx.t("settings.title")
+    },
+    get entries() {
+      return [
+        {
+          id: "context-configuration",
+          title: ctx.t("settings.title"),
+          keywords: "instructions background tokens context compaction memory",
+        },
+      ]
+    },
+    render: () => (
+      <>
+        <div class="settings-tab-header">
+          <h2 class="settings-tab-title">{ctx.t("settings.title")}</h2>
+        </div>
+        <div class="settings-tab-body">
+          <Suspense>
+            <ContextSettings />
+          </Suspense>
+        </div>
+      </>
+    ),
+  })
+  ctx.add(PromptContext, {
+    id: "saved",
+    get title() {
+      return ctx.t("settings.title")
+    },
+    text: () =>
+      ctx.stores.preferences.value.enabled
+        ? [ctx.stores.preferences.value.instructions.trim(), ctx.stores.preferences.value.background.trim()]
+            .filter(Boolean)
+            .join("\n\n")
+        : "",
+    render: () => (
+      <Suspense>
+        <ContextControl />
+      </Suspense>
+    ),
+  })
   // Compile the tab while the app idles, so the first open renders at once.
   onCleanup(onIdle(() => void SessionContextTab.preload()))
 

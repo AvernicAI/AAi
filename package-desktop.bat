@@ -2,13 +2,6 @@
 setlocal
 cd /d "%~dp0"
 
-echo [AAi] Building desktop installers...
-call bun run --cwd packages/desktop package %*
-if errorlevel 1 (
-  echo [AAi] Desktop packaging failed.
-  pause
-  exit /b 1
-)
-
-echo [AAi] Installers are in packages\desktop\dist.
-endlocal
+rem Rebuild before packaging so an old bundle can never be shipped accidentally.
+call "%~dp0build.bat" %*
+exit /b %errorlevel%

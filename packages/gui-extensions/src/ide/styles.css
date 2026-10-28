@@ -1,0 +1,312 @@
+.aai-ide {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+  min-width: 0;
+  color: var(--text-base);
+  background: var(--background-base);
+  font-size: 13px;
+  line-height: var(--line-height-compact, 16px);
+}
+.aai-ide * {
+  box-sizing: border-box;
+}
+.aai-ide button,
+.aai-ide summary {
+  cursor: pointer;
+}
+.aai-ide button {
+  padding: 5px 8px;
+  border: 1px solid transparent;
+  border-radius: 3px;
+  color: inherit;
+  text-align: start;
+}
+.aai-ide button:hover,
+.aai-ide summary:hover {
+  background: var(--surface-base-hover);
+}
+.aai-ide button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+.aai-ide button[aria-pressed="true"],
+.aai-ide button[aria-selected="true"] {
+  background: var(--surface-base-active);
+  border-color: var(--border-base);
+}
+.aai-ide :is(button, input, textarea, summary):focus-visible {
+  outline: 2px solid var(--border-focus);
+  outline-offset: -2px;
+}
+.aai-ide input:not([type="checkbox"]),
+.aai-ide textarea {
+  display: block;
+  width: 100%;
+  padding: 7px 8px;
+  border: 1px solid var(--border-base);
+  border-radius: 3px;
+  color: var(--text-base);
+  background: var(--background-base);
+  font: inherit;
+  line-height: var(--line-height-base, 20px);
+}
+.aai-ide textarea {
+  resize: vertical;
+  font-family: var(--font-family-mono, monospace);
+}
+.aai-ide label {
+  display: block;
+  margin: 8px 0;
+}
+.aai-ide label > :is(input, textarea) {
+  margin-top: 6px;
+}
+.aai-ide p {
+  margin: 10px 4px;
+  line-height: var(--line-height-base, 20px);
+  color: var(--text-weak);
+}
+.aai-ide h3 {
+  margin: 12px 4px 6px;
+  font-weight: 600;
+}
+.aai-ide-tools,
+.aai-ide-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  flex-wrap: wrap;
+  padding: 5px;
+}
+.aai-ide-tools {
+  flex: none;
+  border-bottom: 1px solid var(--border-base);
+}
+.aai-ide-body {
+  flex: 1;
+  display: flex;
+  min-height: 0;
+  min-width: 0;
+}
+.aai-ide-sidebar {
+  width: 235px;
+  min-width: 160px;
+  max-width: 45%;
+  flex-shrink: 0;
+  overflow: auto;
+  resize: horizontal;
+  border-right: 1px solid var(--border-base);
+  padding: 6px;
+}
+.aai-ide-sidebar > [hidden] {
+  display: none;
+}
+.aai-ide-main {
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+.aai-ide-tabs {
+  display: flex;
+  flex: none;
+  overflow-x: auto;
+  min-height: 34px;
+  border-bottom: 1px solid var(--border-base);
+}
+.aai-ide-tab {
+  display: flex;
+  flex-shrink: 0;
+  border-right: 1px solid var(--border-base);
+}
+.aai-ide-tab [role="tab"] {
+  white-space: nowrap;
+}
+.aai-ide-tab > button:last-child {
+  display: flex;
+  align-items: center;
+}
+.aai-ide-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  min-height: 28px;
+  overflow-wrap: anywhere;
+}
+.aai-ide-row > span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.aai-ide-tree .aai-ide-row {
+  white-space: nowrap;
+}
+.aai-ide-match {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  gap: 5px;
+  margin-top: 5px;
+}
+.aai-ide-match :is(span, code) {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+  white-space: nowrap;
+}
+.aai-ide-match code {
+  color: var(--text-weak);
+}
+.aai-ide-create {
+  margin: 7px 0;
+}
+.aai-ide-check {
+  display: flex !important;
+  align-items: center;
+  gap: 7px;
+}
+.aai-ide-editor-area {
+  flex: 1;
+  position: relative;
+  min-height: 140px;
+  min-width: 0;
+}
+.aai-ide-editor {
+  position: absolute;
+  inset: 0;
+}
+.aai-ide-empty {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-content: center;
+  padding: 20px;
+  background: var(--background-base);
+  color: var(--text-weak);
+  text-align: center;
+}
+.aai-ide-diff {
+  position: absolute;
+  inset: 0;
+  background: var(--background-base);
+  display: flex;
+  flex-direction: column;
+}
+.aai-ide-diff pre {
+  padding: 10px;
+  flex: 1;
+  overflow: auto;
+  white-space: pre;
+  font-family: var(--font-family-mono, monospace);
+}
+.aai-ide-status {
+  display: flex;
+  flex: none;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  padding: 3px 6px;
+  min-height: 28px;
+  border-top: 1px solid var(--border-base);
+}
+.aai-ide-status span {
+  margin-inline-start: auto;
+  color: var(--text-weak);
+}
+.aai-ide-error {
+  display: flex;
+  flex: none;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 8px;
+  color: var(--text-critical-base);
+  background: var(--surface-critical-base);
+}
+.aai-ide-bottom {
+  min-height: 100px;
+  max-height: 35%;
+  overflow: auto;
+  border-top: 1px solid var(--border-base);
+  padding: 6px;
+}
+.aai-ide-bottom pre,
+.aai-ide-console {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  font-family: var(--font-family-mono, monospace);
+  line-height: var(--line-height-base, 20px);
+}
+.aai-ide-console {
+  min-height: 50px;
+  max-height: 240px;
+  overflow: auto;
+  user-select: text;
+}
+.aai-ide-file-actions {
+  position: relative;
+  margin-inline-start: auto;
+}
+.aai-ide-file-actions summary {
+  padding: 5px 8px;
+}
+.aai-ide-file-actions > div {
+  position: absolute;
+  right: 0;
+  top: 100%;
+  z-index: 20;
+  min-width: 200px;
+  padding: 4px;
+  background: var(--background-base);
+  border: 1px solid var(--border-base);
+  box-shadow: 0 4px 14px #0003;
+}
+.aai-ide-file-actions > div button {
+  display: block;
+  width: 100%;
+}
+.aai-ide-message {
+  padding: 24px;
+  color: var(--text-base);
+}
+.aai-ide-breakpoint {
+  background: var(--text-critical-base, #d84b4b);
+  border-radius: 50%;
+  transform: scale(0.55);
+}
+@media (max-width: 850px) {
+  .aai-ide-sidebar {
+    width: 180px;
+    min-width: 120px;
+  }
+  .aai-ide-tools button {
+    padding: 5px;
+  }
+}
+@media (max-width: 520px) {
+  .aai-ide-body {
+    flex-direction: column;
+  }
+  .aai-ide-sidebar {
+    width: 100%;
+    max-width: none;
+    max-height: 35%;
+    min-height: 100px;
+    resize: vertical;
+    border-right: 0;
+    border-bottom: 1px solid var(--border-base);
+  }
+  .aai-ide-main {
+    flex: 1;
+  }
+  .aai-ide-tools button {
+    min-height: 36px;
+  }
+  .aai-ide-status span {
+    margin-inline-start: 0;
+  }
+}

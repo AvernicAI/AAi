@@ -4,6 +4,8 @@ import btw from "./btw"
 import debug from "./debug"
 import terminal from "./terminal"
 import file from "./file"
+import ide from "./ide"
+import backgrounds from "./backgrounds"
 import review from "./review"
 import details from "./details"
 import browser from "./browser"
@@ -23,6 +25,8 @@ export const builtins = Extension.compose(
   { ...debug, main: () => import("./debug/main") },
   terminal,
   file,
+  { ...ide, main: () => import("./ide/main") },
+  backgrounds,
   review,
   details,
   { ...browser, main: () => import("./browser/main") },

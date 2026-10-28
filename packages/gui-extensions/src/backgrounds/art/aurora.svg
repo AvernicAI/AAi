@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 1000" fill="none">
+  <defs>
+    <linearGradient id="sky" x2="1600" y2="1000" gradientUnits="userSpaceOnUse"><stop stop-color="#071c25"/><stop offset=".5" stop-color="#11182f"/><stop offset="1" stop-color="#35204b"/></linearGradient>
+    <linearGradient id="ribbon" x1="100" y1="800" x2="1400" y2="100" gradientUnits="userSpaceOnUse"><stop stop-color="#70f7cd" stop-opacity="0"/><stop offset=".45" stop-color="#70f7cd"/><stop offset="1" stop-color="#b8a0ff" stop-opacity=".1"/></linearGradient>
+    <radialGradient id="glow"><stop stop-color="#5bf1c6" stop-opacity=".3"/><stop offset="1" stop-color="#5bf1c6" stop-opacity="0"/></radialGradient>
+  </defs>
+  <path fill="url(#sky)" d="M0 0h1600v1000H0z"/>
+  <ellipse cx="500" cy="650" rx="750" ry="500" fill="url(#glow)"/>
+  <g stroke="url(#ribbon)">
+    <path d="M-200 930C220 800 300 170 800 330s600-280 1050-240" stroke-width="140" opacity=".08"/>
+    <path d="M-200 930C220 800 300 170 800 330s600-280 1050-240" stroke-width="2"/>
+    <path d="M-200 960C220 830 300 200 800 360s600-280 1050-240" opacity=".6"/>
+    <path d="M-200 990C220 860 300 230 800 390s600-280 1050-240" opacity=".35"/>
+  </g>
+  <g transform="translate(1200 610)" stroke="#a5fce2">
+    <ellipse rx="235" ry="100" transform="rotate(-35)" opacity=".3"/>
+    <circle r="165" opacity=".16"/>
+    <circle cx="190" cy="-111" r="5" fill="#a5fce2"/>
+    <path d="m-98 52 40-105 40 105m-65-35h50m22 35L29-53 69 52M4 17h50m38-17v52m0-80v8" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>
+  </g>
+  <g fill="#b9f9ee" opacity=".5"><circle cx="140" cy="180" r="2"/><circle cx="390" cy="95" r="2"/><circle cx="1000" cy="190" r="2"/><circle cx="1480" cy="340" r="2"/><circle cx="820" cy="790" r="2"/></g>
+  <text x="1050" y="890" fill="#b9f9ee" opacity=".65" font-family="monospace" font-size="18" letter-spacing="8">AVERNIC AI / AURORA</text>
+</svg>

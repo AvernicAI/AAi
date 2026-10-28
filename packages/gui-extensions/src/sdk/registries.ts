@@ -692,3 +692,25 @@ export const Slot = Registry.define<Slot>("slot")
  * ```
  */
 export const Style = Registry.define<string>("style")
+
+/** Saved user context and controls contributed to every prompt composer. */
+export interface PromptContext {
+  /** Local contribution id, unique within the extension. */
+  readonly id: string
+  /** Translated label shown with the context in sent-message metadata. */
+  readonly title: string
+  /** Returns additional user context at submission time; an empty string includes nothing. */
+  text(): string
+  /** Renders controls beside the prompt; follows the contribution's extension context. */
+  render(): JSX.Element
+}
+
+/**
+ * The registry of additional user context and its composer controls. Shell and slash commands do not include it.
+ *
+ * @example
+ * ```ts
+ * ctx.add(PromptContext, { id: "preferences", title: "Preferences", text: () => "Be concise", render: () => null })
+ * ```
+ */
+export const PromptContext = Registry.define<PromptContext>("prompt-context")

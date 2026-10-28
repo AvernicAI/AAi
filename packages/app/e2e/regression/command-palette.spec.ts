@@ -3,6 +3,15 @@ import { captureConsoleWarnings, openCommandPalette, paletteSession } from "../u
 
 test.use({ serviceWorkers: "block", permissions: ["clipboard-read", "clipboard-write"] })
 
+test("Open IDE stays discoverable on Home and explains the required session", async ({ page }) => {
+  const { dialog, input } = await openCommandPalette(page, true)
+  await input.fill("Open IDE")
+  await expect(dialog.getByRole("option", { name: /^Open IDE/ })).toBeVisible()
+  await input.press("Enter")
+  await expect(dialog).toHaveCount(0)
+  await expect(page.getByText("Open a project and session, then choose Open IDE to edit its workspace.", { exact: true })).toBeVisible()
+})
+
 test("copies the session ID while file and session searches are still pending", async ({ page }) => {
   const warnings = captureConsoleWarnings(page)
   const { dialog, input } = await openCommandPalette(page)

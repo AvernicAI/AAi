@@ -199,6 +199,19 @@ test("closing the last restored terminal does not create a hidden replacement", 
   )
 })
 
+test("a terminal renderer load failure does not replace its shell", async ({ page }) => {
+  await page.route(/ghostty-web.*\.js(?:\?|$)/, (route) => route.abort())
+  const { pty } = await openSession(page, workspace)
+  await page.keyboard.press("Control+Backquote")
+  await expect(page.getByText("Connection Lost", { exact: true })).toHaveCount(1)
+  await expect(page.locator("#terminal-wrapper-pty_1")).toBeAttached()
+
+  await page.getByRole("button", { name: "New terminal", exact: true }).click()
+  await expect(page.getByRole("tab", { name: "Terminal 2", exact: true })).toHaveAttribute("aria-selected", "true")
+  await expect.poll(() => pty.created.map((item) => item.id)).toEqual(["pty_1", "pty_2"])
+  await expect(page.locator("#terminal-wrapper-pty_1")).toBeAttached()
+})
+
 function legacyTerminalKey() {
   const dir = base64Encode("C:/OpenCode/TerminalInput")
   const head = dir.slice(0, 12).replace(/[^a-zA-Z0-9._-]/g, "-")

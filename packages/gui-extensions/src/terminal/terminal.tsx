@@ -759,7 +759,6 @@ export const Terminal = (props: TerminalProps) => {
         title: extension.t("connectionLost.title"),
         description: err instanceof Error ? err.message : extension.t("connectionLost.description"),
       })
-      local.onConnectError?.(err)
     })
   })
 

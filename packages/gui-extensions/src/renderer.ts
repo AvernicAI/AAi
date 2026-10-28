@@ -9,6 +9,10 @@ import terminal from "./terminal"
 import terminalRenderer from "./terminal/renderer"
 import file from "./file"
 import fileRenderer from "./file/renderer"
+import ide from "./ide"
+import ideRenderer from "./ide/renderer"
+import backgrounds from "./backgrounds"
+import backgroundsRenderer from "./backgrounds/renderer"
 import review from "./review"
 import reviewRenderer from "./review/renderer"
 import details from "./details"
@@ -41,6 +45,8 @@ export const builtins = Extension.compose(
   { ...debug, renderer: eager(debugRenderer) },
   { ...terminal, renderer: eager(terminalRenderer) },
   { ...file, renderer: eager(fileRenderer) },
+  { ...ide, renderer: eager(ideRenderer) },
+  { ...backgrounds, renderer: eager(backgroundsRenderer) },
   { ...review, renderer: eager(reviewRenderer) },
   { ...details, renderer: eager(detailsRenderer) },
   { ...browser, renderer: eager(browserRenderer) },
