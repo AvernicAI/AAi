@@ -1,6 +1,7 @@
 import path from "path"
 import fs from "fs/promises"
 import { writeFileSync } from "node:fs"
+import { parse } from "jsonc-parser"
 import { describe, expect } from "bun:test"
 import { Document, Event, Info } from "@opencode/schema/config"
 import { Agent } from "@opencode/core/agent"
@@ -8,10 +9,12 @@ import { Command } from "@opencode/core/command"
 import { Config } from "@opencode/core/config"
 import { ConfigAgentPlugin } from "@opencode/core/config/plugin/agent"
 import { ConfigCommandPlugin } from "@opencode/core/config/plugin/command"
+import { ConfigPolicyPlugin } from "@opencode/core/config/plugin/policy"
 import { ConfigProviderPlugin } from "@opencode/core/config/plugin/provider"
 import { ConfigReferencePlugin } from "@opencode/core/config/plugin/reference"
 import { ConfigCompatibilityPlugin } from "@opencode/core/config/plugin/compatibility"
 import { ConfigSkillPlugin } from "@opencode/core/config/plugin/skill"
+import { ConfigWebSearchPlugin } from "@opencode/core/config/plugin/websearch"
 import { Bus } from "@opencode/core/bus"
 import { Integration } from "@opencode/core/integration"
 import { Plugin } from "@opencode/core/plugin"
@@ -20,6 +23,8 @@ import { AppNodeBuilder } from "@opencode/core/effect/app-node-builder"
 import { Provider } from "@opencode/core/provider"
 import { Reference } from "@opencode/core/reference"
 import { Skill } from "@opencode/core/skill"
+import { State } from "@opencode/core/state"
+import { WebSearch } from "@opencode/core/websearch"
 import { ShellSelect } from "@opencode/core/shell/select"
 import { Job } from "@opencode/core/job"
 import { SubagentJob } from "@opencode/core/session/subagent-job"
@@ -48,6 +53,44 @@ const decode = Schema.decodeUnknownSync(Info)
 const document = path.join(import.meta.dir, "opencode.json")
 
 describe("config plugin reloads", () => {
+  it.live("updates and resets compaction without removing shell or JSONC comments", () =>
+    Effect.acquireDisposable(Effect.promise(() => tmpdir())).pipe(
+      Effect.flatMap((tmp) =>
+        Effect.gen(function* () {
+          const file = path.join(tmp.path, "global", "opencode.jsonc")
+          yield* Effect.promise(async () => {
+            await fs.mkdir(path.join(tmp.path, "home"), { recursive: true })
+            await Bun.write(
+              file,
+              '{\n  // Keep my configuration\n  "shell": "custom-shell",\n  "compaction": { "auto": false }\n}\n',
+            )
+          })
+          return yield* Effect.gen(function* () {
+            const config = yield* Config.Service
+            if (!config.update) return yield* Effect.die("Global configuration must support updates")
+            yield* config.update({ compaction: { auto: true, buffer: 16384, keep: { tokens: 4096 } } })
+            expect(Config.latest(yield* config.entries(), "compaction")).toMatchObject({
+              auto: true,
+              buffer: 16384,
+              keep: { tokens: 4096 },
+            })
+            const updated = yield* Effect.promise(() => Bun.file(file).text())
+            expect(updated).toContain("// Keep my configuration")
+            expect(decode(parse(updated))).toMatchObject({
+              shell: "custom-shell",
+              compaction: { auto: true, buffer: 16384, keep: { tokens: 4096 } },
+            })
+            yield* config.update({ compaction: null })
+            expect(Config.latest(yield* config.entries(), "compaction")).toBeUndefined()
+            const reset = decode(parse(yield* Effect.promise(() => Bun.file(file).text())))
+            expect(reset.shell).toBe("custom-shell")
+            expect(reset.compaction).toBeUndefined()
+          }).pipe(Effect.provide(liveConfig(tmp.path, undefined, { global: true })))
+        }),
+      ),
+    ),
+  )
+
   for (const input of [
     { root: ".agents", global: false },
     { root: "../.claude", global: false },
@@ -318,6 +361,161 @@ describe("config plugin reloads", () => {
 
       expect((yield* skills.list()).some((skill) => skill.id === "first")).toBe(false)
       expect((yield* skills.list()).some((skill) => skill.id === "second")).toBe(true)
+    }).pipe(
+      Effect.provide(Config.testLayer([config("first")])),
+      Effect.provideService(Global.Service, Global.Service.of(Global.make())),
+    ),
+  )
+
+  it.live("publishes catalog updates on boot and real changes but skips unchanged reloads", () =>
+    Effect.gen(function* () {
+      const bus = yield* Bus.Service
+      const integrations = yield* Integration.Service
+      const plugins = yield* Plugin.Service
+      const websearch = yield* WebSearch.Service
+      const baseHost = yield* PluginHost.make(plugins)
+      const test = yield* Config.Test
+      const tracked = new Set<string>([
+        Agent.Event.Updated.type,
+        Command.Event.Updated.type,
+        Skill.Event.Updated.type,
+        Reference.Event.Updated.type,
+        WebSearch.Event.Updated.type,
+        Integration.Event.Updated.type,
+        Credential.Event.Updated.type,
+        Credential.Event.Switched.type,
+      ])
+      const counts = new Map<string, number>()
+      const reloads = { agent: 0, command: 0, skill: 0, reference: 0, websearch: 0, integration: 0 }
+      const count = (type: string) => counts.get(type) ?? 0
+      yield* Effect.acquireRelease(
+        bus.listen((event) =>
+          Effect.sync(() => {
+            if (!tracked.has(event.type)) return
+            counts.set(event.type, count(event.type) + 1)
+          }),
+        ),
+        (unsubscribe) => unsubscribe,
+      )
+      const host: typeof baseHost = {
+        ...baseHost,
+        agent: {
+          ...baseHost.agent,
+          reload: () => baseHost.agent.reload().pipe(Effect.tap(() => Effect.sync(() => void reloads.agent++))),
+        },
+        command: {
+          ...baseHost.command,
+          reload: () => baseHost.command.reload().pipe(Effect.tap(() => Effect.sync(() => void reloads.command++))),
+        },
+        skill: {
+          ...baseHost.skill,
+          reload: () => baseHost.skill.reload().pipe(Effect.tap(() => Effect.sync(() => void reloads.skill++))),
+        },
+        reference: {
+          ...baseHost.reference,
+          reload: () => baseHost.reference.reload().pipe(Effect.tap(() => Effect.sync(() => void reloads.reference++))),
+        },
+        websearch: {
+          ...baseHost.websearch,
+          reload: () => baseHost.websearch.reload().pipe(Effect.tap(() => Effect.sync(() => void reloads.websearch++))),
+        },
+        integration: {
+          ...baseHost.integration,
+          reload: () =>
+            baseHost.integration.reload().pipe(Effect.tap(() => Effect.sync(() => void reloads.integration++))),
+        },
+      }
+
+      let providerName = "First search"
+      yield* State.batch(
+        Effect.gen(function* () {
+          yield* websearch.transform((editor) =>
+            editor.add({ id: WebSearch.ID.make("search"), name: providerName, execute: () => Effect.succeed([]) }),
+          )
+          yield* ConfigAgentPlugin.Plugin.effect(host)
+          yield* ConfigCommandPlugin.Plugin.effect(host)
+          yield* ConfigSkillPlugin.Plugin.effect(host)
+          yield* ConfigPolicyPlugin.Plugin.effect(host)
+          yield* ConfigReferencePlugin.Plugin.effect(host)
+          yield* ConfigWebSearchPlugin.Plugin.effect(host)
+          yield* ConfigProviderPlugin.Plugin.effect(host)
+        }),
+      )
+      expect(Object.fromEntries(counts)).toEqual({
+        [Agent.Event.Updated.type]: 1,
+        [Command.Event.Updated.type]: 1,
+        [Skill.Event.Updated.type]: 1,
+        [Reference.Event.Updated.type]: 1,
+        [WebSearch.Event.Updated.type]: 1,
+        [Integration.Event.Updated.type]: 1,
+      })
+
+      counts.clear()
+      yield* Effect.yieldNow
+      yield* bus.publish(Event.Updated, {})
+      yield* waitUntil(
+        Effect.sync(
+          () =>
+            reloads.agent === 1 &&
+            reloads.command === 1 &&
+            reloads.skill === 2 &&
+            reloads.reference === 1 &&
+            reloads.websearch === 1 &&
+            reloads.integration === 1,
+        ),
+      )
+      expect(Object.fromEntries(counts)).toEqual({})
+
+      yield* integrations.connection.key({
+        integrationID: Integration.ID.make("first"),
+        key: "sk-test",
+        label: "Work",
+      })
+      const connected = yield* integrations.get(Integration.ID.make("first"))
+      expect(connected?.connections).toMatchObject([{ type: "credential", label: "Work", method: "key" }])
+      expect(Object.fromEntries(counts)).toEqual({
+        [Credential.Event.Updated.type]: 1,
+        [Credential.Event.Switched.type]: 1,
+      })
+
+      counts.clear()
+      yield* bus.publish(Event.Updated, {})
+      yield* waitUntil(
+        Effect.sync(
+          () =>
+            reloads.agent === 2 &&
+            reloads.command === 2 &&
+            reloads.skill === 4 &&
+            reloads.reference === 2 &&
+            reloads.websearch === 2 &&
+            reloads.integration === 2,
+        ),
+      )
+      expect(Object.fromEntries(counts)).toEqual({})
+
+      yield* test.setEntries([config("second")])
+      providerName = "Second search"
+      yield* host.websearch.reload()
+      yield* bus.publish(Event.Updated, {})
+      yield* waitUntil(
+        Effect.sync(
+          () =>
+            reloads.agent === 3 &&
+            reloads.command === 3 &&
+            reloads.skill === 6 &&
+            reloads.reference === 3 &&
+            reloads.websearch === 4 &&
+            reloads.integration === 3,
+        ),
+      )
+      expect(Object.fromEntries(counts)).toEqual({
+        [Agent.Event.Updated.type]: 1,
+        [Command.Event.Updated.type]: 1,
+        [Skill.Event.Updated.type]: 1,
+        [Reference.Event.Updated.type]: 1,
+        [WebSearch.Event.Updated.type]: 1,
+        [Integration.Event.Updated.type]: 1,
+      })
     }).pipe(
       Effect.provide(Config.testLayer([config("first")])),
       Effect.provideService(Global.Service, Global.Service.of(Global.make())),

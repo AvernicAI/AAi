@@ -11,11 +11,17 @@ const target = arch === "x64" ? "cli-windows-x64-baseline" : "cli-windows-arm64"
 const cliRoot = path.join(root, "packages/cli/dist")
 const cli = path.join(cliRoot, target, "bin/opencode.exe")
 const executable = channel === "prod" ? "AAi.exe" : channel === "beta" ? "AAi Beta.exe" : "AAi Dev.exe"
-const desktop = path.join(root, "packages/desktop/dist", arch === "arm64" ? "win-arm64-unpacked" : "win-unpacked", executable)
+const desktop = path.join(
+  root,
+  "packages/desktop/dist",
+  arch === "arm64" ? "win-arm64-unpacked" : "win-unpacked",
+  executable,
+)
 const env = {
   ...process.env,
   PATH: `${path.dirname(process.execPath)}${path.delimiter}${process.env.PATH ?? ""}`,
   OPENCODE_CHANNEL: channel,
+  OPENCODE_TARGET: arch === "arm64" ? "windows-arm64" : "windows-x64",
   OPENCODE_VERSION: process.env.OPENCODE_VERSION ?? pkg.version,
   OPENCODE_CLI_DIST: cliRoot,
   OPENCODE_CLI_TARGET: arch === "arm64" ? "aarch64-pc-windows-msvc" : "x86_64-pc-windows-msvc",
@@ -32,7 +38,9 @@ await main()
 async function main() {
   if (mode === "--help" || (["build", "build-cli"].includes(mode) && args.includes("--help"))) {
     console.log("[AAi] Windows workflows: build, build-cli, run, run-cli, install, dev, desktop-dev, web, check, sync.")
-    console.log("[AAi] build.bat creates the matching CLI, desktop executable, and installer. run.bat opens the desktop.")
+    console.log(
+      "[AAi] build.bat creates the matching CLI, desktop executable, and installer. run.bat opens the desktop.",
+    )
     console.log("[AAi] Set OPENCODE_CHANNEL=dev, beta, or prod to choose the application identity; the default is dev.")
     return
   }
@@ -57,19 +65,22 @@ async function main() {
   if (mode === "check") return script(root, "check", args)
   if (mode === "sync") return script(root, "sync:upstream", args)
   if (!["build", "build-cli"].includes(mode)) throw new Error(`Unknown Windows workflow: ${mode}`)
-  if (args.length) throw new Error("Builds use the current Windows architecture. Set OPENCODE_CHANNEL to dev, beta, or prod.")
+  if (args.length)
+    throw new Error("Builds use the current Windows architecture. Set OPENCODE_CHANNEL to dev, beta, or prod.")
   const missing = ["node", "git"].find((tool) => !Bun.which(tool))
-  if (missing) throw new Error(`Install ${missing === "node" ? "Node.js 24 or newer" : "Git for Windows"} and reopen the terminal before building.`)
+  if (missing)
+    throw new Error(
+      `Install ${missing === "node" ? "Node.js 24 or newer" : "Git for Windows"} and reopen the terminal before building.`,
+    )
 
   console.log(`[AAi] Building ${pkg.version} (${channel}, Windows ${arch}) from this checkout.`)
   await run([process.execPath, "install", "--frozen-lockfile"])
   // The desktop calls its stable channel "prod"; the CLI calls it "latest" and uses that to discover service.json.
-  await script(
-    path.join(root, "packages/cli"),
-    "build",
-    [`--target=${target.replace("cli-", "opencode-")}`, "--skip-install"],
-    { ...env, OPENCODE_CHANNEL: channel === "prod" ? "latest" : channel },
-  )
+  await script(path.join(root, "packages/cli"), "build", ["--skip-install"], {
+    ...env,
+    OPENCODE_TARGET: target.replace("cli-", ""),
+    OPENCODE_CHANNEL: channel === "prod" ? "latest" : channel,
+  })
   const verify = path.join(root, "node_modules/.cache/windows-cli-check")
   await run([cli, "--version"], {
     ...env,
@@ -85,7 +96,7 @@ async function main() {
 
   const directory = path.join(root, "packages/desktop")
   await script(directory, "install-electron")
-  // Bun runs prebuild before build: it copies this checkout's CLI, never a downloaded server.
+  // The build prepares resources from this checkout's CLI distribution.
   await script(directory, "build")
   await script(directory, "package:win", [`--${arch}`, "--publish=never"])
   if (!(await Bun.file(desktop).exists())) throw new Error(`Packaged desktop executable missing: ${desktop}`)
@@ -102,6 +113,7 @@ async function script(directory: string, name: string, extra: string[] = [], env
 }
 
 async function run(command: string[], environment = env) {
-  const code = await Bun.spawn(command, { cwd: root, env: environment, stdio: ["inherit", "inherit", "inherit"] }).exited
+  const code = await Bun.spawn(command, { cwd: root, env: environment, stdio: ["inherit", "inherit", "inherit"] })
+    .exited
   if (code !== 0) throw new Error(`[AAi] ${command.join(" ")} failed (exit ${code}).`)
 }

@@ -29,7 +29,7 @@
     "../ui/src/custom-elements.d.ts",
     "component-tests",
     "playwright.components.config.ts",
-    "../storybook/playwright/*.ts",
+    "../stories/playwright/*.ts",
     "package.json"
   ],
   "exclude": ["dist", "ts-dist", "src/custom-elements.d.ts"]

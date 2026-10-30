@@ -19,10 +19,10 @@ Every workflow has a double-clickable batch file at the repository root:
 | `install.bat`         | Install Bun dependencies for the workspace.                        |
 | `dev.bat`             | Run the AAi CLI/TUI from source. Pass extra args, e.g. `dev.bat .` |
 | `build.bat`           | Build a matching CLI, desktop app, and Windows installer.          |
-| `run.bat`             | Launch the built AAi desktop app.                                 |
-| `build-desktop.bat`   | Run the complete desktop and installer build.                     |
-| `package-desktop.bat` | Rebuild everything and package a fresh Windows installer.         |
-| `build-cli.bat`       | Build only the standalone CLI/TUI executable.                     |
+| `run.bat`             | Launch the built AAi desktop app.                                  |
+| `build-desktop.bat`   | Run the complete desktop and installer build.                      |
+| `package-desktop.bat` | Rebuild everything and package a fresh Windows installer.          |
+| `build-cli.bat`       | Build only the standalone CLI/TUI executable.                      |
 | `run-cli.bat`         | Run the built CLI/TUI. Pass a directory or CLI arguments.          |
 | `desktop.bat`         | Run the desktop app in development mode.                           |
 | `web.bat`             | Run the web app in development mode.                               |
@@ -45,6 +45,13 @@ with AAi Dev branding and automatic updates disabled. Set `OPENCODE_CHANNEL=prod
 the existing AAi production identity, or `beta` for AAi Beta. Themes, providers, credentials, protocols,
 and OpenCode integrations retain their existing behavior. The IDE is under **View → Open IDE** or
 **Ctrl/Cmd+Shift+I**; backgrounds are under **Settings → AAi backgrounds**.
+
+**Settings → Context configuration** saves custom instructions and project background. Enable them beside
+the prompt with the **Context** switch, or open the same controls with the **Context** button. Saved context
+is added to normal prompts as a user note; shell commands, slash commands, and project rules keep their
+existing behavior. The page also configures automatic compaction, reserved context tokens, and recent-history
+tokens for the selected server. Blank budgets and **Restore compaction defaults** use OpenCode's defaults.
+The selected model still determines the maximum context window.
 
 Build errors return a nonzero exit code and remain visible for double-click launches. Set `AAI_NO_PAUSE=1`
 when running the scripts in automation. Arguments to dev/run scripts are forwarded unchanged.

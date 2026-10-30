@@ -26,7 +26,7 @@ const install = !args.includes("--no-install") && !dryRun
 const brand = [
   ["packages/desktop/src/main/constants.ts", `prod: "AAi"`, "desktop app name"],
   ["packages/desktop/src/main/constants.ts", `dev: "AAi Dev"`, "desktop dev name"],
-  ["packages/app/index.html", "<title>AAi</title>", "renderer title"],
+  ["packages/app/index.html", "<title data-sm>AAi</title>", "renderer title"],
   ["packages/cli/package.json", `"aai": "./bin/opencode.cjs"`, "aai command alias"],
   ["packages/core/src/plugin/provider.ts", "AvernicAIPlugin", "AvernicAi provider registration"],
   ["packages/core/src/plugin/provider/avernicai.ts", "AvernicAIPlugin", "AvernicAi provider plugin"],
@@ -49,7 +49,7 @@ const surfaces = [
   "packages/desktop/src/",
   "packages/tui/src/",
   "packages/cli/src/",
-  "packages/gui-extensions/src/",
+  "packages/gui-plugins/src/",
 ]
 
 await sync()

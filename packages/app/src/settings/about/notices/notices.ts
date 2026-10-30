@@ -1,4 +1,5 @@
 import apache from "./apache-2.0.txt?raw"
+import foundationLicense from "../../../../../../LICENSE?raw"
 import betterOfficeNotice from "./betteroffice-notice.txt?raw"
 import { crates, crateTexts } from "./crates"
 
@@ -7,6 +8,15 @@ import { crates, crateTexts } from "./crates"
  * Notices and license texts are reproduced verbatim from each project, so they are not translated.
  */
 export const notices = [
+  {
+    name: "OpenCode",
+    detail: undefined,
+    detailKey: "settings.about.notices.foundation" as const,
+    url: "https://github.com/anomalyco/opencode",
+    license: "MIT License",
+    notice: undefined,
+    text: foundationLicense,
+  },
   {
     name: "BetterOffice",
     detail: "@betteroffice/docx, @betteroffice/xlsx, @betteroffice/pptx, @betteroffice/fonts",

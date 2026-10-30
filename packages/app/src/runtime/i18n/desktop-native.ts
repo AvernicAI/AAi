@@ -218,10 +218,6 @@ export function detectDesktopNativeLocale(languages: readonly string[]): Desktop
   return "en"
 }
 
-export function desktopNativePluralCategories(locale: DesktopNativeLocale) {
-  return new Intl.PluralRules(DESKTOP_NATIVE_LOCALE_TAGS[locale]).resolvedOptions().pluralCategories
-}
-
 function locale(value: string) {
   try {
     return new Intl.Locale(value).maximize()
@@ -234,6 +230,7 @@ function locale(value: string) {
 const normalizeScript = (script?: string) => (script === "Aran" ? "Arab" : script)
 
 export const DESKTOP_NATIVE_ENGLISH = {
+  "desktop.microphoneUsage": "AAi uses your microphone for voice calls.",
   "desktop.menu.app": "AAi",
   "desktop.menu.file": "File",
   "desktop.menu.edit": "Edit",
@@ -274,7 +271,7 @@ export const DESKTOP_NATIVE_ENGLISH = {
   "desktop.menu.nextProject": "Next Project",
   "desktop.menu.minimize": "Minimize",
   "desktop.menu.maximize": "Maximize",
-  "desktop.menu.documentation": "OpenCode Documentation",
+  "desktop.menu.documentation": "AAi Documentation",
   "desktop.menu.supportForum": "Support Forum",
   "desktop.menu.shareFeedback": "Share Feedback",
   "desktop.menu.reportBug": "Report a Bug",
@@ -301,7 +298,6 @@ export const DESKTOP_NATIVE_ENGLISH = {
   "desktop.dialog.chooseFile": "Choose a file",
   "desktop.dialog.saveFile": "Save file",
   "desktop.dialog.files": "Files",
-  "desktop.server.local": "Local Server",
   "desktop.onboarding.defaultProject": "Default Project",
 
   "desktop.picker.error.notSelected": "File was not selected by the picker",
@@ -314,6 +310,7 @@ export type DesktopNativeMessages = Record<DesktopNativeKey, string>
 
 export type DesktopNativeBundle = { locale: DesktopNativeLocale; messages: DesktopNativeMessages }
 
+// SAFETY: These keys come only from the closed English message dictionary above.
 export const DESKTOP_NATIVE_KEYS = Object.keys(DESKTOP_NATIVE_ENGLISH) as DesktopNativeKey[]
 
 export const DESKTOP_NATIVE_MAX_PAYLOAD_BYTES = 64 * 1024
@@ -324,11 +321,16 @@ export function createDesktopNativeBundle(
 ): DesktopNativeBundle {
   return {
     locale,
+    // SAFETY: Every known key is mapped exactly once to a translated string.
     messages: Object.fromEntries(DESKTOP_NATIVE_KEYS.map((key) => [key, translate(key)])) as DesktopNativeMessages,
   }
 }
 
+// SAFETY: This is the IPC boundary for untrusted translation bundles; all fields are checked before native use.
+// oxlint-disable-next-line anti-slop/no-unknown-parameters -- the decoder owns the unknown payload
 export function parseDesktopNativeBundle(value: unknown): DesktopNativeBundle | undefined {
+  // SAFETY: Reject non-object payloads before reading bundle fields.
+  // oxlint-disable-next-line anti-slop/no-runtime-typeof -- representation validation at the IPC boundary
   if (!value || typeof value !== "object" || Array.isArray(value)) return undefined
 
   try {
@@ -337,20 +339,28 @@ export function parseDesktopNativeBundle(value: unknown): DesktopNativeBundle | 
     return undefined
   }
 
+  // SAFETY: The object check above permits reading optional fields as unknown, without trusting their values.
   const bundle = value as { locale?: unknown; messages?: unknown }
 
   if (!DESKTOP_NATIVE_LOCALES.some((locale) => locale === bundle.locale)) return undefined
 
+  // SAFETY: Messages must be an object before enumerating and validating its exact string-valued keys below.
+  // oxlint-disable-next-line anti-slop/no-runtime-typeof -- representation validation remains inside this decoder
   if (!bundle.messages || typeof bundle.messages !== "object" || Array.isArray(bundle.messages)) return undefined
+  // SAFETY: This temporary dictionary is confined to the decoder; no unknown value escapes the string checks.
+  // oxlint-disable-next-line anti-slop/no-unsafe-dictionary-type -- unknown values are inspected only at this boundary
   const messages = bundle.messages as Record<string, unknown>
   const keys = Object.keys(messages)
 
   if (keys.length !== DESKTOP_NATIVE_KEYS.length) return undefined
 
+  // SAFETY: Native messages accept strings only, so each required field is narrowed here before the final cast.
+  // oxlint-disable-next-line anti-slop/no-runtime-typeof -- validate each field once at its owning boundary
   if (!DESKTOP_NATIVE_KEYS.every((key) => typeof messages[key] === "string")) return undefined
 
   if (!keys.every((key) => key in DESKTOP_NATIVE_ENGLISH)) return undefined
 
+  // SAFETY: Locale, exact message keys, string values, and serialized size have all been checked above.
   return bundle as DesktopNativeBundle
 }
 

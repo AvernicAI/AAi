@@ -1,9 +1,10 @@
 import { createEffect, For, on, onCleanup } from "solid-js"
 import { createStore } from "solid-js/store"
+import { prefersReducedMotion } from "@opencode/ui/motion"
 
-const target = ["o", "p", "e", "n", "c", "o", "d", "e"] as const
+const target = ["A", "A", "i"] as const
 
-const choices = ["o", "p", "e", "n", "c", "d"] as const
+const choices = ["A", "i"] as const
 
 export function AnimatedWordmark(props: { active: boolean }) {
   const [state, setState] = createStore({ letters: [...target] })
@@ -16,7 +17,7 @@ export function AnimatedWordmark(props: { active: boolean }) {
         timers.forEach(clearTimeout)
         timers.clear()
 
-        if (!active || matchMedia("(prefers-reduced-motion: reduce)").matches) {
+        if (!active || prefersReducedMotion()) {
           setState("letters", [...target])
 
           return
@@ -47,8 +48,14 @@ export function AnimatedWordmark(props: { active: boolean }) {
   onCleanup(() => timers.forEach(clearTimeout))
 
   return (
-    <svg class="settings-about-wordmark" viewBox="0 0 234 42" aria-hidden="true">
+    <svg class="settings-about-wordmark" viewBox="0 0 84 42" aria-hidden="true">
       <defs>
+        <symbol id="settings-about-letter-A" viewBox="0 0 24 42">
+          <path fill-rule="evenodd" d="M0 36L8 6H16L24 36H18L16 28H8L6 36H0ZM10 20H14L12 12L10 20Z" />
+        </symbol>
+        <symbol id="settings-about-letter-i" viewBox="0 0 24 42">
+          <path d="M9 6H15V12H9V6ZM9 18H15V36H9V18Z" />
+        </symbol>
         <symbol id="settings-about-letter-o" viewBox="0 0 24 42">
           <path class="settings-about-letter-shadow" d="M18 30H6V18H18V30Z" />
           <path d="M18 12H6V30H18V12ZM24 36H0V6H24V36Z" />
@@ -75,9 +82,7 @@ export function AnimatedWordmark(props: { active: boolean }) {
         </symbol>
       </defs>
       <For each={state.letters}>
-        {(letter, index) => (
-          <use href={`#settings-about-letter-${letter}`} x={index() * 30} width="24" height="42" />
-        )}
+        {(letter, index) => <use href={`#settings-about-letter-${letter}`} x={index() * 30} width="24" height="42" />}
       </For>
     </svg>
   )

@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 1000" fill="none">
+  <defs>
+    <linearGradient id="paper" x2="1600" y2="1000" gradientUnits="userSpaceOnUse"><stop stop-color="#0d233e"/><stop offset="1" stop-color="#102f45"/></linearGradient>
+    <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse"><path d="M40 0H0v40" stroke="#80cafa" stroke-opacity=".09"/></pattern>
+    <pattern id="major" width="200" height="200" patternUnits="userSpaceOnUse"><path d="M200 0H0v200" stroke="#80cafa" stroke-opacity=".13"/></pattern>
+  </defs>
+  <path fill="url(#paper)" d="M0 0h1600v1000H0z"/>
+  <path fill="url(#grid)" d="M0 0h1600v1000H0z"/><path fill="url(#major)" d="M0 0h1600v1000H0z"/>
+  <g stroke="#91dcff" stroke-width="2">
+    <path d="m940 700 130-360h30l130 360m-230-90h170m60 90 130-360h30l130 360m-230-90h170m100-90v180"/>
+    <circle cx="1430" cy="468" r="9"/>
+    <path d="M860 750h650M910 285h570M900 315v420m600-420v420" stroke-dasharray="5 9" opacity=".4"/>
+    <path d="m872 742-12 8 12 8m626-16 12 8-12 8M891 327l9-12 9 12m-18 396 9 12 9-12" opacity=".6"/>
+    <circle cx="1090" cy="540" r="242" opacity=".12"/>
+    <path d="M120 220h320l80 80h180M120 240h310l80 80h190M120 260h300l80 80h200" opacity=".35"/>
+    <circle cx="710" cy="300" r="8"/><circle cx="710" cy="320" r="5"/><circle cx="710" cy="340" r="3"/>
+  </g>
+  <text x="120" y="820" fill="#b2e6ff" font-family="monospace" font-size="32" letter-spacing="5">AVERNIC AI</text>
+  <text x="122" y="856" fill="#6ea5c5" font-family="monospace" font-size="13" letter-spacing="4">WORKSPACE / INFINITE POSSIBILITIES</text>
+  <path d="M120 880h440" stroke="#80cafa" opacity=".4"/>
+</svg>

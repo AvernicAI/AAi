@@ -1,10 +1,10 @@
 import { For, Show } from "solid-js"
 import { Dialog, DialogBody, DialogHeader, DialogTitleGroup } from "@opencode/ui/dialog"
-import { ScrollView } from "@opencode/ui/scroll-view"
 import { useLanguage } from "@/runtime/i18n/language"
 import { ExternalLink } from "@/runtime/platform/external-link"
 import { fonts } from "./fonts"
 import { crateNotices, notices } from "./notices"
+import { FoundationCredits } from "../foundation-credits"
 
 const licenseOf = new Map(crateNotices.texts.map((text) => [text.id, text.license]))
 
@@ -26,8 +26,10 @@ export default function DialogThirdPartyNotices() {
         />
       </DialogHeader>
       <DialogBody>
-        <ScrollView class="settings-notices-scroll">
+        <div class="settings-notices-scroll" data-scrollable>
           <div class="settings-notices">
+            <h3>{language.t("settings.about.foundationCredits")}</h3>
+            <FoundationCredits />
             <For each={notices}>
               {(entry) => (
                 <section class="settings-notice">
@@ -107,7 +109,7 @@ export default function DialogThirdPartyNotices() {
               </For>
             </section>
           </div>
-        </ScrollView>
+        </div>
       </DialogBody>
     </Dialog>
   )

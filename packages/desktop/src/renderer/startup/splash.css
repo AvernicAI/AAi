@@ -1,3 +1,31 @@
+[data-component="startup-splash"] .aai-startup-logo {
+  width: min(240px, 60vw);
+  height: auto;
+  animation: aai-startup-pulse 1800ms ease-in-out infinite;
+  transform-origin: center;
+}
+
+@keyframes aai-startup-pulse {
+  0%,
+  100% {
+    opacity: 0.55;
+    transform: scale(0.98);
+    filter: drop-shadow(0 0 2px currentColor);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.04);
+    filter: drop-shadow(0 0 10px currentColor);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-component="startup-splash"] .aai-startup-logo {
+    animation: none;
+    opacity: 1;
+  }
+}
+
 [data-component="first-launch-splash"] path {
   /* Outline paths use a normalized length so the drawing scales with the wordmark. */
   stroke-dasharray: 1;
