@@ -1,4 +1,5 @@
 export const popularProviders = [
+  "vyce-code",
   "opencode-go",
   "opencode",
   "anthropic",

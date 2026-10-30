@@ -694,6 +694,7 @@ export default setup
 export const builtins = compose({
   ide: { ...ide, mainEntry: () => import("./ide/main") },
   backgrounds,
+  skills: { ...skills, mainEntry: () => import("./skills/main") },
   context,
   btw,
   debug: { ...debug, mainEntry: () => import("./debug/main") },
@@ -721,6 +722,7 @@ The window list adds each window entry, loaded with the app:
 export const builtins = compose({
   ide: { ...ide, windowEntry: eager(ideRenderer) },
   backgrounds: { ...backgrounds, windowEntry: eager(backgroundsRenderer) },
+  skills: { ...skills, windowEntry: eager(skillsRenderer) },
   context: { ...context, windowEntry: eager(contextRenderer) },
   btw: { ...btw, windowEntry: eager(btwRenderer) },
   debug: { ...debug, windowEntry: eager(debugRenderer) },

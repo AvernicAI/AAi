@@ -11,7 +11,7 @@
   inset: 0;
   z-index: 1;
   pointer-events: none;
-  opacity: 0.12;
+  opacity: 0.16;
   border-radius: inherit;
 }
 
@@ -28,6 +28,25 @@
 .aai-background-layer[data-design="blueprint"],
 .aai-background-preview[data-design="blueprint"] {
   background-image: url("./art/blueprint.svg");
+}
+
+.aai-background-layer[data-design="obsidian"],
+.aai-background-preview[data-design="obsidian"] {
+  background-image: url("./art/obsidian.svg");
+}
+
+.aai-background-layer[data-design="tidal"],
+.aai-background-preview[data-design="tidal"] {
+  background-image: url("./art/tidal.svg");
+}
+
+.aai-background-layer[data-design="nebula"],
+.aai-background-preview[data-design="nebula"] {
+  background-image: url("./art/nebula.svg");
+}
+
+html[data-color-scheme="light"] .aai-background-layer {
+  opacity: 0.055;
 }
 
 .aai-background-choices {
@@ -85,6 +104,12 @@
 @media (max-width: 600px) {
   .aai-background-choices {
     grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (min-width: 1100px) {
+  .aai-background-choices {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 }
 

@@ -8,6 +8,8 @@ export const ZOOM_LEVEL_KEY = "zoomLevel"
 
 export const BACKGROUND_COLOR_KEY = "backgroundColor"
 
+export const COLOR_SCHEME_KEY = "colorScheme"
+
 export const WINDOW_IDS_KEY = "windowIds"
 
 export const BUNDLED_CLI_VERSION_KEY = "bundledCliVersion"

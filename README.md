@@ -46,6 +46,56 @@ the existing AAi production identity, or `beta` for AAi Beta. Themes, providers,
 and OpenCode integrations retain their existing behavior. The IDE is under **View → Open IDE** or
 **Ctrl/Cmd+Shift+I**; backgrounds are under **Settings → AAi backgrounds**.
 
+Fresh profiles start in **dark mode with Avernic Ember**. Existing saved appearance choices remain available;
+**Restore Avernic Ember** resets the background, and **No artwork** removes it.
+
+Use **`/browse <task>`** for web research and website interaction. The built-in browser skill is available to
+tool-capable models whenever a desktop browser is attached, including during tasks started without a slash command.
+Use **`/control-mouse <task>`** for Windows applications and games. Its bundled skill and `computer` tool provide
+window discovery, screenshots, mouse movement/clicks/drags, scrolling, literal Unicode typing, and short key holds.
+Input targets the server machine's interactive desktop and follows AAi's existing permissions. AAi Stop, physical
+Escape, or moving the pointer to the primary screen's top-left corner stops input. Keys and buttons are released
+after bounded actions. Vision is needed to interpret screenshots; protected/elevated apps and some games reject
+synthetic input. Browser accessibility tools remain available to text-only models.
+
+**Settings → Providers → Vyce Code** includes **Sign in with Vyce Code** as its first login method, with API-key
+and environment-variable alternatives. Browser approval creates a separate AAi device identity; device keys stay
+in the existing credential store, and signed requests go only to `www.vyce-code.com`. Models are discovered after
+connection. Existing providers and accounts are unchanged.
+
+If Vyce's model-list route is unavailable, AAi uses the model IDs advertised by its public status endpoint.
+Listing a model does not guarantee that Vyce currently serves it. Vyce can accept browser sign-in while rejecting
+inference from an unsupported client build (`unsupported_build`); that restriction requires supported API access
+or approval from Vyce and is not fixed by reconnecting the same account.
+
+**Settings → Appearance** includes AAi Obsidian, AAi Tidal and AAi Nebula, each with dark and light variants.
+Matching SVG artwork is available in **AAi backgrounds**, alongside refreshed Aurora, Ember and Blueprint designs.
+Artwork and interface colors can be chosen independently. New profiles still start with Avernic Ember and dark mode.
+
+**Settings → Skill library** searches SkillMD out of the box. Preview instructions and bundled file names before
+installing; licenses, scripts and reference files are preserved, and downloading never runs those scripts. The
+Installed tab enables or disables library-managed skills without deleting their files. Installation targets the
+local server's global `skills` directory; remote-server installation is not offered by this desktop explorer.
+Add more sources under Catalogs: either a SkillMD-compatible API base URL or a JSON index such as:
+
+```json
+{
+  "items": [
+    {
+      "slug": "my-team/review",
+      "title": "Team review",
+      "description": "Review with our team's conventions",
+      "raw_url": "https://example.com/review/SKILL.md",
+      "bundle_url": "https://example.com/review.zip",
+      "files": [{ "path": "references/checklist.md" }]
+    }
+  ]
+}
+```
+
+`bundle_url` and `files` are optional; bundles use ZIP and contain a `SKILL.md` plus their resources in one skill
+directory. HTTPS catalogs and local HTTP catalogs are supported. Removing a catalog keeps its installed skills.
+
 **Settings → Context configuration** saves custom instructions and project background. Enable them beside
 the prompt with the **Context** switch, or open the same controls with the **Context** button. Saved context
 is added to normal prompts as a user note; shell commands, slash commands, and project rules keep their

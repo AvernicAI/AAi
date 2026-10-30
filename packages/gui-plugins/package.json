@@ -14,7 +14,8 @@
   "scripts": {
     "typecheck": "bun check --no-script -b",
     "typecheck:tsc": "tsc -b",
-    "test": "bun test"
+    "test": "bun test && bun run test:native",
+    "test:native": "bun --config=bunfig.native.toml test"
   },
   "dependencies": {
     "@betteroffice/docx": "0.4.3",
@@ -42,6 +43,8 @@
     "@tanstack/solid-virtual": "catalog:",
     "effect": "catalog:",
     "fuzzysort": "catalog:",
+    "fflate": "0.8.3",
+    "gray-matter": "4.0.3",
     "monaco-editor": "0.55.1",
     "vscode-languageserver-protocol": "3.17.5",
     "ghostty-web": "github:anomalyco/ghostty-web#e91e38a9ceb13c566ddfa15185a9393849f712a9",

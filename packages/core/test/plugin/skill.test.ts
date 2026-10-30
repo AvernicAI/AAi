@@ -34,6 +34,8 @@ describe("SkillPlugin.Plugin", () => {
       ).pipe(Effect.provide(config()))
       const skills = yield* skill.list()
       const report = skills.find((item) => item.id === "report")
+      expect(skills).toContainEqual(expect.objectContaining({ id: "control-mouse", name: "Desktop control" }))
+      expect(skills.find((item) => item.id === "control-mouse")?.content).toContain("foreground window")
 
       expect(skills).toContainEqual(
         expect.objectContaining({
@@ -70,12 +72,7 @@ describe("SkillPlugin.Plugin", () => {
       expect(report?.content).toContain("- Active plugins: -disabled, local.ts, package-plugin, package-plugin")
     }).pipe(
       Effect.provide(
-        config([
-          "package-plugin",
-          "-disabled",
-          "local.ts",
-          { package: "package-plugin", options: { enabled: true } },
-        ]),
+        config(["package-plugin", "-disabled", "local.ts", { package: "package-plugin", options: { enabled: true } }]),
       ),
     ),
   )

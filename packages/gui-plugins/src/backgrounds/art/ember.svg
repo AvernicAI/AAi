@@ -1,19 +1,15 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 1000" fill="none">
-  <defs>
-    <linearGradient id="sky" x2="1500" y2="1000" gradientUnits="userSpaceOnUse"><stop stop-color="#17131c"/><stop offset="1" stop-color="#371b22"/></linearGradient>
-    <radialGradient id="halo"><stop stop-color="#ffb26d" stop-opacity=".6"/><stop offset=".5" stop-color="#ef7049" stop-opacity=".16"/><stop offset="1" stop-color="#ef7049" stop-opacity="0"/></radialGradient>
-    <linearGradient id="rim" x1="900" y1="200" x2="1300" y2="800" gradientUnits="userSpaceOnUse"><stop stop-color="#ffe5bc"/><stop offset=".5" stop-color="#ff9e65"/><stop offset="1" stop-color="#ff9e65" stop-opacity="0"/></linearGradient>
-  </defs>
-  <path fill="url(#sky)" d="M0 0h1600v1000H0z"/>
-  <circle cx="1150" cy="440" r="570" fill="url(#halo)"/>
-  <circle cx="1150" cy="440" r="222" fill="#21161e" stroke="url(#rim)" stroke-width="3"/>
-  <circle cx="1150" cy="440" r="244" stroke="#f1a371" opacity=".18"/>
-  <path d="m1020 535 130-215 130 215m-207-78h154m-77-137v215" stroke="url(#rim)" stroke-width="3" stroke-linejoin="round"/>
-  <g stroke="#d78665" opacity=".2">
-    <path d="M-100 850 360 700l460 220 500-180 400 140M-100 885 360 735l460 220 500-180 400 140M-100 920 360 770l460 220 500-180 400 140M-100 955 360 805l460 220 500-180 400 140"/>
-    <path d="m360 700 80 300m380-80 30 80m470-260 80 260"/>
-  </g>
-  <g fill="#ffc48b"><circle cx="220" cy="220" r="2"/><circle cx="430" cy="380" r="2"/><circle cx="720" cy="140" r="1.5"/><circle cx="1460" cy="700" r="2"/><circle cx="590" cy="590" r="1.5"/></g>
-  <text x="100" y="590" fill="#ffcbab" font-family="monospace" font-size="56" letter-spacing="-2">AvernicAi</text>
-  <text x="104" y="630" fill="#c39586" font-family="monospace" font-size="14" letter-spacing="7">CREATE FROM THE SPARK</text>
+<title>AAi Ember — AvernicAi</title>
+<defs><linearGradient id="ground" x2="1600" y2="1000" gradientUnits="userSpaceOnUse"><stop stop-color="#120e16"/><stop offset="1" stop-color="#28121b"/></linearGradient>
+<radialGradient id="heat"><stop stop-color="#e36a3a" stop-opacity=".7"/><stop offset="1" stop-color="#e36a3a" stop-opacity="0"/></radialGradient>
+<linearGradient id="copper" x1="800" y1="180" x2="1300" y2="760" gradientUnits="userSpaceOnUse"><stop stop-color="#ffe2b4"/><stop offset=".45" stop-color="#df8551"/><stop offset="1" stop-color="#8f3b32"/></linearGradient><g id="aai"><path d="M0 144 56 0l56 144M23 88h66m44 56L189 0l56 144m-89-56h66m52-28v84m0-116v2" stroke="currentColor" stroke-width="9" stroke-linecap="square" stroke-linejoin="bevel"/></g></defs>
+<path fill="url(#ground)" d="M0 0h1600v1000H0z"/><ellipse cx="1120" cy="560" rx="700" ry="600" fill="url(#heat)"/>
+<g stroke="url(#copper)"><path d="m1130 90 315 180v365l-315 180-315-180V270Z" stroke-width="2"/><path d="m1130 130 280 160v324l-280 160-280-160V290Z" opacity=".3"/>
+<path d="M815 270 1130 455l315-185m-315 185v360M0 850l400-170 415 100 315-125 470 130" opacity=".35"/>
+<path d="M-50 895 400 730l415 100 315-125 510 135M-50 940 400 780l415 100 315-125 510 135" opacity=".15"/></g>
+<use href="#aai" transform="translate(920 345) scale(1.45)" color="#f2bb84"/>
+<path d="m920 570 390-37m-340 60 340-32" stroke="#e39866" stroke-width="2" opacity=".45"/>
+<g stroke="#ffbd76" stroke-linecap="round"><path d="m760 780 10-42m85 96 5-22m381-16 8-37m177-21 5-27m-340-91 6-26M630 894l9-38m778 48 7-26"/><path d="m743 688 3-15m561-435 3-13m-405 21 2-10m497 355 4-15" opacity=".6"/></g>
+<path d="M120 160h190m-190 8h80m-80 650h250" stroke="#d39168" opacity=".35"/>
+<use href="#aai" transform="translate(122 760) scale(.32)" color="#ba8463"/>
 </svg>

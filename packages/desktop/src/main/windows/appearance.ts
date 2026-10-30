@@ -10,9 +10,16 @@ import {
 } from "../../shared/ipc-rpc/events"
 import { emitIpcEvent } from "../ipc-events"
 import type { DesktopPaths } from "../paths"
-import { BACKGROUND_COLOR_KEY, PINCH_ZOOM_ENABLED_KEY, ZOOM_LEVEL_KEY } from "../storage/keys"
+import { BACKGROUND_COLOR_KEY, COLOR_SCHEME_KEY, PINCH_ZOOM_ENABLED_KEY, ZOOM_LEVEL_KEY } from "../storage/keys"
 import { getStore } from "../storage/store"
-import { platformFrame, savedBackgroundColor, storedBackgroundColor, storedZoomLevel, titlebarOverlay, tone } from "./defaults"
+import {
+  platformFrame,
+  savedBackgroundColor,
+  storedBackgroundColor,
+  storedZoomLevel,
+  titlebarOverlay,
+  tone,
+} from "./defaults"
 
 const titlebarThemes = new WeakMap<BrowserWindow, Partial<TitlebarTheme>>()
 
@@ -65,9 +72,13 @@ export function getBackgroundColor() {
 export function setTitlebar(win: BrowserWindow, theme: Partial<TitlebarTheme> = {}) {
   titlebarThemes.set(win, theme)
 
+  const scheme = theme.scheme ?? theme.mode ?? "dark"
+
+  if (getStore().get(COLOR_SCHEME_KEY) !== scheme) getStore().set(COLOR_SCHEME_KEY, scheme)
+
   // Native window controls follow nativeTheme, not the renderer theme.
   if (process.platform === "darwin" || process.platform === "win32") {
-    nativeTheme.themeSource = theme.scheme ?? theme.mode ?? "system"
+    nativeTheme.themeSource = scheme
   }
 
   updateTitlebar(win)

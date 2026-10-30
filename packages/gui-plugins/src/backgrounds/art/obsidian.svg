@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 1000" fill="none">
+<title>AAi Obsidian — AvernicAi</title>
+<defs><linearGradient id="ground" x2="1500" y2="900" gradientUnits="userSpaceOnUse"><stop stop-color="#0d0f14"/><stop offset="1" stop-color="#252028"/></linearGradient>
+<linearGradient id="facet" x2="1400" y2="900" gradientUnits="userSpaceOnUse"><stop stop-color="#34333c"/><stop offset="1" stop-color="#15141b"/></linearGradient>
+<linearGradient id="seam"><stop stop-color="#83613d"/><stop offset=".5" stop-color="#f5cc85"/><stop offset="1" stop-color="#b8783e"/></linearGradient>
+<radialGradient id="glow"><stop stop-color="#dcb26d" stop-opacity=".22"/><stop offset="1" stop-color="#dcb26d" stop-opacity="0"/></radialGradient><g id="aai"><path d="M0 144 56 0l56 144M23 88h66m44 56L189 0l56 144m-89-56h66m52-28v84m0-116v2" stroke="currentColor" stroke-width="9" stroke-linecap="square" stroke-linejoin="bevel"/></g></defs>
+<path fill="url(#ground)" d="M0 0h1600v1000H0z"/><ellipse cx="1130" cy="470" rx="620" ry="540" fill="url(#glow)"/>
+<g fill="url(#facet)" stroke="#4b4244" stroke-width="1"><path d="m960 120 390 90 130 340-340 240-310-210Z"/><path d="m960 120 180 275-310 185Z"/><path d="m1350 210-210 185 340 155Z"/><path d="m1140 395 0 395-310-210Z"/><path d="m1140 395 340 155-340 240Z"/></g>
+<path d="m960 120 180 275 210-185m-210 185 0 395m0-395 340 155M0 770l530-130 300-60m310 210 460 170" stroke="url(#seam)" stroke-width="2"/>
+<path d="m946 98 420 92 140 365-365 260-336-228Z" stroke="#be9764" opacity=".25"/>
+<use href="#aai" transform="translate(940 360) scale(1.25)" color="#f1d4a0"/>
+<path d="M122 170h200m-200 10h68m940 680h300m-300 10h100" stroke="#c9a16b" opacity=".45"/>
+<use href="#aai" transform="translate(122 780) scale(.32)" color="#ad9069"/>
+</svg>

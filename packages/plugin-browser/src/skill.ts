@@ -11,12 +11,12 @@ export const info = Skill.Info.make({
   id,
   name: Skill.Name.make("Browser"),
   description:
-    "Use the in-app browser: open and read pages, click and fill forms, take screenshots, check console and network logs, and profile performance and memory. Load it before your first browser tool call.",
+    "Use whenever a task needs web research, current information, website interaction or testing, forms, browser games, screenshots, console/network diagnostics or profiling. Available to any tool-capable model while the desktop browser is attached; no special model or slash command is required. Load it before your first browser tool call.",
   path: AbsolutePath.make("/builtin/browser.md"),
   content: [
     "# In-app browser",
     "",
-    "The browser tools drive a Chromium browser inside the user's OpenCode desktop app. Its tabs show in the app's Review pane, so the user sees what you do and can use the same tabs. Call the tools from code mode as `tools.browser.*`; `search({ namespace: \"browser\" })` lists their exact signatures.",
+    "The browser tools drive a Chromium browser inside the user's AAi desktop app. Its tabs show in the app's Review pane, so the user sees what you do and can use the same tabs. Call the tools from code mode as `tools.browser.*`; `search({ namespace: \"browser\" })` lists their exact signatures. Use these tools whenever the task benefits from browsing; /browse is a shortcut, not a requirement. Prefer websearch/webfetch for simple research, accessibility snapshots for text-only models, and screenshots for vision-capable models. Use the control-mouse skill and computer tool for native applications and games outside the browser.",
     "",
     "## Basics",
     "",

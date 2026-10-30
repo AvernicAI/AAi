@@ -1,0 +1,138 @@
+.aai-skill-library {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin-top: 20px;
+}
+.aai-skill-tabs {
+  display: flex;
+  gap: 6px;
+  border-bottom: 1px solid var(--v2-border-border-base);
+}
+.aai-skill-tabs button {
+  padding: 8px 14px;
+  border-radius: 6px 6px 0 0;
+  color: var(--v2-text-text-subtle);
+  cursor: pointer;
+}
+.aai-skill-tabs button[aria-selected="true"] {
+  color: var(--v2-text-text-base);
+  background: var(--v2-background-bg-layer-01);
+}
+.aai-skill-search {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.aai-skill-search input {
+  flex: 1;
+  min-width: 180px;
+}
+.aai-skill-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.aai-skill-library input,
+.aai-skill-library select {
+  padding: 8px 10px;
+  border: 1px solid var(--v2-border-border-base);
+  border-radius: 6px;
+  background: var(--v2-background-bg-base);
+  color: var(--v2-text-text-base);
+}
+.aai-skill-library input:focus-visible,
+.aai-skill-library select:focus-visible,
+.aai-skill-result:focus-visible {
+  outline: 2px solid var(--v2-border-border-focus);
+  outline-offset: 2px;
+}
+.aai-skill-columns {
+  display: grid;
+  grid-template-columns: minmax(200px, 0.9fr) minmax(250px, 1.1fr);
+  gap: 16px;
+  align-items: start;
+}
+.aai-skill-results {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.aai-skill-result {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  padding: 12px;
+  text-align: start;
+  border: 1px solid var(--v2-border-border-base);
+  border-radius: 8px;
+  cursor: pointer;
+  background: var(--v2-background-bg-base);
+}
+.aai-skill-result[aria-pressed="true"] {
+  border-color: var(--v2-border-border-focus);
+}
+.aai-skill-slug,
+.aai-skill-result p,
+.aai-skill-installed small {
+  color: var(--v2-text-text-subtle);
+}
+.aai-skill-preview {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 16px;
+  border: 1px solid var(--v2-border-border-base);
+  border-radius: 8px;
+  min-width: 0;
+}
+.aai-skill-preview pre {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  max-height: 440px;
+  overflow: auto;
+  padding: 12px;
+  border-radius: 6px;
+  background: var(--v2-background-bg-deep);
+  font-family: var(--font-family-code);
+  font-size: 12px;
+}
+.aai-skill-preview ul {
+  list-style: disc;
+  padding-inline-start: 20px;
+  max-height: 150px;
+  overflow: auto;
+}
+.aai-skill-preview a {
+  text-decoration: underline;
+}
+.aai-skill-installed {
+  display: flex;
+  gap: 16px;
+  justify-content: space-between;
+  align-items: center;
+  padding: 14px;
+  border: 1px solid var(--v2-border-border-base);
+  border-radius: 8px;
+}
+.aai-skill-installed p {
+  overflow-wrap: anywhere;
+}
+.aai-skill-paging {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+}
+.aai-skill-catalog-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.aai-skill-error {
+  color: var(--v2-text-text-critical);
+}
+@media (max-width: 1000px) {
+  .aai-skill-columns {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

@@ -4,7 +4,7 @@ import { desktopZoomLevels } from "@opencode/app/desktop-menu"
 import { nativeTheme, type BrowserWindowConstructorOptions } from "electron"
 import { Predicate } from "effect"
 import oc2ThemeJson from "../../../../ui/src/theme/themes/oc-2.json"
-import { BACKGROUND_COLOR_KEY, ZOOM_LEVEL_KEY } from "../storage/keys"
+import { BACKGROUND_COLOR_KEY, COLOR_SCHEME_KEY, ZOOM_LEVEL_KEY } from "../storage/keys"
 import { getStore } from "../storage/store"
 
 // Frame defaults shared by the early window (created on ready, before the renderer exists) and the
@@ -17,7 +17,11 @@ const oc2Theme = oc2ThemeJson as DesktopTheme
 export const titlebarHeight = 44
 
 export function tone() {
-  return nativeTheme.shouldUseDarkColors ? "dark" : "light"
+  const scheme = getStore().get(COLOR_SCHEME_KEY)
+
+  if (scheme === "system") return nativeTheme.shouldUseDarkColors ? "dark" : "light"
+
+  return scheme === "light" ? "light" : "dark"
 }
 
 // The colour the renderer reported on its last run, or the default theme's for the system tone, so
@@ -26,7 +30,7 @@ export function tone() {
 export function storedBackgroundColor() {
   const saved = savedBackgroundColor()
 
-  if (saved !== undefined) return saved
+  if (saved !== undefined && getStore().get(COLOR_SCHEME_KEY) !== undefined) return saved
   const dark = tone() === "dark"
 
   return resolveThemeVariant(dark ? oc2Theme.dark : oc2Theme.light, dark)["background-base"]

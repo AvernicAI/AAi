@@ -11,6 +11,7 @@ import { Config } from "../config.js"
 import os from "os"
 import opencodeContent from "./skill/opencode.md" with { type: "text" }
 import reportContent from "./skill/report.md" with { type: "text" }
+import computerContent from "./skills/control-mouse/SKILL.md" with { type: "text" }
 
 export const OpencodeContent = opencodeContent
 export const ReportContent = reportContent
@@ -25,6 +26,16 @@ export const Plugin = define({
   effect: Effect.fn(function* (ctx) {
     const reportContent = yield* reportContentWithDiagnostics(ctx.app)
     yield* ctx.skill.transform((editor) => {
+      editor.add(
+        Skill.Info.make({
+          id: Skill.ID.make("control-mouse"),
+          name: Skill.Name.make("Desktop control"),
+          description:
+            "Use when the user requests /control-mouse, desktop automation, mouse or keyboard control, interacting with Windows applications, or playing a game. Provides real computer tool actions, screenshots, window targeting and stop controls. Requires an interactive Windows desktop on the AAi server machine.",
+          path: AbsolutePath.make("/builtin/control-mouse/SKILL.md"),
+          content: computerContent,
+        }),
+      )
       editor.add(
         Skill.Info.make({
           id: Skill.ID.make("opencode"),

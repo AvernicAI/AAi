@@ -132,6 +132,33 @@ describe("CommandPlugin.Plugin", () => {
           delivery: "steer",
         },
       ])
+      yield* command.execute({
+        name: "control-mouse",
+        invocation: {
+          sessionID: Session.ID.make("ses_test"),
+          prompt: { text: "Play the puzzle in my game window", files: [{ uri: "file:///tmp/context.md" }] },
+          delivery: "queue",
+        },
+      })
+      expect(prompts.at(-1)?.text).toContain("Play the puzzle in my game window")
+      expect(prompts.at(-1)).toMatchObject({
+        text: expect.stringContaining("Load the control-mouse skill"),
+        files: [{ uri: "file:///tmp/context.md" }],
+        delivery: "queue",
+      })
+      yield* command.execute({
+        name: "browse",
+        invocation: {
+          sessionID: Session.ID.make("ses_test"),
+          prompt: { text: "Research this website" },
+          delivery: "steer",
+        },
+      })
+      expect(prompts.at(-1)?.text).toContain("Research this website")
+      expect(prompts.at(-1)).toMatchObject({
+        text: expect.stringContaining("Load the browser skill"),
+        delivery: "steer",
+      })
     }),
   )
 })

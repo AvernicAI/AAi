@@ -16,11 +16,13 @@ import sources from "./sources"
 import goal from "./goal"
 import ide from "./ide"
 import backgrounds from "./backgrounds"
+import skills from "./skills"
 
 /** Built-in plugins with their main entries, by id. Lists every built-in so their ids stay reserved. */
 export const builtins = compose({
   ide: { ...ide, mainEntry: () => import("./ide/main") },
   backgrounds,
+  skills: { ...skills, mainEntry: () => import("./skills/main") },
   context,
   btw,
   debug: { ...debug, mainEntry: () => import("./debug/main") },

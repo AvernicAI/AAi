@@ -1,0 +1,57 @@
+{
+  "$schema": "https://opencode.ai/desktop-theme.json",
+  "id": "aai-obsidian",
+  "name": "AAi Obsidian",
+  "light": {
+    "palette": {
+      "neutral": "#f4f0e8",
+      "ink": "#292321",
+      "primary": "#8d5b22",
+      "accent": "#785c95",
+      "interactive": "#8d5b22",
+      "success": "#3a7752",
+      "warning": "#9a631f",
+      "error": "#b34845",
+      "info": "#356e8d",
+      "diffAdd": "#3a7752",
+      "diffDelete": "#b34845"
+    },
+    "overrides": {
+      "background-base": "#f4f0e8",
+      "text-strong": "#292321",
+      "syntax-comment": "#6c6564",
+      "syntax-keyword": "#8d5b22",
+      "syntax-string": "#3a7752",
+      "syntax-primitive": "#356e8d",
+      "syntax-property": "#292321",
+      "syntax-type": "#785c95",
+      "syntax-constant": "#9a631f"
+    }
+  },
+  "dark": {
+    "palette": {
+      "neutral": "#101014",
+      "ink": "#eee5d8",
+      "primary": "#e3b775",
+      "accent": "#bd957d",
+      "interactive": "#e3b775",
+      "success": "#a9cfa6",
+      "warning": "#edc585",
+      "error": "#f08b86",
+      "info": "#99b9d5",
+      "diffAdd": "#a9cfa6",
+      "diffDelete": "#f08b86"
+    },
+    "overrides": {
+      "background-base": "#101014",
+      "text-strong": "#eee5d8",
+      "syntax-comment": "#8f8b91",
+      "syntax-keyword": "#e3b775",
+      "syntax-string": "#a9cfa6",
+      "syntax-primitive": "#99b9d5",
+      "syntax-property": "#eee5d8",
+      "syntax-type": "#bd957d",
+      "syntax-constant": "#edc585"
+    }
+  }
+}

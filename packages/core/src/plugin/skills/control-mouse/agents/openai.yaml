@@ -1,0 +1,4 @@
+interface:
+  display_name: "Desktop control"
+  short_description: "Control Windows applications and games"
+  default_prompt: "Use desktop control to complete the requested task."

@@ -71,6 +71,7 @@ import { SkillDiscovery } from "../skill/discovery.js"
 import { Watcher } from "../filesystem/watcher.js"
 import { PatchTool } from "../tool/plugin/patch.js"
 import { EditTool } from "../tool/plugin/edit.js"
+import { ComputerTool } from "../tool/plugin/computer.js"
 import { GlobTool } from "../tool/plugin/glob.js"
 import { GrepTool } from "../tool/plugin/grep.js"
 import { ImageGenerateTool } from "../tool/plugin/image-generate.js"
@@ -243,6 +244,7 @@ const pre = [
   VerbosityPlugin.Plugin,
   IdentityPlugin.Plugin,
   EditTool.Plugin,
+  ComputerTool.Plugin,
   GlobTool.Plugin,
   GrepTool.Plugin,
   ImageGenerateTool.Plugin,

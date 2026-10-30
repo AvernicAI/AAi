@@ -1,0 +1,57 @@
+{
+  "$schema": "https://opencode.ai/desktop-theme.json",
+  "id": "aai-nebula",
+  "name": "AAi Nebula",
+  "light": {
+    "palette": {
+      "neutral": "#f4f0f9",
+      "ink": "#332545",
+      "primary": "#7856a4",
+      "accent": "#a94f83",
+      "interactive": "#7856a4",
+      "success": "#34775e",
+      "warning": "#9a672d",
+      "error": "#b84761",
+      "info": "#486d9d",
+      "diffAdd": "#34775e",
+      "diffDelete": "#b84761"
+    },
+    "overrides": {
+      "background-base": "#f4f0f9",
+      "text-strong": "#332545",
+      "syntax-comment": "#746485",
+      "syntax-keyword": "#7856a4",
+      "syntax-string": "#34775e",
+      "syntax-primitive": "#486d9d",
+      "syntax-property": "#332545",
+      "syntax-type": "#a94f83",
+      "syntax-constant": "#9a672d"
+    }
+  },
+  "dark": {
+    "palette": {
+      "neutral": "#141125",
+      "ink": "#ede6fa",
+      "primary": "#bfa6ef",
+      "accent": "#e3a1c8",
+      "interactive": "#bfa6ef",
+      "success": "#94ceb4",
+      "warning": "#dfc18c",
+      "error": "#ed919f",
+      "info": "#9fbfe8",
+      "diffAdd": "#94ceb4",
+      "diffDelete": "#ed919f"
+    },
+    "overrides": {
+      "background-base": "#141125",
+      "text-strong": "#ede6fa",
+      "syntax-comment": "#a291b4",
+      "syntax-keyword": "#bfa6ef",
+      "syntax-string": "#94ceb4",
+      "syntax-primitive": "#9fbfe8",
+      "syntax-property": "#ede6fa",
+      "syntax-type": "#e3a1c8",
+      "syntax-constant": "#dfc18c"
+    }
+  }
+}

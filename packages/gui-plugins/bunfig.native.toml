@@ -1,0 +1,4 @@
+# Main-process tests use native fetch and Node APIs, without the renderer's Happy DOM globals.
+[test]
+root = "./test"
+preload = []

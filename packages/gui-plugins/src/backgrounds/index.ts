@@ -6,8 +6,10 @@ import en from "./i18n/en"
 export default Plugin.define({
   stores: {
     preferences: BuiltinStore.global(
-      Schema.Struct({ design: Schema.Literals(["default", "aurora", "ember", "blueprint"]) }),
-      { design: "default" },
+      Schema.Struct({
+        design: Schema.Literals(["default", "aurora", "ember", "blueprint", "obsidian", "tidal", "nebula"]),
+      }),
+      { design: "ember" },
     ),
   },
   i18n: builtinCatalog({ en }),

@@ -6,7 +6,7 @@ import css from "./styles.css?inline"
 
 const setup: Plugin.Setup<typeof definition> = (ctx) => {
   const preferences = ctx.stores.preferences
-  const designs = ["default", "aurora", "ember", "blueprint"] as const
+  const designs = ["default", "aurora", "ember", "blueprint", "obsidian", "tidal", "nebula"] as const
 
   const select = (design: (typeof designs)[number]) =>
     preferences.update((draft) => {
@@ -64,7 +64,7 @@ const setup: Plugin.Setup<typeof definition> = (ctx) => {
               )}
             </For>
           </div>
-          <Button variant="neutral" onClick={() => void select("default")}>
+          <Button variant="neutral" onClick={() => void select("ember")}>
             {ctx.t("reset")}
           </Button>
         </div>

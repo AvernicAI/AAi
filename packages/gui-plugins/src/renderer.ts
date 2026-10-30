@@ -33,6 +33,8 @@ import ide from "./ide"
 import ideRenderer from "./ide/renderer"
 import backgrounds from "./backgrounds"
 import backgroundsRenderer from "./backgrounds/renderer"
+import skills from "./skills"
+import skillsRenderer from "./skills/renderer"
 
 // The window renders once every built-in is active, so the small renderer entries load with the app, like the
 // features they replaced. Heavy UI stays behind `lazy()` inside them.
@@ -43,6 +45,7 @@ const eager = (setup: Awaited<ReturnType<NonNullable<Entry["windowEntry"]>>>["de
 export const builtins = compose({
   ide: { ...ide, windowEntry: eager(ideRenderer) },
   backgrounds: { ...backgrounds, windowEntry: eager(backgroundsRenderer) },
+  skills: { ...skills, windowEntry: eager(skillsRenderer) },
   context: { ...context, windowEntry: eager(contextRenderer) },
   btw: { ...btw, windowEntry: eager(btwRenderer) },
   debug: { ...debug, windowEntry: eager(debugRenderer) },

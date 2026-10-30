@@ -84,12 +84,19 @@ test("saved context persists and compaction controls send only their configurati
 })
 
 test("AAi backgrounds persist independently of the theme and restore the default", async ({ page }) => {
-  const { settings } = await open(page, { seed: { theme: { id: "oc-2", scheme: "dark" } } })
+  const { settings } = await open(page)
+  await expect(page.locator("html")).toHaveAttribute("data-color-scheme", "dark")
+
+  const appearance = await page.evaluate(() => ({
+    theme: localStorage.getItem("opencode-theme-id"),
+    scheme: localStorage.getItem("opencode-color-scheme"),
+  }))
+
   await settings.getByRole("tab", { name: "AAi backgrounds", exact: true }).click()
   const choices = settings.getByRole("group", { name: "AAi backgrounds", exact: true })
   const background = page.locator(".aai-background-layer")
-  await expect(choices.getByRole("button", { name: /^AAi default/ })).toHaveAttribute("aria-pressed", "true")
-  await expect(background).toHaveCount(0)
+  await expect(choices.getByRole("button", { name: /^Avernic Ember/ })).toHaveAttribute("aria-pressed", "true")
+  await expect(background).toHaveAttribute("data-design", "ember")
 
   for (const design of ["AAi Aurora", "Avernic Ember", "AAi Blueprint"]) {
     await choices.getByRole("button", { name: new RegExp(`^${design}`) }).click()
@@ -105,11 +112,17 @@ test("AAi backgrounds persist independently of the theme and restore the default
   await page.reload()
   await settings.getByRole("tab", { name: "AAi backgrounds", exact: true }).click()
   await expect(choices.getByRole("button", { name: /^AAi Blueprint/ })).toHaveAttribute("aria-pressed", "true")
-  await settings.getByRole("button", { name: "Restore AAi default", exact: true }).click()
+  await settings.getByRole("button", { name: "Restore Avernic Ember", exact: true }).click()
+  await expect(background).toHaveAttribute("data-design", "ember")
+  await expect(choices.getByRole("button", { name: /^Avernic Ember/ })).toHaveAttribute("aria-pressed", "true")
+  await choices.getByRole("button", { name: /^No artwork/ }).click()
   await expect(background).toHaveCount(0)
-  await expect(choices.getByRole("button", { name: /^AAi default/ })).toHaveAttribute("aria-pressed", "true")
-  expect(await page.evaluate(() => localStorage.getItem("opencode-theme-id"))).toBe("oc-2")
-  expect(await page.evaluate(() => localStorage.getItem("opencode-color-scheme"))).toBe("dark")
+  expect(
+    await page.evaluate(() => ({
+      theme: localStorage.getItem("opencode-theme-id"),
+      scheme: localStorage.getItem("opencode-color-scheme"),
+    })),
+  ).toEqual(appearance)
 })
 
 // One project with 12 worktrees, each with one session, and a configured zsh shell.
@@ -1369,6 +1382,53 @@ const consoleIntegrations = [
   },
   { id: "opencode-go", name: "OpenCode Go", methods: [{ type: "key" }], connections: [] },
 ]
+
+test("providers: Vyce Code is visible before login and opens browser sign-in", async ({ page, context }) => {
+  const url = "https://www.vyce-code.com/auth/cli?code=test-approval"
+  const attempts: { integrationID: string; body: unknown }[] = []
+
+  await context.route("https://www.vyce-code.com/**", (route) => route.fulfill({ body: "Sign in" }))
+
+  const { settings } = await open(page, {
+    provider: NO_PROVIDER,
+    integrations: [
+      {
+        id: "vyce-code",
+        name: "Vyce Code",
+        methods: [
+          { type: "oauth", id: "browser", label: "Sign in with Vyce Code" },
+          { type: "key", label: "Paste Vyce Code API key" },
+        ],
+        connections: [],
+      },
+    ],
+    onIntegrationOAuth: (input) => {
+      attempts.push(input)
+
+      return { url }
+    },
+  })
+
+  await settings.getByRole("tab", { name: "Providers", exact: true }).click()
+  await settings
+    .locator(".settings-provider-row", { hasText: "Vyce Code" })
+    .getByRole("button", { name: "Connect", exact: true })
+    .click()
+  const methods = page.getByRole("dialog", { name: "Connect Vyce Code", exact: true })
+
+  await expect(methods.locator('[data-action="provider-connect-method"]')).toHaveText([
+    "Sign in with Vyce Code",
+    "Paste Vyce Code API key",
+  ])
+  const popup = page.waitForEvent("popup")
+
+  await methods.getByRole("button", { name: "Sign in with Vyce Code", exact: true }).click()
+  await expect(await popup).toHaveURL(url)
+  expect(attempts.map((attempt) => ({ integrationID: attempt.integrationID, body: attempt.body }))).toEqual([
+    { integrationID: "vyce-code", body: { methodID: "browser" } },
+  ])
+  await expect(methods.getByRole("button", { name: "Open browser", exact: true })).toBeVisible()
+})
 
 test("providers: OpenCode Console signs in from its method list", async ({ page, context }) => {
   const url = "https://auth.example.test/device?user_code=ABCD-EFGH"
