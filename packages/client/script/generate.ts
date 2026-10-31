@@ -10,6 +10,7 @@ import {
 import { Agent } from "@opencode/schema/agent"
 import { Command } from "@opencode/schema/command"
 import { Config } from "@opencode/schema/config"
+import { ConfigProvider } from "@opencode/schema/config/provider"
 import { Credential } from "@opencode/schema/credential"
 import { Event } from "@opencode/schema/event"
 import { EventLog } from "@opencode/schema/event-log"
@@ -67,6 +68,7 @@ const effectTypeReferences = [
   ...namespaceTypes("Agent", "@opencode/schema/agent", Agent),
   ...namespaceTypes("Command", "@opencode/schema/command", Command),
   ...namespaceTypes("Config", "@opencode/schema/config", Config),
+  ...namespaceTypes("ConfigProvider", "@opencode/schema/config/provider", ConfigProvider),
   ...namespaceTypes("Credential", "@opencode/schema/credential", Credential),
   ...namespaceTypes("Event", "@opencode/schema/event", Event),
   ...namespaceTypes("EventLog", "@opencode/schema/event-log", EventLog),

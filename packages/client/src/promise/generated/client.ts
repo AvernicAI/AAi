@@ -1602,7 +1602,12 @@ export function make(options: ClientOptions) {
             {
               method: "PATCH",
               path: `/api/experimental/config`,
-              body: { shell: input?.["shell"], compaction: input?.["compaction"] },
+              body: {
+                mcp: input?.["mcp"],
+                providers: input?.["providers"],
+                shell: input?.["shell"],
+                compaction: input?.["compaction"],
+              },
               successStatus: 204,
               declaredStatuses: [400, 401, 404],
               empty: true,

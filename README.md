@@ -72,6 +72,22 @@ or approval from Vyce and is not fixed by reconnecting the same account.
 Matching SVG artwork is available in **AAi backgrounds**, alongside refreshed Aurora, Ember and Blueprint designs.
 Artwork and interface colors can be chosen independently. New profiles still start with Avernic Ember and dark mode.
 
+**Settings → Appearance → Theme editor** lets you edit eleven palette colors independently for light and dark
+mode, preview changes, save personal themes, and import or export palette JSON. Cancel restores your saved theme;
+built-in themes remain available when you delete a personal theme.
+
+**Settings → Providers → OpenAI API Compatibility** connects additional endpoints with independent names,
+credentials and model lists. Choose Chat Completions or Responses API, enter the API base URL (including `/v1`
+when required), and add exact model IDs. Local endpoints can use **no authentication**. API keys are stored
+separately from endpoint configuration. Editing or removing an endpoint preserves other providers.
+
+**Settings → Extensions → MCPs** adds, edits and removes global MCP server configurations through a form.
+Choose a local executable with one argument per line, or a remote HTTP/SSE URL. Environment variables, headers,
+startup timeout, OAuth and Code Mode are configurable. Existing status, sign-in and connection controls remain.
+For quick setup, choose **Paste configuration**, paste a standard `mcpServers` block or AAi `mcp.servers` block,
+review the entries and add them together. A single server entry can use the optional name field. Imported
+servers stay disabled until enabled. Project overrides and other servers' settings remain intact.
+
 **Settings → Skill library** searches SkillMD out of the box. Preview instructions and bundled file names before
 installing; licenses, scripts and reference files are preserved, and downloading never runs those scripts. The
 Installed tab enables or disables library-managed skills without deleting their files. Installation targets the

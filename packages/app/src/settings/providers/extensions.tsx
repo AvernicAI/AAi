@@ -17,6 +17,7 @@ import { ExternalLink } from "@/runtime/platform/external-link"
 import { usePlatform } from "@/runtime/platform/platform"
 import { SettingsList } from "@/settings/list"
 import type { SettingsView } from "@/settings/surface"
+import { McpSettings } from "./mcp-settings"
 import "@/settings/settings.css"
 import "@/shell/search-list.css"
 
@@ -112,84 +113,100 @@ export const SettingsExtensions: Component<{
 
           <Tabs.Content value="mcps">
             <div class="settings-section">
-              <div class="flex items-center justify-between">
-                <span class="settings-extension-heading text-13-medium">
-                  {language.t("settings.extensions.availableAll")}
-                </span>
-                <span class="text-13-regular text-v2-text-text-muted">
-                  {language.t("settings.extensions.manageConfig")}
-                </span>
-              </div>
-              <SettingsList variant="catalog">
-                <For each={mcps()}>
-                  {(item) => {
-                    const busy = () => {
-                      const target = toggleMcp.isPending ? toggleMcp.variables : undefined
+              <McpSettings directory={props.directory} names={mcps().map((server) => server.name)}>
+                {(configuration) => (
+                  <SettingsList variant="catalog">
+                    <For each={mcps()}>
+                      {(item) => {
+                        const busy = () => {
+                          const target = toggleMcp.isPending ? toggleMcp.variables : undefined
 
-                      return (Predicate.isString(target) ? target : target?.name) === item.name
-                    }
+                          return (Predicate.isString(target) ? target : target?.name) === item.name
+                        }
 
-                    // The dot shows the status, as in the MCPs dialog; the words stay for assistive technology.
-                    const label = () =>
-                      item.status.status === "pending" ? undefined : language.t(statusLabels[item.status.status])
+                        // The dot shows the status, as in the MCPs dialog; the words stay for assistive technology.
+                        const label = () =>
+                          item.status.status === "pending" ? undefined : language.t(statusLabels[item.status.status])
 
-                    return (
-                      <div class="settings-extension-row settings-mcp-row" data-status={item.status.status}>
-                        <div class="settings-extension-lead">
-                          <span class="settings-mcp-status">
-                            <span class="mcp-status-dot" data-status={item.status.status} aria-hidden="true" />
-                          </span>
-                          <TruncatedText text={item.name} class="settings-extension-name" />
-                        </div>
-                        <div class="settings-extension-trailing">
-                          <Show when={item.status.status === "failed"}>
-                            <Button
-                              size="small"
-                              variant="ghost-muted"
-                              class="mcp-status-action"
-                              aria-label={language.t("dialog.mcp.error.viewLabel", { name: item.name })}
-                              onClick={() =>
-                                dialog.show(() => <DialogMcp directory={location().directory} server={item.name} />)
-                              }
-                            >
-                              {language.t("dialog.mcp.error.view")}
-                            </Button>
-                          </Show>
-                          <Show
-                            when={item.status.status === "needs_auth" && item.integrationID}
-                            fallback={
-                              <Switch
-                                checked={item.status.status !== "disabled"}
-                                disabled={item.status.status === "pending" || busy()}
-                                description={label()}
-                                class="[&_[data-slot=switch-description]]:sr-only"
-                                onChange={(enabled) => {
-                                  if (toggleMcp.isPending) return
-                                  toggleMcp.mutate({ name: item.name, enabled })
-                                }}
+                        return (
+                          <div class="settings-extension-row settings-mcp-row" data-status={item.status.status}>
+                            <div class="settings-extension-lead">
+                              <span class="settings-mcp-status">
+                                <span class="mcp-status-dot" data-status={item.status.status} aria-hidden="true" />
+                              </span>
+                              <TruncatedText text={item.name} class="settings-extension-name" />
+                            </div>
+                            <div class="settings-extension-trailing">
+                              <Show when={configuration.editable(item.name)}>
+                                <Button
+                                  size="small"
+                                  variant="ghost-muted"
+                                  disabled={configuration.busy()}
+                                  aria-label={language.t("settings.mcp.editNamed", { name: item.name })}
+                                  onClick={() => configuration.edit(item.name)}
+                                >
+                                  {language.t("settings.mcp.edit")}
+                                </Button>
+                                <Button
+                                  size="small"
+                                  variant="ghost-muted"
+                                  disabled={configuration.busy()}
+                                  aria-label={language.t("settings.mcp.removeNamed", { name: item.name })}
+                                  onClick={() => configuration.remove(item.name)}
+                                >
+                                  {language.t("settings.mcp.remove")}
+                                </Button>
+                              </Show>
+                              <Show when={item.status.status === "failed"}>
+                                <Button
+                                  size="small"
+                                  variant="ghost-muted"
+                                  class="mcp-status-action"
+                                  aria-label={language.t("dialog.mcp.error.viewLabel", { name: item.name })}
+                                  onClick={() =>
+                                    dialog.show(() => <DialogMcp directory={location().directory} server={item.name} />)
+                                  }
+                                >
+                                  {language.t("dialog.mcp.error.view")}
+                                </Button>
+                              </Show>
+                              <Show
+                                when={item.status.status === "needs_auth" && item.integrationID}
+                                fallback={
+                                  <Switch
+                                    checked={item.status.status !== "disabled"}
+                                    disabled={item.status.status === "pending" || busy()}
+                                    description={label()}
+                                    class="[&_[data-slot=switch-description]]:sr-only"
+                                    onChange={(enabled) => {
+                                      if (toggleMcp.isPending) return
+                                      toggleMcp.mutate({ name: item.name, enabled })
+                                    }}
+                                  >
+                                    <span class="sr-only">{item.name}</span>
+                                  </Switch>
+                                }
                               >
-                                <span class="sr-only">{item.name}</span>
-                              </Switch>
-                            }
-                          >
-                            <Button
-                              size="small"
-                              variant="ghost-muted"
-                              class="mcp-status-action"
-                              disabled={busy()}
-                              aria-busy={busy()}
-                              aria-label={language.t("dialog.mcp.signIn.open", { name: item.name })}
-                              onClick={() => toggle(item.name)}
-                            >
-                              {language.t(busy() ? "dialog.mcp.signingIn" : "dialog.mcp.signIn")}
-                            </Button>
-                          </Show>
-                        </div>
-                      </div>
-                    )
-                  }}
-                </For>
-              </SettingsList>
+                                <Button
+                                  size="small"
+                                  variant="ghost-muted"
+                                  class="mcp-status-action"
+                                  disabled={busy()}
+                                  aria-busy={busy()}
+                                  aria-label={language.t("dialog.mcp.signIn.open", { name: item.name })}
+                                  onClick={() => toggle(item.name)}
+                                >
+                                  {language.t(busy() ? "dialog.mcp.signingIn" : "dialog.mcp.signIn")}
+                                </Button>
+                              </Show>
+                            </div>
+                          </div>
+                        )
+                      }}
+                    </For>
+                  </SettingsList>
+                )}
+              </McpSettings>
             </div>
           </Tabs.Content>
 

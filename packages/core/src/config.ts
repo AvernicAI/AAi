@@ -412,11 +412,13 @@ export const layer = (options?: Options) =>
           yield* bus.publish(Event.Updated, {})
         },
         (effect) =>
-          reloadLock.withPermit(effect).pipe(
-            Effect.provideService(FSUtil.Service, fs),
-            Effect.provideService(Global.Service, globalService),
-            Effect.provideService(Location.Service, location),
-          ),
+          reloadLock
+            .withPermit(effect)
+            .pipe(
+              Effect.provideService(FSUtil.Service, fs),
+              Effect.provideService(Global.Service, globalService),
+              Effect.provideService(Location.Service, location),
+            ),
       )
 
       // Subscribe eagerly so synchronous watch readiness isn't dropped.
@@ -478,11 +480,24 @@ export const layer = (options?: Options) =>
             try: () =>
               Object.entries(patch)
                 .filter((entry) => entry[1] !== undefined)
+                .flatMap(([key, value]) =>
+                  key === "mcp"
+                    ? Object.entries(patch.mcp?.servers ?? {}).map(([name, server]) => ({
+                        path: ["mcp", "servers", name],
+                        value: server,
+                      }))
+                    : key === "providers"
+                      ? Object.entries(patch.providers ?? {}).map(([id, provider]) => ({
+                          path: [key, id],
+                          value: provider,
+                        }))
+                      : [{ path: [key], value }],
+                )
                 .reduce(
-                  (current, [key, value]) =>
+                  (current, entry) =>
                     applyEdits(
                       current,
-                      modify(current, [key], value ?? undefined, {
+                      modify(current, entry.path, entry.value ?? undefined, {
                         formattingOptions: { tabSize: 2, insertSpaces: true },
                       }),
                     ),

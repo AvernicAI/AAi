@@ -44,6 +44,7 @@ import type { Vcs } from "@opencode/schema/vcs"
 import type { WebSearch } from "@opencode/schema/websearch"
 import type { UsageLimits } from "@opencode/schema/usage-limits"
 import type { Config } from "@opencode/schema/config"
+import type { ConfigProvider } from "@opencode/schema/config/provider"
 
 export type ServerInfoOutput = {
   readonly version: string
@@ -2688,6 +2689,8 @@ export interface ConfigApi<E = never> {
 }
 
 export type ExperimentalConfigUpdateInput = {
+  readonly mcp?: { readonly servers: { readonly [x: string]: Mcp.LocalConfig | Mcp.RemoteConfig | null } } | undefined
+  readonly providers?: { readonly [x: string]: ConfigProvider.Info | null } | undefined
   readonly shell?: string | null | undefined
   readonly compaction?:
     | {

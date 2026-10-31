@@ -1,7 +1,8 @@
 // @refresh reload
 
 import { createEffect, onMount } from "solid-js"
-import { createStore } from "solid-js/store"
+import { createStore, reconcile } from "solid-js/store"
+import { CUSTOM_THEMES_KEY, parsePaletteTheme, readPaletteThemes } from "./custom"
 import { makeEventListener } from "@solid-primitives/event-listener"
 import { createSimpleContext } from "../context/helper"
 import oc2ThemeJson from "./themes/oc-2.json"
@@ -159,14 +160,14 @@ function getSystemMode(): "light" | "dark" {
   return window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light"
 }
 
-function applyThemeCss(theme: DesktopTheme, themeId: string, mode: "light" | "dark") {
+function applyThemeCss(theme: DesktopTheme, themeId: string, mode: "light" | "dark", cache = true) {
   const isDark = mode === "dark"
   const variant = isDark ? theme.dark : theme.light
   const tokens = resolveThemeVariant(variant, isDark)
   const css = themeToCss(tokens)
   const v2 = themeV2ToCss(resolveThemeVariantV2(variant, isDark))
 
-  if (themeId !== "oc-2") {
+  if (cache && themeId !== "oc-2") {
     write(isDark ? STORAGE_KEYS.THEME_CSS_DARK : STORAGE_KEYS.THEME_CSS_LIGHT, `${css}\n  ${v2}`)
   }
 
@@ -208,8 +209,9 @@ export const { use: useTheme, provider: ThemeProvider } = createSimpleContext({
     defaultTheme?: string
     onThemeApplied?: (theme: DesktopTheme, mode: "light" | "dark", scheme: ColorScheme) => void
   }) => {
+    const custom = new Map(readPaletteThemes(read(CUSTOM_THEMES_KEY)).map((theme) => [theme.id, theme]))
     const rawTheme = read(STORAGE_KEYS.THEME_ID) ?? props.defaultTheme
-    const themeId = resolveStoredTheme(rawTheme)
+    const themeId = resolveStoredTheme(rawTheme, Object.fromEntries(custom))
 
     if (rawTheme && rawTheme !== themeId) {
       write(STORAGE_KEYS.THEME_ID, themeId)
@@ -221,6 +223,7 @@ export const { use: useTheme, provider: ThemeProvider } = createSimpleContext({
 
     const [store, setStore] = createStore<ThemeState>({
       themes: {
+        ...Object.fromEntries(custom),
         "oc-2": oc2Theme,
       },
       themeId,
@@ -262,14 +265,20 @@ export const { use: useTheme, provider: ThemeProvider } = createSimpleContext({
       return task
     }
 
-    const applyTheme = (theme: DesktopTheme, themeId: string, mode: "light" | "dark", scheme: ColorScheme) => {
-      applyThemeCss(theme, themeId, mode)
+    const applyTheme = (
+      theme: DesktopTheme,
+      themeId: string,
+      mode: "light" | "dark",
+      scheme: ColorScheme,
+      cache = true,
+    ) => {
+      applyThemeCss(theme, themeId, mode, cache)
       props.onThemeApplied?.(theme, mode, scheme)
     }
 
     const ids = () => {
       const extra = Object.keys(store.themes)
-        .filter((id) => !knownThemes().has(id))
+        .filter((id) => id !== "aai-editor-preview" && !knownThemes().has(id))
         .sort()
 
       const all = themeIDs()
@@ -282,6 +291,21 @@ export const { use: useTheme, provider: ThemeProvider } = createSimpleContext({
     const loadThemes = () => Promise.all(themeIDs().map(load)).then(() => store.themes)
 
     const onStorage = (e: StorageEvent) => {
+      if (e.key === CUSTOM_THEMES_KEY) {
+        const themes = readPaletteThemes(e.newValue)
+        custom.clear()
+        themes.forEach((theme) => custom.set(theme.id, theme))
+        setStore(
+          "themes",
+          reconcile({
+            ...Object.fromEntries(Object.entries(store.themes).filter(([id]) => !id.startsWith("aai-custom-"))),
+            ...Object.fromEntries(custom),
+          }),
+        )
+
+        if (store.themeId.startsWith("aai-custom-") && !custom.has(store.themeId)) setStore("themeId", "oc-2")
+      }
+
       if (e.key === STORAGE_KEYS.THEME_ID && e.newValue) {
         const next = resolveStoredTheme(e.newValue, store.themes)
 
@@ -394,10 +418,35 @@ export const { use: useTheme, provider: ThemeProvider } = createSimpleContext({
       ids,
       name: (id: string) => store.themes[id]?.name ?? names.get(id) ?? id,
       loadThemes,
+      loadTheme: load,
       themes: () => store.themes,
       setTheme,
       setColorScheme,
       registerTheme: (theme: DesktopTheme) => setStore("themes", theme.id, theme),
+      saveTheme: (input: DesktopTheme) => {
+        const theme = parsePaletteTheme(input)
+
+        if (!theme.id.startsWith("aai-custom-")) throw new Error("Invalid custom theme ID")
+        const next = new Map(custom).set(theme.id, theme)
+        localStorage.setItem(CUSTOM_THEMES_KEY, JSON.stringify([...next.values()]))
+        custom.set(theme.id, theme)
+        setStore("themes", theme.id, reconcile(theme))
+        setTheme(theme.id)
+      },
+      removeTheme: (id: string) => {
+        if (!custom.has(id)) return
+        const next = [...custom.values()].filter((theme) => theme.id !== id)
+        localStorage.setItem(CUSTOM_THEMES_KEY, JSON.stringify(next))
+        custom.delete(id)
+
+        if (store.themeId === id) setTheme("oc-2")
+        setStore("themes", reconcile(Object.fromEntries(Object.entries(store.themes).filter(([key]) => key !== id))))
+      },
+      removePreviewTheme: () =>
+        setStore(
+          "themes",
+          reconcile(Object.fromEntries(Object.entries(store.themes).filter(([id]) => id !== "aai-editor-preview"))),
+        ),
       previewTheme: (id: string) => {
         const next = id
 
@@ -414,7 +463,7 @@ export const { use: useTheme, provider: ThemeProvider } = createSimpleContext({
               : store.previewScheme
             : store.mode
 
-          applyTheme(theme, next, mode, store.previewScheme ?? store.colorScheme)
+          applyTheme(theme, next, mode, store.previewScheme ?? store.colorScheme, false)
         })
       },
       previewColorScheme: (scheme: ColorScheme) => {
@@ -427,7 +476,7 @@ export const { use: useTheme, provider: ThemeProvider } = createSimpleContext({
           if ((store.previewThemeId ?? store.themeId) !== id) return
 
           if (store.previewScheme !== scheme) return
-          applyTheme(theme, id, mode, scheme)
+          applyTheme(theme, id, mode, scheme, false)
         })
       },
       commitPreview: () => {
@@ -445,9 +494,10 @@ export const { use: useTheme, provider: ThemeProvider } = createSimpleContext({
       cancelPreview: () => {
         setStore("previewThemeId", null)
         setStore("previewScheme", null)
-        void load(store.themeId).then((theme) => {
-          if (!theme) return
-          applyTheme(theme, store.themeId, store.mode, store.colorScheme)
+        const id = store.themeId
+        void load(id).then((theme) => {
+          if (!theme || store.themeId !== id || store.previewThemeId) return
+          applyTheme(theme, id, store.mode, store.colorScheme)
         })
       },
     }

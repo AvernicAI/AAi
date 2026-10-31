@@ -117,6 +117,16 @@ export class Info extends Schema.Class<Info>("Config.Info")({
 }) {}
 
 export const Patch = Schema.Struct({
+  mcp: Schema.Struct({
+    servers: Schema.Record(Schema.String, Schema.NullOr(ConfigMCP.Server)),
+  })
+    .pipe(optional)
+    .annotate({
+      description: "Merge named global MCP servers independently; null removes only the named server",
+    }),
+  providers: Schema.Record(Schema.String, Schema.NullOr(ConfigProvider.Info)).pipe(optional).annotate({
+    description: "Merge named global provider entries; null removes only the named entry",
+  }),
   shell: Schema.NullOr(Schema.String).pipe(optional),
   compaction: Schema.NullOr(ConfigCompaction.Info).pipe(optional),
 }).annotate({ identifier: "Config.Patch" })

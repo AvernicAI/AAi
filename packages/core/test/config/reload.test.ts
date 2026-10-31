@@ -53,6 +53,97 @@ const decode = Schema.decodeUnknownSync(Info)
 const document = path.join(import.meta.dir, "opencode.json")
 
 describe("config plugin reloads", () => {
+  it.live("merges and removes named MCP servers while preserving global defaults and other config", () =>
+    Effect.acquireDisposable(Effect.promise(() => tmpdir())).pipe(
+      Effect.flatMap((tmp) =>
+        Effect.gen(function* () {
+          const file = path.join(tmp.path, "global", "opencode.jsonc")
+          yield* Effect.promise(async () => {
+            await fs.mkdir(path.join(tmp.path, "home"), { recursive: true })
+            await Bun.write(
+              file,
+              '{\n // MCP defaults must survive\n "shell": "custom-shell", "mcp": { "timeout": { "catalog": 4321 }, "servers": { "existing": { "type": "local", "command": ["existing-command"], "disabled": true } } }\n}\n',
+            )
+          })
+          return yield* Effect.gen(function* () {
+            const config = yield* Config.Service
+            if (!config.update) return yield* Effect.die("Configuration updates unavailable")
+            yield* config.update({
+              mcp: {
+                servers: {
+                  added: { type: "local", command: ["runtime", "argument with spaces"], disabled: true },
+                  remote: { type: "remote", url: "https://example.com/mcp", disabled: true },
+                },
+              },
+            })
+            const added = decode(parse(yield* Effect.promise(() => Bun.file(file).text())))
+            expect(Object.keys(added.mcp?.servers ?? {})).toEqual(["existing", "added", "remote"])
+            expect(added.mcp?.servers?.added).toMatchObject({ command: ["runtime", "argument with spaces"] })
+            yield* config.update({
+              mcp: { servers: { added: { type: "remote", url: "https://example.com/changed", disabled: true } } },
+            })
+            const replaced = decode(parse(yield* Effect.promise(() => Bun.file(file).text())))
+            expect(replaced.mcp?.servers?.added).toMatchObject({ type: "remote", url: "https://example.com/changed" })
+            expect(replaced.mcp?.servers?.added).not.toHaveProperty("command")
+            yield* config.update({ mcp: { servers: { added: null } } })
+            const text = yield* Effect.promise(() => Bun.file(file).text())
+            const removed = decode(parse(text))
+            expect(text).toContain("// MCP defaults must survive")
+            expect(Object.keys(removed.mcp?.servers ?? {})).toEqual(["existing", "remote"])
+            expect(removed.mcp?.timeout?.catalog).toBe(4321)
+            expect(removed.shell).toBe("custom-shell")
+          }).pipe(Effect.provide(liveConfig(tmp.path, undefined, { global: true })))
+        }),
+      ),
+    ),
+  )
+
+  it.live("adds, replaces and removes one provider without changing other providers or JSONC", () =>
+    Effect.acquireDisposable(Effect.promise(() => tmpdir())).pipe(
+      Effect.flatMap((tmp) =>
+        Effect.gen(function* () {
+          const file = path.join(tmp.path, "global", "opencode.jsonc")
+          yield* Effect.promise(async () => {
+            await fs.mkdir(path.join(tmp.path, "home"), { recursive: true })
+            await Bun.write(
+              file,
+              '{\n // Preserve this comment\n "shell": "custom-shell", "providers": { "openai": { "name": "Existing provider" } }\n}\n',
+            )
+          })
+          return yield* Effect.gen(function* () {
+            const config = yield* Config.Service
+            if (!config.update) return yield* Effect.die("Configuration updates unavailable")
+            yield* config.update({
+              providers: {
+                "aai-compatible-test": {
+                  name: "My endpoint",
+                  package: "@opencode/ai/providers/openai-compatible",
+                  settings: { baseURL: "http://127.0.0.1:1234/v1" },
+                  models: { "owner/model": { name: "My model" } },
+                },
+              },
+            })
+            const added = decode(parse(yield* Effect.promise(() => Bun.file(file).text())))
+            expect(added.providers?.openai?.name).toBe("Existing provider")
+            expect(added.providers?.["aai-compatible-test"]?.models?.["owner/model"]?.name).toBe("My model")
+            yield* config.update({
+              providers: { "aai-compatible-test": { name: "Updated", models: { replacement: {} } } },
+            })
+            const replaced = decode(parse(yield* Effect.promise(() => Bun.file(file).text())))
+            expect(Object.keys(replaced.providers?.["aai-compatible-test"]?.models ?? {})).toEqual(["replacement"])
+            yield* config.update({ providers: { "aai-compatible-test": null } })
+            const text = yield* Effect.promise(() => Bun.file(file).text())
+            expect(text).toContain("// Preserve this comment")
+            const removed = decode(parse(text))
+            expect(removed.providers?.["aai-compatible-test"]).toBeUndefined()
+            expect(removed.providers?.openai?.name).toBe("Existing provider")
+            expect(removed.shell).toBe("custom-shell")
+          }).pipe(Effect.provide(liveConfig(tmp.path, undefined, { global: true })))
+        }),
+      ),
+    ),
+  )
+
   it.live("updates and resets compaction without removing shell or JSONC comments", () =>
     Effect.acquireDisposable(Effect.promise(() => tmpdir())).pipe(
       Effect.flatMap((tmp) =>

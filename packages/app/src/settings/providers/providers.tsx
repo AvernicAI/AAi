@@ -22,6 +22,7 @@ import { activeProviderAccount, providerAccounts, type ProviderAccount } from ".
 import { AccountNameInput } from "./account-name"
 import { useProviderAccountActions } from "./account-actions"
 import "@/settings/settings.css"
+import { CompatibilityConnector } from "./compatibility"
 
 type ProviderSource = "env" | "api" | "account" | "config" | "custom"
 
@@ -98,7 +99,8 @@ export const SettingsProviders: Component<{
           }}
         />
       ),
-      () => void accountActions
+      () =>
+        void accountActions
           .refresh()
           .catch(() => undefined)
           .finally(() => setState("held", undefined)),
@@ -196,6 +198,7 @@ export const SettingsProviders: Component<{
   }
 
   const type = (item: ProviderItem) => {
+    if (item.id.startsWith("aai-compatible-")) return language.t("settings.compatible.tag")
     const current = source(item)
 
     if (current === "env") return language.t("settings.providers.tag.environment")
@@ -268,7 +271,11 @@ export const SettingsProviders: Component<{
   const activate = async (provider: ProviderItem, providerName: string, account: ProviderAccount) => {
     if (activeProviderAccount(integration(provider))?.id === account.id) return
     setState({ credentialID: account.id, held: available() })
-    await accountActions.activate({ integrationID: provider.integrationID ?? provider.id, provider: providerName, account })
+    await accountActions.activate({
+      integrationID: provider.integrationID ?? provider.id,
+      provider: providerName,
+      account,
+    })
     setState({ credentialID: undefined, held: undefined })
   }
 
@@ -372,9 +379,7 @@ export const SettingsProviders: Component<{
           />
           <Menu.Portal>
             <Menu.Content onCloseAutoFocus={(event) => state.renaming && event.preventDefault()}>
-              <Menu.Item onSelect={() => setState("renaming", active()?.id)}>
-                {language.t("common.rename")}
-              </Menu.Item>
+              <Menu.Item onSelect={() => setState("renaming", active()?.id)}>{language.t("common.rename")}</Menu.Item>
               <Menu.Item
                 onSelect={() => {
                   const account = active()
@@ -404,6 +409,7 @@ export const SettingsProviders: Component<{
       </div>
 
       <div class="settings-tab-body settings-tab-body--sectioned settings-providers">
+        <CompatibilityConnector directory={props.directory} />
         <div class="settings-section" data-component="connected-providers-section">
           <h3 class="settings-section-title">{language.t("settings.providers.section.connected")}</h3>
           <SettingsList variant="catalog">
@@ -424,9 +430,7 @@ export const SettingsProviders: Component<{
                             <ProviderModelIcon provider={item} class="settings-provider-icon shrink-0" />
 
                             <div class="settings-provider-main">
-                              <span class="settings-provider-name truncate">
-                                {item.name}
-                              </span>
+                              <span class="settings-provider-name truncate">{item.name}</span>
                               <Badge>{type(item)}</Badge>
                             </div>
                           </div>
@@ -551,9 +555,7 @@ export const SettingsProviders: Component<{
 
                     <div class="settings-provider-copy">
                       <div class="settings-provider-main">
-                        <span class="settings-provider-name">
-                          {item.name}
-                        </span>
+                        <span class="settings-provider-name">{item.name}</span>
                         <Show when={item.id === "opencode" || item.id === "opencode-go"}>
                           <Badge>{language.t("dialog.provider.tag.recommended")}</Badge>
                         </Show>

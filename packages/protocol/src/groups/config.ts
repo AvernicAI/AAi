@@ -39,7 +39,8 @@ export const ConfigGroup = HttpApiGroup.make("server.config")
       OpenApi.annotations({
         identifier: "experimental.config.update",
         summary: "Update global configuration",
-        description: "Patch supported fields in the highest-precedence global configuration document.",
+        description:
+          "Experimental: may change without compatibility guarantees. Patch supported fields in the highest-precedence global configuration document. Named provider and MCP server entries merge independently; null removes only that named entry.",
       }),
     ),
   )

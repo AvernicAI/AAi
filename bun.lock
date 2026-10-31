@@ -51,7 +51,7 @@
     },
     "packages/app": {
       "name": "@opencode/app",
-      "version": "2.2.2",
+      "version": "2.2.7",
       "dependencies": {
         "@corvu/drawer": "catalog:",
         "@dnd-kit/abstract": "0.5.0",
@@ -105,7 +105,7 @@
     },
     "packages/cli": {
       "name": "@opencode/cli",
-      "version": "2.2.2",
+      "version": "2.2.7",
       "bin": {
         "opencode": "./bin/opencode.cjs",
         "opencode2": "./bin/opencode2.cjs",
@@ -309,7 +309,7 @@
     },
     "packages/desktop": {
       "name": "@opencode/desktop",
-      "version": "2.2.2",
+      "version": "2.2.7",
       "dependencies": {
         "@zip.js/zip.js": "2.7.62",
         "electron-context-menu": "5.0.0",
@@ -856,6 +856,7 @@
         "@pierre/highlights": "catalog:",
         "@solid-primitives/event-listener": "catalog:",
         "@solid-primitives/resize-observer": "catalog:",
+        "effect": "catalog:",
         "fuzzysort": "catalog:",
         "katex": "0.18.11",
         "knobs": "npm:@kitlangton/knobs@0.4.0-next.22",

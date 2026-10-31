@@ -7,6 +7,7 @@ import { SettingsList } from "@/settings/list"
 import { SettingsRow } from "@/settings/row"
 import { createAppearanceSettingsController, type AppearanceSettingsController } from "@/settings/general/controllers"
 import "@/settings/settings.css"
+import { ThemeEditor } from "./theme-editor"
 
 const schemeOptions: ("system" | "light" | "dark")[] = ["system", "light", "dark"]
 
@@ -170,6 +171,7 @@ export const SettingsAppearance: Component = () => {
             </SettingsRow>
           </SettingsList>
         </div>
+        <ThemeEditor />
       </div>
     </>
   )
