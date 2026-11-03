@@ -84,6 +84,9 @@ export const Plugin = define({
         result.push(source)
       }
       const directories = loaded.entries.flatMap((entry) => (entry.type === "directory" ? [entry.path] : []))
+      const pullstack = process.env.OPENCODE_PULLSTACK_SKILLS
+      if (pullstack && path.isAbsolute(pullstack))
+        add(Skill.DirectorySource.make({ type: "directory", path: AbsolutePath.make(pullstack) }))
       const items = loaded.entries.flatMap((entry) => (entry.type === "document" ? (entry.info.skills ?? []) : []))
       for (const directory of directories) {
         add(Skill.DirectorySource.make({ type: "directory", path: AbsolutePath.make(path.join(directory, "skill")) }))

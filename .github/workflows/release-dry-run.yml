@@ -270,7 +270,7 @@ jobs:
           - { target: darwin-arm64, host: macos-26, install: --os=darwin --cpu=arm64 }
           # github-hosted: blacksmith lacks the ARM64 MSVC cross-compilation toolchain
           - target: windows-arm64
-            host: ${{ (needs.plan.outputs.channel == 'dev' || needs.plan.outputs.channel == 'beta') && 'blacksmith-4vcpu-windows-2025' || 'windows-2025' }}
+            host: windows-2025
             install: --cpu=*
           - { target: windows-x64, host: blacksmith-4vcpu-windows-2025 }
           - { target: linux-x64, host: blacksmith-4vcpu-ubuntu-2404 }

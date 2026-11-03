@@ -81,6 +81,11 @@ credentials and model lists. Choose Chat Completions or Responses API, enter the
 when required), and add exact model IDs. Local endpoints can use **no authentication**. API keys are stored
 separately from endpoint configuration. Editing or removing an endpoint preserves other providers.
 
+**Settings → Developer tools** brings provider/model counts, MCP readiness and discovered skills together.
+Refresh the selected server's catalogs, retry failed MCP connections, or jump directly to their settings.
+**Copy diagnostic summary** copies counts and statuses with the AAi version; it excludes credentials, endpoints,
+file paths, connection names and conversation content.
+
 **Settings → Extensions → MCPs** adds, edits and removes global MCP server configurations through a form.
 Choose a local executable with one argument per line, or a remote HTTP/SSE URL. Environment variables, headers,
 startup timeout, OAuth and Code Mode are configurable. Existing status, sign-in and connection controls remain.
@@ -88,9 +93,23 @@ For quick setup, choose **Paste configuration**, paste a standard `mcpServers` b
 review the entries and add them together. A single server entry can use the optional name field. Imported
 servers stay disabled until enabled. Project overrides and other servers' settings remain intact.
 
-**Settings → Skill library** searches SkillMD out of the box. Preview instructions and bundled file names before
+**Settings → AAi Library → Plugins** searches community extensions from npm. Review the exact version, publisher,
+license, dependencies and declared server/desktop/terminal entry points before installation. Explicit trust approval
+is required, and installations are pinned to the reviewed version on the desktop's own local server. Save packages
+for later, enable/disable or remove library-managed entries, and open Extensions to inspect real activation/errors.
+The library preserves JSONC comments, unrelated configuration and other plugins' options. Community listings are
+not a compatibility or publisher-trust guarantee. Removing an entry does not purge the shared package cache.
+
+**AAi Library → Developer prompts** includes six starter workflows for review, debugging, regression tests, releases,
+onboarding and feature planning. Create/edit/delete personal prompts, search the collection, and import/export
+versioned prompt JSON. In a session, use **/prompts** or **Open developer prompt library** in the command palette
+to insert a prompt alongside the existing draft. Nothing is submitted automatically. Prompt exports contain only
+your personal templates, not provider credentials, configuration or chat history.
+
+**Settings → AAi Library → Skills** searches SkillMD out of the box. Preview instructions and bundled file names before
 installing; licenses, scripts and reference files are preserved, and downloading never runs those scripts. The
-Installed tab enables or disables library-managed skills without deleting their files. Installation targets the
+Installed tab enables or disables library-managed skills without deleting their files; confirmed uninstall removes
+only that skill's managed files. Installation targets the
 local server's global `skills` directory; remote-server installation is not offered by this desktop explorer.
 Add more sources under Catalogs: either a SkillMD-compatible API base URL or a JSON index such as:
 

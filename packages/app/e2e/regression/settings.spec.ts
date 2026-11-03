@@ -19,6 +19,35 @@ const contributors = "https://api.github.com/repos/anomalyco/opencode/contributo
 
 test.use({ serviceWorkers: "block" })
 
+test("developer prompts save personal workflows and insert alongside the existing draft without sending", async ({ page }) => {
+  const { editor } = await openSession(page, { name: "Developer prompt library", directory, provider: NO_PROVIDER })
+  await editor.fill("Keep my existing draft.")
+  await page.keyboard.press("ControlOrMeta+Shift+P")
+  const palette = page.getByRole("dialog")
+  await palette.getByRole("combobox").fill("Open developer prompt library")
+  await palette.getByRole("option", { name: /Open developer prompt library/ }).click()
+  const dialog = page.getByRole("dialog", { name: "Open developer prompt library", exact: true })
+  await expect(dialog.getByRole("button", { name: "Insert into prompt", exact: true })).toHaveCount(0)
+  await dialog.getByLabel("Prompt title", { exact: true }).fill("AAi personal review")
+  await dialog.getByLabel("Description", { exact: true }).fill("My reusable review workflow")
+  await dialog.getByLabel("Prompt instructions", { exact: true }).fill("Review only the changed files and explain concrete risks.")
+  await dialog.getByRole("button", { name: "Save prompt", exact: true }).click()
+  await expect(dialog.getByRole("status")).toHaveText("Personal prompt saved")
+  await dialog.getByRole("button", { name: "Insert into prompt", exact: true }).click()
+  await expect(dialog).toBeHidden()
+  await expect(editor).toContainText("Keep my existing draft.")
+  await expect(editor).toContainText("Review only the changed files and explain concrete risks.")
+  await expect(page.locator('[data-component="user-message"]')).toHaveCount(0)
+  await page.keyboard.press("ControlOrMeta+Shift+P")
+  await palette.getByRole("combobox").fill("Open developer prompt library")
+  await palette.getByRole("option", { name: /Open developer prompt library/ }).click()
+  await dialog.getByRole("textbox", { name: "Search developer prompts", exact: true }).fill("AAi personal review")
+  await expect(dialog.getByRole("button", { name: /AAi personal review/ })).toBeVisible()
+  await dialog.getByRole("button", { name: /AAi personal review/ }).click()
+  await dialog.getByRole("button", { name: "Edit personal prompt", exact: true }).click()
+  await expect(dialog.getByLabel("Prompt instructions", { exact: true })).toHaveValue("Review only the changed files and explain concrete risks.")
+})
+
 test("About identifies AAi and links Broduer, AvernicAI, and avernic.com", async ({ page }) => {
   const { settings } = await openSettings(page, { name: "AAi credits", directory, provider: NO_PROVIDER, sessions: [] })
 

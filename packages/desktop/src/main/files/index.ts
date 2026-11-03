@@ -7,7 +7,7 @@ import type { DirectoryPickerOptions, FilePickerOptions, SaveFilePickerOptions }
 import { scoped } from "../native/logging"
 import { nativeT } from "../native/translations"
 import { assertAttachmentBudget, createPickedFileAuthorizations, readAttachment } from "./attachment-picker"
-import { resolveExternalURL, resolveLocalFilePath } from "./external-url"
+import { resolveExternalURL, resolveLocalFilePath, shouldRevealLocalFile } from "./external-url"
 
 export type Interface = ReturnType<typeof make>
 
@@ -94,28 +94,30 @@ function make(fs: FileSystem.FileSystem, path: Path.Path) {
 
         // PowerShell takes its working directory rather than a path argument, and needs its own console window:
         // `start` opens one, and ignored stdio keeps the console from holding cmd's pipes open until PowerShell exits.
-        return yield* Effect.tryPromise(() =>
-          new Promise<void>((resolve, reject) => {
-            spawn("cmd.exe", ["/d", "/c", "start", "", application, "-NoExit"], {
-              cwd,
-              stdio: "ignore",
-              windowsHide: true,
-            })
-              .once("error", reject)
-              .once("exit", (code) => (code === 0 ? resolve() : reject(new Error(`start exited with code ${code}`))))
-          }),
+        return yield* Effect.tryPromise(
+          () =>
+            new Promise<void>((resolve, reject) => {
+              spawn("cmd.exe", ["/d", "/c", "start", "", application, "-NoExit"], {
+                cwd,
+                stdio: "ignore",
+                windowsHide: true,
+              })
+                .once("error", reject)
+                .once("exit", (code) => (code === 0 ? resolve() : reject(new Error(`start exited with code ${code}`))))
+            }),
         )
       }
 
-      yield* Effect.tryPromise(() =>
-        new Promise<void>((resolve, reject) => {
-          const command =
-            process.platform === "darwin"
-              ? { file: "open", arguments: ["-a", application, target] }
-              : { file: application, arguments: [target] }
+      yield* Effect.tryPromise(
+        () =>
+          new Promise<void>((resolve, reject) => {
+            const command =
+              process.platform === "darwin"
+                ? { file: "open", arguments: ["-a", application, target] }
+                : { file: application, arguments: [target] }
 
-          execFile(command.file, command.arguments, (error) => (error ? reject(error) : resolve()))
-        }),
+            execFile(command.file, command.arguments, (error) => (error ? reject(error) : resolve()))
+          }),
       )
     }),
     revealPath: Effect.fn("DesktopFiles.revealPath")(function* (target: string) {
@@ -178,6 +180,12 @@ export const openLocalFileURL = Effect.fn("DesktopFiles.openLocalFileURL")(funct
 
   if (!path) {
     yield* scoped("window", Effect.logWarning("blocked local file target", { url: value }))
+
+    return
+  }
+
+  if (shouldRevealLocalFile(path)) {
+    shell.showItemInFolder(path)
 
     return
   }

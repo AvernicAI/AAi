@@ -194,6 +194,7 @@ export type SearchEntry = {
   readonly description: ToolDescription
   /** The path split into words, so `zones` matches `get_zones` as a word rather than as a substring of `timezones`. */
   readonly pathWords: ReadonlyArray<string>
+  readonly descriptionWords: ReadonlySet<string>
   readonly searchText: string
 }
 
@@ -211,19 +212,25 @@ const termForms = (term: string): Array<string> => {
   return forms
 }
 
+const promptWords = new Set([
+  "a", "an", "and", "can", "could", "for", "i", "in", "is", "it", "me", "of",
+  "on", "please", "the", "this", "to", "with", "would", "you",
+])
+
 const rank = (entries: ReadonlyArray<SearchEntry>, query: string): Array<SearchEntry> => {
-  const terms = tokenize(query).map(termForms)
+  const words = [...new Set(tokenize(query))]
+  const keywords = words.filter((word) => !promptWords.has(word))
+  const terms = (keywords.length > 0 ? keywords : words).map(termForms)
   return entries
     .map((entry) => {
       const path = entry.description.path.toLowerCase()
-      const description = entry.description.description.toLowerCase()
       const score = terms.reduce(
         (total, forms) =>
           total +
           (forms.some((form) => path === form || path.endsWith(`.${form}`)) ? 20 : 0) +
           (forms.some((form) => entry.pathWords.includes(form)) ? 12 : 0) +
           (forms.some((form) => path.includes(form)) ? 8 : 0) +
-          (forms.some((form) => description.includes(form)) ? 4 : 0) +
+          (forms.some((form) => entry.descriptionWords.has(form)) ? 4 : 0) +
           (forms.some((form) => entry.searchText.includes(form)) ? 2 : 0),
         0,
       )
@@ -287,6 +294,7 @@ export const searchSignature = (() => {
 const toSearchEntry = <R>(visible: VisibleTool<R>): SearchEntry => ({
   description: describeTool(visible),
   pathWords: tokenize(visible.path),
+  descriptionWords: new Set(tokenize(visible.tool.description)),
   searchText: [
     visible.path,
     visible.tool.description,

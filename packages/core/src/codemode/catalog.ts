@@ -138,7 +138,7 @@ export function summarize(inventory: Inventory, options: Options = {}): Summary 
   }
 }
 
-function flatten(entries: ReadonlyArray<Tool | Namespace>, path: ReadonlyArray<string> = []) {
+export function flatten(entries: ReadonlyArray<Tool | Namespace>, path: ReadonlyArray<string> = []) {
   const tools: Array<Omit<Tool, "name"> & { readonly path: string }> = []
   const namespaces = new Map<string, Namespace>()
   for (const entry of entries) {

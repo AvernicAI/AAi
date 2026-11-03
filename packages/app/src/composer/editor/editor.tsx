@@ -817,12 +817,14 @@ function ComposerAttachments(props: {
                     >
                       <Show when={src()} fallback={<div class="w-[58px] h-[46px]" />}>
                         {(value) => (
-                          <img
-                            src={value()}
-                            alt={attachment.filename}
-                            class="w-[58px] h-[46px] rounded-[6px] object-cover"
+                          <button
+                            type="button"
+                            class="block rounded-[6px]"
+                            aria-label={attachment.filename}
                             onClick={(event) => props.onAttachmentClick?.(attachment, event.currentTarget)}
-                          />
+                          >
+                            <img src={value()} alt="" class="w-[58px] h-[46px] rounded-[6px] object-cover" />
+                          </button>
                         )}
                       </Show>
                       <div class="absolute inset-0 rounded-[6px] shadow-[inset_0_0_0_0.5px_var(--v2-border-border-base)] pointer-events-none" />

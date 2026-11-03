@@ -82,6 +82,8 @@ const getBase = (appId: string): Configuration => {
       "out/**/*",
       "resources/**/*",
       "!resources/opencode-cli*",
+      "!resources/ultima3d{,/**/*}",
+      "!resources/pullstack{,/**/*}",
       // Keep only the target platform's node-pty prebuild when cross-packaging with --cpu=*.
       ...CLI_BINARIES.filter((item) => item.os !== target.os || item.cpu !== target.cpu).map(
         (item) => `!**/node_modules/@lydell/node-pty-${item.os}-${item.cpu}{,/**/*}`,
@@ -105,7 +107,7 @@ const getBase = (appId: string): Configuration => {
       {
         from: "resources/",
         to: "",
-        filter: ["opencode-cli", "opencode-cli.exe", "opencode-cli.version"],
+        filter: ["opencode-cli", "opencode-cli.exe", "opencode-cli.version", "ultima3d/**/*", "pullstack/**/*"],
       },
     ],
     afterPack: async (context) => {
@@ -125,6 +127,14 @@ const getBase = (appId: string): Configuration => {
       const version = path.join(path.dirname(cli), "opencode-cli.version")
 
       if ((await stat(version)).size === 0) throw new Error(`Bundled CLI version must be a non-empty file: ${version}`)
+
+      const ultima3d = path.join(resources, "ultima3d")
+      await NativeArch.verify(
+        path.join(ultima3d, context.electronPlatformName === "win32" ? "ultima3d-server.exe" : "ultima3d-server"),
+        arch,
+      )
+      const worker = path.join(ultima3d, "blender", "worker.py")
+      if ((await stat(worker)).size === 0) throw new Error(`Bundled Ultima3D worker must be a non-empty file: ${worker}`)
 
       if (context.electronPlatformName !== "win32") return
 

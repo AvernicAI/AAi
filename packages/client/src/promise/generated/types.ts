@@ -2368,6 +2368,7 @@ export type ConfigEntry =
                   type: "remote"
                   url: string
                   headers?: { [x: string]: string }
+                  tools?: Array<string>
                   oauth?:
                     | {
                         client_id?: string
@@ -3990,6 +3991,35 @@ export type McpResourceCatalogInput = { readonly location?: { readonly directory
 
 export type McpResourceCatalogOutput = { location: LocationPublicRef; data: McpResourceCatalog }
 
+export type ExperimentalMcpToolCatalogInput = {
+  readonly server: string
+  readonly location?: { readonly directory?: string | undefined } | undefined
+}
+
+export type ExperimentalMcpToolCatalogOutput = {
+  location: LocationPublicRef
+  data: Array<{ name: string; description?: string | undefined }>
+}
+
+export type ExperimentalMcpHostInput = {
+  readonly location?: { readonly directory?: string | undefined } | undefined
+  readonly payload: unknown
+}
+
+export type ExperimentalMcpHostOutput = any
+
+export type ExperimentalMcpHostStreamInput = {
+  readonly location?: { readonly directory?: string | undefined } | undefined
+}
+
+export type ExperimentalMcpHostStreamOutput = void
+
+export type ExperimentalMcpHostSessionInput = {
+  readonly location?: { readonly directory?: string | undefined } | undefined
+}
+
+export type ExperimentalMcpHostSessionOutput = void
+
 export type ExperimentalMcpAddInput = {
   readonly server: string
   readonly location?: { readonly directory?: string | undefined } | undefined
@@ -4008,6 +4038,7 @@ export type ExperimentalMcpAddInput = {
         readonly type: "remote"
         readonly url: string
         readonly headers?: { readonly [x: string]: string }
+        readonly tools?: ReadonlyArray<string>
         readonly oauth?:
           | {
               readonly client_id?: string
@@ -4690,6 +4721,7 @@ export type ExperimentalConfigUpdateInput = {
                 readonly type: "remote"
                 readonly url: string
                 readonly headers?: { readonly [x: string]: string }
+                readonly tools?: ReadonlyArray<string>
                 readonly oauth?:
                   | {
                       readonly client_id?: string
@@ -4904,6 +4936,30 @@ export type IntegrationWellknownAddInput = ExperimentalIntegrationWellknownAddIn
 
 /** @deprecated Use `ExperimentalIntegrationWellknownAddOutput`. Removed in the next minor. */
 export type IntegrationWellknownAddOutput = ExperimentalIntegrationWellknownAddOutput
+
+/** @deprecated Use `ExperimentalMcpToolCatalogInput`. Removed in the next minor. */
+export type McpToolCatalogInput = ExperimentalMcpToolCatalogInput
+
+/** @deprecated Use `ExperimentalMcpToolCatalogOutput`. Removed in the next minor. */
+export type McpToolCatalogOutput = ExperimentalMcpToolCatalogOutput
+
+/** @deprecated Use `ExperimentalMcpHostInput`. Removed in the next minor. */
+export type McpHostInput = ExperimentalMcpHostInput
+
+/** @deprecated Use `ExperimentalMcpHostOutput`. Removed in the next minor. */
+export type McpHostOutput = ExperimentalMcpHostOutput
+
+/** @deprecated Use `ExperimentalMcpHostStreamInput`. Removed in the next minor. */
+export type McpHostStreamInput = ExperimentalMcpHostStreamInput
+
+/** @deprecated Use `ExperimentalMcpHostStreamOutput`. Removed in the next minor. */
+export type McpHostStreamOutput = ExperimentalMcpHostStreamOutput
+
+/** @deprecated Use `ExperimentalMcpHostSessionInput`. Removed in the next minor. */
+export type McpHostSessionInput = ExperimentalMcpHostSessionInput
+
+/** @deprecated Use `ExperimentalMcpHostSessionOutput`. Removed in the next minor. */
+export type McpHostSessionOutput = ExperimentalMcpHostSessionOutput
 
 /** @deprecated Use `ExperimentalMcpAddInput`. Removed in the next minor. */
 export type McpAddInput = ExperimentalMcpAddInput

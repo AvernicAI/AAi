@@ -16,6 +16,7 @@ import { ProjectIconsProvider } from "@/shell/layout/project-icons"
 import { GlobalProvider } from "@/runtime/server/runtime"
 import { LanguageProvider, UiI18nBridge, type Locale } from "@/runtime/i18n/language"
 import { ServerConnection, ServersProvider } from "@/runtime/server/registry"
+import { CustomBackground } from "@/settings/appearance/background"
 import { SettingsProvider } from "@/settings/model"
 import { TabsProvider } from "@/shell/tabs/tabs"
 import { ErrorPage } from "@/shell/errors/error"
@@ -118,6 +119,7 @@ export function AppInterface(props: {
   return (
     <ServersProvider canonicalLocalServer={props.canonicalLocalServer} servers={props.servers}>
       <SettingsProvider>
+        <CustomBackground />
         <Dynamic component={props.router ?? Router} root={Root}>
           <AppRoutes />
         </Dynamic>

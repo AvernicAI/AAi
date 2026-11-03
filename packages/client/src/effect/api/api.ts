@@ -1742,6 +1742,18 @@ export interface McpApi<E = never> {
   readonly list: McpListOperation<E>
   readonly resource: { readonly catalog: McpResourceCatalogOperation<E> }
 
+  /** @deprecated Use `client.experimental.mcp.toolCatalog`. Removed in the next minor. */
+  readonly toolCatalog: ExperimentalMcpToolCatalogOperation<E>
+
+  /** @deprecated Use `client.experimental.mcp.host`. Removed in the next minor. */
+  readonly host: ExperimentalMcpHostOperation<E>
+
+  /** @deprecated Use `client.experimental.mcp.hostStream`. Removed in the next minor. */
+  readonly hostStream: ExperimentalMcpHostStreamOperation<E>
+
+  /** @deprecated Use `client.experimental.mcp.hostSession`. Removed in the next minor. */
+  readonly hostSession: ExperimentalMcpHostSessionOperation<E>
+
   /** @deprecated Use `client.experimental.mcp.add`. Removed in the next minor. */
   readonly add: ExperimentalMcpAddOperation<E>
 
@@ -1760,6 +1772,43 @@ export interface McpApi<E = never> {
     readonly token: ExperimentalMcpClientTokenOperation<E>
   }
 }
+
+export type ExperimentalMcpToolCatalogInput = {
+  readonly server: string
+  readonly location?: { readonly directory?: string | undefined } | undefined
+}
+export type ExperimentalMcpToolCatalogOutput = {
+  readonly location: Location.PublicRef
+  readonly data: ReadonlyArray<{ readonly name: string; readonly description?: string | undefined }>
+}
+export type ExperimentalMcpToolCatalogOperation<E = never> = (
+  input: ExperimentalMcpToolCatalogInput,
+) => Effect.Effect<ExperimentalMcpToolCatalogOutput, E>
+
+export type ExperimentalMcpHostInput = {
+  readonly location?: { readonly directory?: string | undefined } | undefined
+  readonly payload: unknown
+}
+export type ExperimentalMcpHostOutput = unknown
+export type ExperimentalMcpHostOperation<E = never> = (
+  input: ExperimentalMcpHostInput,
+) => Effect.Effect<ExperimentalMcpHostOutput, E>
+
+export type ExperimentalMcpHostStreamInput = {
+  readonly location?: { readonly directory?: string | undefined } | undefined
+}
+export type ExperimentalMcpHostStreamOutput = void
+export type ExperimentalMcpHostStreamOperation<E = never> = (
+  input?: ExperimentalMcpHostStreamInput,
+) => Effect.Effect<ExperimentalMcpHostStreamOutput, E>
+
+export type ExperimentalMcpHostSessionInput = {
+  readonly location?: { readonly directory?: string | undefined } | undefined
+}
+export type ExperimentalMcpHostSessionOutput = void
+export type ExperimentalMcpHostSessionOperation<E = never> = (
+  input?: ExperimentalMcpHostSessionInput,
+) => Effect.Effect<ExperimentalMcpHostSessionOutput, E>
 
 export type ExperimentalMcpAddInput = {
   readonly server: string
@@ -1812,6 +1861,10 @@ export type ExperimentalMcpClientTokenOperation<E = never> = (
 ) => Effect.Effect<ExperimentalMcpClientTokenOutput, E>
 
 export interface ExperimentalMcpApi<E = never> {
+  readonly toolCatalog: ExperimentalMcpToolCatalogOperation<E>
+  readonly host: ExperimentalMcpHostOperation<E>
+  readonly hostStream: ExperimentalMcpHostStreamOperation<E>
+  readonly hostSession: ExperimentalMcpHostSessionOperation<E>
   readonly add: ExperimentalMcpAddOperation<E>
   readonly remove: ExperimentalMcpRemoveOperation<E>
   readonly connect: ExperimentalMcpConnectOperation<E>
@@ -2841,6 +2894,42 @@ export type IntegrationWellknownAddOutput = ExperimentalIntegrationWellknownAddO
 
 /** @deprecated Use `ExperimentalIntegrationWellknownAddOperation`. Removed in the next minor. */
 export type IntegrationWellknownAddOperation<E = never> = ExperimentalIntegrationWellknownAddOperation<E>
+
+/** @deprecated Use `ExperimentalMcpToolCatalogInput`. Removed in the next minor. */
+export type McpToolCatalogInput = ExperimentalMcpToolCatalogInput
+
+/** @deprecated Use `ExperimentalMcpToolCatalogOutput`. Removed in the next minor. */
+export type McpToolCatalogOutput = ExperimentalMcpToolCatalogOutput
+
+/** @deprecated Use `ExperimentalMcpToolCatalogOperation`. Removed in the next minor. */
+export type McpToolCatalogOperation<E = never> = ExperimentalMcpToolCatalogOperation<E>
+
+/** @deprecated Use `ExperimentalMcpHostInput`. Removed in the next minor. */
+export type McpHostInput = ExperimentalMcpHostInput
+
+/** @deprecated Use `ExperimentalMcpHostOutput`. Removed in the next minor. */
+export type McpHostOutput = ExperimentalMcpHostOutput
+
+/** @deprecated Use `ExperimentalMcpHostOperation`. Removed in the next minor. */
+export type McpHostOperation<E = never> = ExperimentalMcpHostOperation<E>
+
+/** @deprecated Use `ExperimentalMcpHostStreamInput`. Removed in the next minor. */
+export type McpHostStreamInput = ExperimentalMcpHostStreamInput
+
+/** @deprecated Use `ExperimentalMcpHostStreamOutput`. Removed in the next minor. */
+export type McpHostStreamOutput = ExperimentalMcpHostStreamOutput
+
+/** @deprecated Use `ExperimentalMcpHostStreamOperation`. Removed in the next minor. */
+export type McpHostStreamOperation<E = never> = ExperimentalMcpHostStreamOperation<E>
+
+/** @deprecated Use `ExperimentalMcpHostSessionInput`. Removed in the next minor. */
+export type McpHostSessionInput = ExperimentalMcpHostSessionInput
+
+/** @deprecated Use `ExperimentalMcpHostSessionOutput`. Removed in the next minor. */
+export type McpHostSessionOutput = ExperimentalMcpHostSessionOutput
+
+/** @deprecated Use `ExperimentalMcpHostSessionOperation`. Removed in the next minor. */
+export type McpHostSessionOperation<E = never> = ExperimentalMcpHostSessionOperation<E>
 
 /** @deprecated Use `ExperimentalMcpAddInput`. Removed in the next minor. */
 export type McpAddInput = ExperimentalMcpAddInput

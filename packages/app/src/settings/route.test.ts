@@ -12,6 +12,8 @@ describe("settings route", () => {
   test("round trips root pages, the selected server, and project pages", () => {
     const root: SettingsView = { type: "root", tab: "appearance" }
     const models: SettingsView = { type: "root", tab: "models", server: "wsl:Debian" }
+    const developer: SettingsView = { type: "root", tab: "developer", server: "wsl:Debian" }
+    expect(parse(developer)).toMatchObject(developer)
     // Preferences with a selected server names its tab, which a link to the old server page lacks.
     const preferences: SettingsView = { type: "root", tab: "general", server: "wsl:Debian" }
 

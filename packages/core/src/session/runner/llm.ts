@@ -1,6 +1,6 @@
 export * as SessionRunnerLLM from "./llm.js"
 
-import { Message } from "@opencode/ai/effect"
+import { Message, SystemPart } from "@opencode/ai/effect"
 import { and, desc, eq, inArray, sql } from "drizzle-orm"
 import { Cause, Effect, Exit, FiberMap, Layer } from "effect"
 import { Database } from "../../database/database.js"
@@ -33,6 +33,9 @@ import { ToolOutput } from "../../tool-output.js"
 import { Plugin } from "../../plugin.js"
 import { PluginHooks } from "../../plugin/hooks.js"
 import { MAX_STEPS_PROMPT } from "./max-steps.js"
+import { CapabilityDiscovery } from "../../capability-discovery.js"
+import { Permission } from "../../permission.js"
+import { Skill } from "../../skill.js"
 
 const CONTINUE_AFTER_INCOMPLETE_STREAM =
   "The previous response was interrupted. Continue from where you left off without repeating completed content."
@@ -55,6 +58,7 @@ const layer = Layer.effect(
     const jobs = yield* Job.Service
     const title = yield* SessionTitle.Service
     const steps = yield* SessionStep.make
+    const skills = yield* Skill.Service
     // Title generation starts once input is visible and must not delay model execution.
     const titles = yield* FiberMap.make<SessionSchema.ID, void, never>()
 
@@ -175,7 +179,9 @@ const layer = Layer.effect(
                 // The Session would go idle; a plugin may admit input to keep this execution working.
                 yield* restore(
                   SessionBackground.outstanding(jobs, store, sessionID).pipe(
-                    Effect.flatMap((background) => hooks.trigger("session", "experimental.idle", { sessionID, background })),
+                    Effect.flatMap((background) =>
+                      hooks.trigger("session", "experimental.idle", { sessionID, background }),
+                    ),
                   ),
                 )
                 if (!(yield* SessionInbox.has(db, sessionID, "input"))) return DrainResult.Complete()
@@ -254,6 +260,20 @@ const layer = Layer.effect(
           initial: loaded.initial,
           messages: loaded.messages,
         })
+        const prompt = loaded.messages.findLast((message) => message.type === "user" || message.type === "assistant")
+        if (process.env.OPENCODE_EXPERIMENTAL_CAPABILITY_DISCOVERY === "1" && prompt?.type === "user") {
+          const permissions = Permission.merge(loaded.agent.info.permissions, loaded.session.permissions ?? [])
+          const eligible = Skill.available(yield* skills.list(), permissions).filter(
+            (skill) => skill.autoinvoke !== false,
+          )
+          const matches = CapabilityDiscovery.rank(prompt.text, CapabilityDiscovery.inventory(loaded.tools, eligible))
+          if (matches.length > 0)
+            transcript.system.push(
+              SystemPart.make(
+                `Local discovery found these candidates for the latest request. Use only the ones relevant to the task. Look up Code Mode tool signatures with search before calling them.\n${matches.map((match) => `- ${match.kind} ${JSON.stringify(match.name)}`).join("\n")}`,
+              ),
+            )
+        }
         const prepared = yield* context.request
           .primary({
             session: loaded.session,
@@ -452,6 +472,7 @@ export const node = makeLocationNode({
     SessionTitle.node,
     Snapshot.node,
     ToolOutput.node,
+    Skill.node,
     Database.node,
   ],
 })

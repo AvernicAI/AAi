@@ -45,6 +45,7 @@
     "fuzzysort": "catalog:",
     "fflate": "0.8.3",
     "gray-matter": "4.0.3",
+    "jsonc-parser": "3.3.1",
     "monaco-editor": "0.55.1",
     "vscode-languageserver-protocol": "3.17.5",
     "ghostty-web": "github:anomalyco/ghostty-web#e91e38a9ceb13c566ddfa15185a9393849f712a9",

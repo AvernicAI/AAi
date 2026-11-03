@@ -1,0 +1,57 @@
+{
+  "$schema": "https://opencode.ai/desktop-theme.json",
+  "id": "aai-glacier",
+  "name": "AAi Glacier",
+  "light": {
+    "palette": {
+      "neutral": "#eff7ff",
+      "ink": "#183451",
+      "primary": "#245c9e",
+      "accent": "#16726c",
+      "interactive": "#245c9e",
+      "success": "#2b7756",
+      "warning": "#a56c21",
+      "error": "#b94d50",
+      "info": "#346e95",
+      "diffAdd": "#2b7756",
+      "diffDelete": "#b94d50"
+    },
+    "overrides": {
+      "background-base": "#eff7ff",
+      "text-strong": "#183451",
+      "syntax-comment": "#4e6c68",
+      "syntax-keyword": "#245c9e",
+      "syntax-string": "#2b7756",
+      "syntax-primitive": "#346e95",
+      "syntax-property": "#183451",
+      "syntax-type": "#16726c",
+      "syntax-constant": "#a56c21"
+    }
+  },
+  "dark": {
+    "palette": {
+      "neutral": "#0e1827",
+      "ink": "#e0efff",
+      "primary": "#8dbfff",
+      "accent": "#8edace",
+      "interactive": "#8dbfff",
+      "success": "#86d8a5",
+      "warning": "#e3c38b",
+      "error": "#ed9b98",
+      "info": "#8cc9e2",
+      "diffAdd": "#86d8a5",
+      "diffDelete": "#ed9b98"
+    },
+    "overrides": {
+      "background-base": "#0e1827",
+      "text-strong": "#e0efff",
+      "syntax-comment": "#7c9e9a",
+      "syntax-keyword": "#8dbfff",
+      "syntax-string": "#86d8a5",
+      "syntax-primitive": "#8cc9e2",
+      "syntax-property": "#e0efff",
+      "syntax-type": "#8edace",
+      "syntax-constant": "#e3c38b"
+    }
+  }
+}

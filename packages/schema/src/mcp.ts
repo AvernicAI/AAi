@@ -54,6 +54,9 @@ export class RemoteConfig extends Schema.Class<RemoteConfig>("Mcp.RemoteConfig")
   type: Schema.Literal("remote"),
   url: Schema.String,
   headers: Schema.Record(Schema.String, Schema.String).pipe(optional),
+  tools: Schema.Array(Schema.String).pipe(optional).annotate({
+    description: "Tool allowlist. Omit to allow all tools, or set an empty list to allow none.",
+  }),
   oauth: Schema.Union([OAuthConfig, Schema.Literal(false)]).pipe(optional),
   disabled: Schema.Boolean.pipe(optional),
   codemode: Schema.Boolean.pipe(optional).annotate({

@@ -179,6 +179,12 @@ export async function toggleSkill(root: string, skill: Installed, enabled: boole
   )
 }
 
+export async function removeSkill(root: string, skill: Installed) {
+  const directory = path.resolve(root, skill.enabled ? "skills" : "aai-skill-library/disabled")
+  // `folder` is schema-checked and `inside` verifies the absolute deletion target stays in this managed directory.
+  await rm(inside(directory, skill.folder), { recursive: true, force: true })
+}
+
 export function unpackSkill(bytes: Uint8Array) {
   const sizes = { total: 0, count: 0 }
 

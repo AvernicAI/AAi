@@ -150,6 +150,14 @@ import type {
   McpListOutput,
   McpResourceCatalogInput,
   McpResourceCatalogOutput,
+  ExperimentalMcpToolCatalogInput,
+  ExperimentalMcpToolCatalogOutput,
+  ExperimentalMcpHostInput,
+  ExperimentalMcpHostOutput,
+  ExperimentalMcpHostStreamInput,
+  ExperimentalMcpHostStreamOutput,
+  ExperimentalMcpHostSessionInput,
+  ExperimentalMcpHostSessionOutput,
   ExperimentalMcpAddInput,
   ExperimentalMcpAddOutput,
   ExperimentalMcpRemoveInput,
@@ -1245,6 +1253,55 @@ export function make(options: ClientOptions) {
         },
       },
       mcp: {
+        toolCatalog: (input: ExperimentalMcpToolCatalogInput, requestOptions?: RequestOptions) =>
+          request<ExperimentalMcpToolCatalogOutput>(
+            {
+              method: "GET",
+              path: `/api/experimental/mcp/${encodeURIComponent(input.server)}/tools`,
+              query: { location: input["location"] },
+              successStatus: 200,
+              declaredStatuses: [400, 401, 404],
+              empty: false,
+            },
+            requestOptions,
+          ),
+        host: (input: ExperimentalMcpHostInput, requestOptions?: RequestOptions) =>
+          request<ExperimentalMcpHostOutput>(
+            {
+              method: "POST",
+              path: `/api/experimental/mcp/host/rpc`,
+              query: { location: input["location"] },
+              body: input["payload"],
+              successStatus: 200,
+              declaredStatuses: [400, 401, 403, 404],
+              empty: false,
+            },
+            requestOptions,
+          ),
+        hostStream: (input?: ExperimentalMcpHostStreamInput, requestOptions?: RequestOptions) =>
+          request<ExperimentalMcpHostStreamOutput>(
+            {
+              method: "GET",
+              path: `/api/experimental/mcp/host/rpc`,
+              query: { location: input?.["location"] },
+              successStatus: 204,
+              declaredStatuses: [400, 401, 404],
+              empty: true,
+            },
+            requestOptions,
+          ),
+        hostSession: (input?: ExperimentalMcpHostSessionInput, requestOptions?: RequestOptions) =>
+          request<ExperimentalMcpHostSessionOutput>(
+            {
+              method: "DELETE",
+              path: `/api/experimental/mcp/host/rpc`,
+              query: { location: input?.["location"] },
+              successStatus: 204,
+              declaredStatuses: [400, 401, 404],
+              empty: true,
+            },
+            requestOptions,
+          ),
         add: (input: ExperimentalMcpAddInput, requestOptions?: RequestOptions) =>
           request<ExperimentalMcpAddOutput>(
             {
@@ -2614,6 +2671,14 @@ export function make(options: ClientOptions) {
     },
     mcp: {
       ...client.mcp,
+      /** @deprecated Use `client.experimental.mcp.toolCatalog`. Removed in the next minor. */
+      toolCatalog: client.experimental.mcp.toolCatalog,
+      /** @deprecated Use `client.experimental.mcp.host`. Removed in the next minor. */
+      host: client.experimental.mcp.host,
+      /** @deprecated Use `client.experimental.mcp.hostStream`. Removed in the next minor. */
+      hostStream: client.experimental.mcp.hostStream,
+      /** @deprecated Use `client.experimental.mcp.hostSession`. Removed in the next minor. */
+      hostSession: client.experimental.mcp.hostSession,
       /** @deprecated Use `client.experimental.mcp.add`. Removed in the next minor. */
       add: client.experimental.mcp.add,
       /** @deprecated Use `client.experimental.mcp.remove`. Removed in the next minor. */

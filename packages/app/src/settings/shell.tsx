@@ -24,6 +24,7 @@ import { SettingsWorkspaces } from "./workspaces/workspaces"
 import { useWorkspacesPrefetch } from "./workspaces/queries"
 import { SettingsProjects } from "./workspaces/projects"
 import { SettingsExtensions } from "./providers/extensions"
+import { SettingsDeveloper } from "./developer/developer"
 import { SettingsAbout } from "./about/about"
 import { SettingsServerDataScope } from "./server-scope"
 import { SettingsNavigation, type SettingsNavGroup } from "./navigation"
@@ -44,6 +45,7 @@ const rootClientTabs = [
 ] as const
 
 const serverTabs = [
+  { value: "developer", icon: pageIcons.developer, label: "settings.developer.title" },
   { value: "providers", icon: pageIcons.providers, label: "settings.providers.title" },
   { value: "models", icon: pageIcons.models, label: "settings.models.title" },
   { value: "extensions", icon: pageIcons.extensions, label: "settings.tab.extensions" },
@@ -53,6 +55,7 @@ const serverTabs = [
 
 // The heading of each per-server page, which its unreachable state keeps.
 const serverPages = {
+  developer: { title: "settings.developer.title", description: "settings.developer.description" },
   providers: { title: "settings.providers.title", description: "settings.providers.description" },
   models: { title: "settings.models.title", description: "settings.models.description" },
   extensions: { title: "settings.tab.extensions", description: "settings.extensions.description" },
@@ -347,6 +350,9 @@ function RootSettings() {
       >
         {(server) => (
           <SettingsServerDataScope server={server}>
+            <Tabs.Content value="developer" class="settings-panel">
+              <SettingsDeveloper directory={activeDirectory()} headerAction={<SettingsServerSwitcher />} />
+            </Tabs.Content>
             <Tabs.Content value="providers" class="settings-panel">
               <SettingsProviders
                 directory={undefined}

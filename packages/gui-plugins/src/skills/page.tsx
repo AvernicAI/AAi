@@ -205,7 +205,7 @@ export default function LibraryPage() {
           </p>
         </Show>
         <div class="aai-skill-columns">
-          <div class="aai-skill-results" aria-label={ctx.t("explore")}>
+          <div class="aai-skill-results" data-scrollable aria-label={ctx.t("explore")}>
             <Show when={search.loading}>
               <p>{ctx.t("loading")}</p>
             </Show>
@@ -241,7 +241,7 @@ export default function LibraryPage() {
               </Button>
             </div>
           </div>
-          <div class="aai-skill-preview" aria-label={ctx.t("preview")}>
+          <div class="aai-skill-preview" data-scrollable aria-label={ctx.t("preview")}>
             <Show when={preview.loading}>
               <p>{ctx.t("loading")}</p>
             </Show>
@@ -304,18 +304,42 @@ export default function LibraryPage() {
                   {item.slug} · {ctx.t(item.enabled ? "enabled" : "disabled")}
                 </small>
               </div>
-              <Button
-                disabled={state.busy || !local()}
-                onClick={() => {
-                  const service = available()
-                  const target = server()
+              <div class="aai-library-actions">
+                <Button
+                  disabled={state.busy || !local()}
+                  onClick={() => {
+                    const service = available()
+                    const target = server()
 
-                  if (service && target)
-                    run(() => service.service.enable({ id: item.id, enabled: !item.enabled, server: target.id }))
-                }}
-              >
-                {ctx.t(item.enabled ? "disable" : "enable")}
-              </Button>
+                    if (service && target)
+                      run(() => service.service.enable({ id: item.id, enabled: !item.enabled, server: target.id }))
+                  }}
+                >
+                  {ctx.t(item.enabled ? "disable" : "enable")}
+                </Button>
+                <Button
+                  variant="ghost"
+                  disabled={state.busy || !local()}
+                  onClick={async () => {
+                    const service = available()
+                    const target = server()
+
+                    if (!service || !target) return
+
+                    if (
+                      !(await ctx.dialogs.confirm({
+                        title: ctx.t("uninstallQuestion"),
+                        confirm: ctx.t("uninstall"),
+                        danger: true,
+                      }))
+                    )
+                      return
+                    run(() => service.service.remove({ id: item.id, server: target.id }))
+                  }}
+                >
+                  {ctx.t("uninstall")}
+                </Button>
+              </div>
             </div>
           )}
         </For>

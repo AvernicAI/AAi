@@ -20,6 +20,7 @@ import { showCliInstaller } from "./native/install-cli"
 import { createMenu, sendMenuCommand } from "./native/menu"
 import { DesktopCli } from "./service/desktop-cli"
 import { getLastFocusedWindow } from "./windows"
+import { isRendererUrl } from "./windows/scheme"
 
 const services = Layer.mergeAll(DesktopFiles.layer, Plugins.layer)
 
@@ -70,6 +71,9 @@ export const registerIpcHandlers = Effect.gen(function* () {
 
     const post = () => {
       if (win.isDestroyed() || win.webContents.isDestroyed()) return
+      // Auxiliary browser windows must never receive the desktop's privileged RPC port.
+
+      if (!isRendererUrl(win.webContents.getURL(), true)) return
       const channel = new MessageChannelMain()
       handoff.bind(win.webContents, channel.port1)
       win.webContents.postMessage(IpcTransportPort, null, [channel.port2])

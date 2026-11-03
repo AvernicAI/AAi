@@ -5,6 +5,7 @@ import { BackgroundServiceState } from "./background-service-state"
 import { cleanStages } from "./cli-stages"
 import { keptStages, serviceVersion, shouldRetryEnsure } from "./cli-version"
 import { DesktopCli } from "./desktop-cli"
+import { DesktopPaths } from "../paths"
 import { SidecarCredentials } from "./sidecar-credentials"
 import { sidecarProbe } from "./sidecar-probe"
 
@@ -43,6 +44,13 @@ const connect = Effect.fn("BackgroundService.connect")(function* (mode: "initial
   const cli = yield* desktopCli.resolve
   const version = serviceVersion({ channel: CHANNEL, isolated, mode, version: cli.version })
 
+  const paths = yield* DesktopPaths.resolve
+  const ultima3d = path.join(app.isPackaged ? process.resourcesPath : paths.developmentResourcesRoot, "ultima3d")
+  const hasUltima3d = yield* fs.exists(
+    path.join(ultima3d, process.platform === "win32" ? "ultima3d-server.exe" : "ultima3d-server"),
+  )
+  const pullstack = path.join(app.isPackaged ? process.resourcesPath : paths.developmentResourcesRoot, "pullstack", "skills")
+
   if (isolated) process.env.XDG_STATE_HOME = app.getPath("userData")
   const client = yield* Effect.promise(() => import("@opencode/client/service"))
 
@@ -59,6 +67,12 @@ const connect = Effect.fn("BackgroundService.connect")(function* (mode: "initial
     client.Service.ensure({
       file,
       version: required,
+      env: {
+        OPENCODE_DESKTOP_MCP_HOST: "1",
+        OPENCODE_EXPERIMENTAL_CAPABILITY_DISCOVERY: "1",
+        OPENCODE_PULLSTACK_SKILLS: pullstack,
+        ...(hasUltima3d ? { OPENCODE_ULTIMA3D_RESOURCES: ultima3d } : {}),
+      },
       // A fixed port makes a second contender fail to bind and back off; port 0 never collides, so two
       // services could boot against the same database.
       command: [

@@ -8,6 +8,7 @@ import { LocationQuery, locationQueryOpenApi } from "./location.js"
 import { PTY_CONNECT_TICKET_QUERY, PTY_CONNECT_TOKEN_HEADER } from "./pty.js"
 
 export const MCP_CLIENT_PATH = "/api/experimental/client-mcp"
+export const MCP_HOST_PATH = "/api/experimental/mcp/host/rpc"
 
 export function hasMcpClientTicketURL(url: URL) {
   return url.pathname === MCP_CLIENT_PATH && !!url.searchParams.get(PTY_CONNECT_TICKET_QUERY)
@@ -35,6 +36,66 @@ export const makeMcpGroup = <LocationId extends HttpApiMiddleware.AnyId, Locatio
             description: "Retrieve configured MCP servers and their connection status.",
           }),
         ),
+    )
+    .add(
+      HttpApiEndpoint.get("mcp.toolCatalog", "/api/experimental/mcp/:server/tools", {
+        params: { server: Schema.String },
+        query: LocationQuery,
+        success: Location.response(
+          Schema.Array(Schema.Struct({ name: Schema.String, description: Schema.optional(Schema.String) })),
+        ),
+        error: McpServerNotFoundError,
+      })
+        .annotateMerge(locationQueryOpenApi)
+        .annotateMerge(
+          OpenApi.annotations({
+            identifier: "experimental.mcp.toolCatalog",
+            summary: "List tools for an MCP server",
+            description: "Experimental: may change without compatibility guarantees.",
+          }),
+        ),
+    )
+    .add(
+      HttpApiEndpoint.post("mcp.host", MCP_HOST_PATH, {
+        query: LocationQuery,
+        payload: Schema.Unknown,
+        success: Schema.Unknown,
+        error: ForbiddenError,
+      })
+        .annotateMerge(locationQueryOpenApi)
+        .annotateMerge(
+          OpenApi.annotations({
+            identifier: "experimental.mcp.host",
+            summary: "Desktop MCP discovery endpoint",
+            description: "Experimental: may change without compatibility guarantees. Stateless MCP Streamable HTTP.",
+          }),
+        ),
+    )
+    .add(
+      HttpApiEndpoint.get("mcp.hostStream", MCP_HOST_PATH, {
+        query: LocationQuery,
+        success: HttpApiSchema.NoContent,
+      }).annotateMerge(
+        OpenApi.annotations({
+          identifier: "experimental.mcp.hostStream",
+          summary: "MCP host stream probe",
+          description:
+            "Experimental: may change without compatibility guarantees. The stateless host returns HTTP 405.",
+        }),
+      ),
+    )
+    .add(
+      HttpApiEndpoint.delete("mcp.hostSession", MCP_HOST_PATH, {
+        query: LocationQuery,
+        success: HttpApiSchema.NoContent,
+      }).annotateMerge(
+        OpenApi.annotations({
+          identifier: "experimental.mcp.hostSession",
+          summary: "MCP host session termination probe",
+          description:
+            "Experimental: may change without compatibility guarantees. The stateless host returns HTTP 405.",
+        }),
+      ),
     )
     .add(
       HttpApiEndpoint.put("mcp.add", "/api/experimental/mcp/:server", {

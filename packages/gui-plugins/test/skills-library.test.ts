@@ -3,7 +3,7 @@ import { mkdtemp, mkdir, readFile, readdir, rm, stat, writeFile } from "node:fs/
 import os from "node:os"
 import path from "node:path"
 import { zipSync } from "fflate"
-import { catalogURL, installSkill, previewSkill, searchCatalog, toggleSkill, unpackSkill } from "../src/skills/library"
+import { catalogURL, installSkill, previewSkill, removeSkill, searchCatalog, toggleSkill, unpackSkill } from "../src/skills/library"
 
 const content =
   "---\nname: aa-fixture\ndescription: A library fixture\nlicense: MIT\n---\n# AAi fixture\nRead references/guide.md.\n"
@@ -86,6 +86,9 @@ test("bundle installs preserve all resources, toggle discovery, and leave existi
     await toggleSkill(root, { ...installed, enabled: false }, true)
     expect((await stat(path.join(active, "SKILL.md"))).isFile()).toBe(true)
     await expect(installSkill(root, source.catalog, "aai/fixture")).rejects.toThrow()
+    await toggleSkill(root, installed, false)
+    await removeSkill(root, { ...installed, enabled: false })
+    expect(await readdir(path.join(root, "aai-skill-library", "disabled"))).toEqual([])
     expect(await readFile(path.join(root, "skills", "existing", "SKILL.md"), "utf8")).toBe(content)
   } finally {
     source.server.stop(true)

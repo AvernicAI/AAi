@@ -7,6 +7,7 @@ import { SettingsList } from "@/settings/list"
 import { SettingsRow } from "@/settings/row"
 import { createAppearanceSettingsController, type AppearanceSettingsController } from "@/settings/general/controllers"
 import "@/settings/settings.css"
+import { BackgroundSettings } from "./background"
 import { ThemeEditor } from "./theme-editor"
 
 const schemeOptions: ("system" | "light" | "dark")[] = ["system", "light", "dark"]
@@ -88,6 +89,7 @@ export const SettingsAppearance: Component = () => {
       <div class="settings-tab-body">
         <div class="settings-section">
           <SettingsList>
+            <BackgroundSettings />
             <SettingsRow
               title={language.t("settings.general.row.colorScheme.title")}
               description={language.t("settings.general.row.colorScheme.description")}

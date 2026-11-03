@@ -44,6 +44,42 @@ export const Installed = Schema.Struct({
 
 export type Installed = typeof Installed.Type
 
+export const Package = Schema.Struct({
+  name: Schema.NonEmptyString,
+  version: Schema.NonEmptyString,
+  description: Schema.String,
+  publisher: Schema.String,
+  url: Schema.String,
+})
+
+export type Package = typeof Package.Type
+
+export const PackageDetail = Schema.Struct({
+  ...Package.fields,
+  license: Schema.String,
+  dependencies: Schema.Array(Schema.String),
+  scripts: Schema.Array(Schema.String),
+  parts: Schema.Array(Schema.String),
+  deprecated: Schema.String,
+})
+
+export const PackageInstall = Schema.Struct({
+  name: Schema.String,
+  version: Schema.String,
+  enabled: Schema.Boolean,
+})
+
+export type PackageInstall = typeof PackageInstall.Type
+
+export const Recipe = Schema.Struct({
+  id: Schema.NonEmptyString,
+  title: Schema.NonEmptyString.check(Schema.isMaxLength(160)),
+  description: Schema.String.check(Schema.isMaxLength(1000)),
+  prompt: Schema.NonEmptyString.check(Schema.isMaxLength(100000)),
+})
+
+export type Recipe = typeof Recipe.Type
+
 const target = { catalog: Catalog, slug: Schema.NonEmptyString }
 
 export const SkillLibrary = Ipc.define({
@@ -63,6 +99,25 @@ export const SkillLibrary = Ipc.define({
     enable: {
       input: Schema.Struct({ id: Schema.String, enabled: Schema.Boolean, server: Schema.String }),
       output: Schema.Array(Installed),
+    },
+    remove: { input: Schema.Struct({ id: Schema.String, server: Schema.String }), output: Schema.Array(Installed) },
+    packages: {
+      input: Schema.Struct({ query: Schema.String, page: Schema.Int.check(Schema.isGreaterThanOrEqualTo(0)) }),
+      output: Schema.Array(Package),
+    },
+    package: { input: Schema.Struct({ name: Schema.String, version: Schema.String }), output: PackageDetail },
+    pluginList: { output: Schema.Array(PackageInstall) },
+    pluginInstall: {
+      input: Schema.Struct({ name: Schema.String, version: Schema.String, server: Schema.String }),
+      output: Schema.Array(PackageInstall),
+    },
+    pluginEnable: {
+      input: Schema.Struct({ name: Schema.String, enabled: Schema.Boolean, server: Schema.String }),
+      output: Schema.Array(PackageInstall),
+    },
+    pluginRemove: {
+      input: Schema.Struct({ name: Schema.String, server: Schema.String }),
+      output: Schema.Array(PackageInstall),
     },
   },
 })

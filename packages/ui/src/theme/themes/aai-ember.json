@@ -1,0 +1,57 @@
+{
+  "$schema": "https://opencode.ai/desktop-theme.json",
+  "id": "aai-ember",
+  "name": "AAi Ember",
+  "light": {
+    "palette": {
+      "neutral": "#fff3eb",
+      "ink": "#49271d",
+      "primary": "#933c23",
+      "accent": "#72558a",
+      "interactive": "#933c23",
+      "success": "#2b7756",
+      "warning": "#a56c21",
+      "error": "#b94d50",
+      "info": "#346e95",
+      "diffAdd": "#2b7756",
+      "diffDelete": "#b94d50"
+    },
+    "overrides": {
+      "background-base": "#fff3eb",
+      "text-strong": "#49271d",
+      "syntax-comment": "#4e6c68",
+      "syntax-keyword": "#933c23",
+      "syntax-string": "#2b7756",
+      "syntax-primitive": "#346e95",
+      "syntax-property": "#49271d",
+      "syntax-type": "#72558a",
+      "syntax-constant": "#a56c21"
+    }
+  },
+  "dark": {
+    "palette": {
+      "neutral": "#21130f",
+      "ink": "#ffe6d8",
+      "primary": "#ff9b71",
+      "accent": "#d6b2fa",
+      "interactive": "#ff9b71",
+      "success": "#86d8a5",
+      "warning": "#e3c38b",
+      "error": "#ed9b98",
+      "info": "#8cc9e2",
+      "diffAdd": "#86d8a5",
+      "diffDelete": "#ed9b98"
+    },
+    "overrides": {
+      "background-base": "#21130f",
+      "text-strong": "#ffe6d8",
+      "syntax-comment": "#7c9e9a",
+      "syntax-keyword": "#ff9b71",
+      "syntax-string": "#86d8a5",
+      "syntax-primitive": "#8cc9e2",
+      "syntax-property": "#ffe6d8",
+      "syntax-type": "#d6b2fa",
+      "syntax-constant": "#e3c38b"
+    }
+  }
+}

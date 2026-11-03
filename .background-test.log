@@ -1,0 +1,157 @@
+$ playwright test "e2e/regression/custom-background.spec.ts" "--workers=1" "--output=../../.background-test-output-built"
+(node:28748) [DEP0205] DeprecationWarning: `module.register()` is deprecated. Use `module.registerHooks()` instead.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+
+[1A[2K[WebServer] $ vite build
+[1A[2K[WebServer] (node:15140) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+[1A[2K[WebServer] (!) Your Vite config uses features that are unsupported by `configLoader: 'native'`, which is planned to become the default in a future major version of Vite:
+[WebServer]   - import "./vite.icons" without a file extension (vite.config.ts:5:23). Add the file extension
+[WebServer]   - import "./vite.pwa" without a file extension (vite.config.ts:6:31). Add the file extension
+[WebServer] Set `VITE_CONFIG_NATIVE_IGNORE_WARNING=true` to suppress this warning.
+[1A[2K[WebServer] Found 6 warnings while optimizing generated CSS:
+[WebServer] 
+[WebServer] Issue #1:
+[WebServer] │   );
+[WebServer] │   }
+[WebServer] │   [data-slot="session-timeline-scroll"] ::selection, :host ::selection, ::highlight(timeline-quote-source) {
+[WebServer] ┆                                                                                     ^-- 'highlight' is not recognized as a valid pseudo-element. Did you mean ':highlight' (pseudo-class) or is this a typo?
+[WebServer] ┆
+[WebServer] │     background-color: var(--timeline-quote-background);
+[WebServer] │     color: currentColor;
+[WebServer] 
+[WebServer] Issue #2:
+[WebServer] │   .timeline-quote-highlight-host {
+[WebServer] │     isolation: isolate;
+
+[WebServer] │     &::highlight(timeline-quote-source) {
+[WebServer] ┆                  ^-- 'highlight' is not recognized as a valid pseudo-element. Did you mean ':highlight' (pseudo-class) or is this a typo?
+[WebServer] ┆
+[WebServer] │       background-color: transparent;
+[WebServer] │     }
+[WebServer] 
+[WebServer] Issue #3:
+[WebServer] │       --timeline-quote-background: var(--v2-state-bg-danger);
+[WebServer] │     }
+[WebServer] │     [data-slot="tool-error-card-content"] :where(*)::selection, [data-slot="tool-error-card-content"] :where(*)::highlight(timeline-quote-source), [data-slot="tool-error-card-content"] :where(*)::highlight(timeline-quote-source-active) {
+[WebServer] ┆                                                                                                                            ^-- 'highlight' is not recognized as a valid pseudo-element. Did you mean ':highlight' (pseudo-class) or is this a typo?
+[WebServer] ┆
+[WebServer] │       background: var(--v2-state-bg-danger);
+[WebServer] │       color: var(--v2-text-text-base);
+[WebServer] 
+[WebServer] Issue #4:
+[WebServer] │       --timeline-quote-background: var(--v2-state-bg-danger);
+[WebServer] │     }
+[WebServer] │     [data-slot="tool-error-card-content"] :where(*)::selection, [data-slot="tool-error-card-content"] :where(*)::highlight(timeline-quote-source), [data-slot="tool-error-card-content"] :where(*)::highlight(timeline-quote-source-active) {
+[WebServer] ┆                                                                                                                                                                                                               ^-- 'highlight' is not recognized as a valid pseudo-element. Did you mean ':highlight' (pseudo-class) or is this a typo?
+[WebServer] ┆
+[WebServer] │       background: var(--v2-state-bg-danger);
+[WebServer] │       color: var(--v2-text-text-base);
+[WebServer] 
+[WebServer] Issue #5:
+[WebServer] │     }
+[WebServer] │   }
+[WebServer] │   ::highlight(timeline-search-hit) {
+[WebServer] ┆               ^-- 'highlight' is not recognized as a valid pseudo-element. Did you mean ':highlight' (pseudo-class) or is this a typo?
+[WebServer] ┆
+[WebServer] │     background-color: var(--v2-icon-icon-accent);
+[WebServer] │     @supports (color: color-mix(in lab, red, red)) {
+[WebServer] 
+[WebServer] Issue #6:
+[WebServer] │     }
+[WebServer] │   }
+[WebServer] │   ::highlight(timeline-search-hit-active) {
+[WebServer] ┆               ^-- 'highlight' is not recognized as a valid pseudo-element. Did you mean ':highlight' (pseudo-class) or is this a typo?
+[WebServer] ┆
+[WebServer] │     background-color: var(--v2-icon-icon-accent);
+[WebServer] │     color: var(--v2-background-bg-deep);
+[WebServer] 
+
+[1A[2K[WebServer] [PLUGIN_TIMINGS] Your build spent 57% of 15.0s inside plugin hooks (8.5s).
+[WebServer] Not measurable — 1 hook whose calls overlap, so elapsed time covers work other calls were doing. Profile with `node --cpu-prof`:
+[WebServer]   - vite:asset-import-meta-url transform (2 calls)
+[WebServer] See https://rolldown.rs/reference/InputOptions.checks#plugintimings for more details.
+[WebServer] 
+
+[1A[2K[WebServer] [PLUGIN_TIMINGS] Your build spent 9% of 18.1s inside plugin hooks (1.7s).
+[WebServer] Measured inside the callback, so queue time is excluded and time the callback itself awaited is not:
+[WebServer]   - vite:asset-import-meta-url transform (9%, 1.6s, 2 calls)
+[WebServer] See https://rolldown.rs/reference/InputOptions.checks#plugintimings for more details.
+[WebServer] 
+
+[1A[2K[WebServer] [PLUGIN_TIMINGS] Your build spent 80% of 24.1s inside plugin hooks (19.3s).
+[WebServer] Measured inside the callback, so queue time is excluded and time the callback itself awaited is not:
+[WebServer]   - vite:worker-import-meta-url transform (78%, 18.7s, 1 call)
+[WebServer] Those rows are 78% of the build; the rest of the 80% is below.
+[WebServer] Not measurable — 1 hook whose calls overlap, so elapsed time covers work other calls were doing. Profile with `node --cpu-prof`:
+[WebServer]   - vite:asset-import-meta-url transform (5 calls)
+[WebServer] See https://rolldown.rs/reference/InputOptions.checks#plugintimings for more details.
+[WebServer] 
+
+
+[1A[2K[WebServer] [INEFFECTIVE_DYNAMIC_IMPORT] ../plugin/src/gui/file.ts is dynamically imported by src/runtime/plugin/module.ts but also statically imported by ../gui-plugins/src/file/artifact-view.tsx, ../gui-plugins/src/file/renderer.tsx, ../gui-plugins/src/microsoft-office/renderer.tsx, ../gui-plugins/src/review/panel.tsx, dynamic import will not move module into another chunk.
+[WebServer] 
+[1A[2K[WebServer] [plugin builtin:vite-reporter] 
+[WebServer] (!) Some chunks are larger than 500 kB after minification. Consider:
+[WebServer] - Using dynamic import() to code-split the application
+[WebServer] - Use build.rolldownOptions.output.codeSplitting to improve chunking: https://rolldown.rs/reference/OutputOptions.codeSplitting
+[WebServer] - Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+
+[1A[2K[WebServer] [INEFFECTIVE_DYNAMIC_IMPORT] ../plugin/src/gui/browser.ts is dynamically imported by src/runtime/plugin/module.ts but also statically imported by ../gui-plugins/src/browser/renderer.tsx, ../gui-plugins/src/file/renderer.tsx, ../gui-plugins/src/sources/panel.tsx, dynamic import will not move module into another chunk.
+[WebServer] 
+[WebServer] [INEFFECTIVE_DYNAMIC_IMPORT] ../plugin/src/gui/review.ts is dynamically imported by src/runtime/plugin/module.ts but also statically imported by ../gui-plugins/src/details/location-menu.tsx, ../gui-plugins/src/file/renderer.tsx, ../gui-plugins/src/review/renderer.tsx, dynamic import will not move module into another chunk.
+[WebServer] 
+[WebServer] [INEFFECTIVE_DYNAMIC_IMPORT] ../schema/src/rpc.ts is dynamically imported by src/runtime/plugin/module.ts but also statically imported by ../plugin-browser/src/rpc.ts, ../plugin/src/rpc.ts, ../schema/src/goal.ts, ../schema/src/rpc.ts, dynamic import will not move module into another chunk.
+[WebServer] 
+
+[1A[2K[WebServer] [PLUGIN_TIMINGS] Your build spent 100% of 65.3s inside plugin hooks (81.0s).
+[WebServer] Measured inside the callback, so queue time is excluded and time the callback itself awaited is not:
+[WebServer]   - vite-plugin-pwa:build closeBundle (37%, 23.8s, 1 call)
+[WebServer]   - solid transform (13%, 8.8s, 6269 calls)
+[WebServer]   - vite:prepare-out-dir renderStart (13%, 8.4s, 1 call)
+[WebServer]   - vite:css-post transform (5%, 3.2s, 188 calls)
+[WebServer]   - vite:build-import-analysis generateBundle (2%, 1.1s, 1 call)
+[WebServer] Those rows are 69% of the build; the rest of the 100% is below.
+[WebServer] Not measurable — 5 hooks whose calls overlap, so elapsed time covers work other calls were doing. Profile with `node --cpu-prof`:
+[WebServer]   - vite:asset load (1159 calls)
+[WebServer]   - vite:worker load (6 calls)
+[WebServer]   - vite:worker-import-meta-url transform (8 calls)
+[WebServer]   … and 2 more
+[WebServer] See https://rolldown.rs/reference/InputOptions.checks#plugintimings for more details.
+[WebServer] 
+
+Running 1 test using 1 worker
+
+
+
+[1A[2K(node:24608) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+[1A[2K(node:24608) [DEP0205] DeprecationWarning: `module.register()` is deprecated. Use `module.registerHooks()` instead.
+
+[1A[2K(node:24608) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+[1A[2K[1/1] [chromium] › e2e\regression\custom-background.spec.ts:5:1 › custom backgrounds retain their fit and visibility after reload
+Error in reporter Error: EPERM: operation not permitted, open 'B:\AAi\packages\app\e2e\playwright-report\index.html'
+    at open (node:internal/fs/promises:1425:25)
+    at Object.writeFile (node:internal/fs/promises:2168:14)
+    at HtmlBuilder._writeStaticAssets (B:\AAi\node_modules\.bun\playwright@1.60.0\node_modules\playwright\lib\runner\index.js:3517:7)
+    at HtmlBuilder.build (B:\AAi\node_modules\.bun\playwright@1.60.0\node_modules\playwright\lib\runner\index.js:3479:29)
+    at HtmlReporter.onEnd (B:\AAi\node_modules\.bun\playwright@1.60.0\node_modules\playwright\lib\runner\index.js:3301:25)
+    at wrapAsync (B:\AAi\node_modules\.bun\playwright@1.60.0\node_modules\playwright\lib\runner\index.js:1614:12)
+    at Multiplexer.onEnd (B:\AAi\node_modules\.bun\playwright@1.60.0\node_modules\playwright\lib\runner\index.js:1582:25)
+    at InternalReporter.onEnd (B:\AAi\node_modules\.bun\playwright@1.60.0\node_modules\playwright\lib\runner\index.js:1749:12)
+    at finishTaskRun (B:\AAi\node_modules\.bun\playwright@1.60.0\node_modules\playwright\lib\runner\index.js:5822:26)
+    at runTasks (B:\AAi\node_modules\.bun\playwright@1.60.0\node_modules\playwright\lib\runner\index.js:5809:10)
+    at Object.runAllTestsWithConfig (B:\AAi\node_modules\.bun\playwright@1.60.0\node_modules\playwright\lib\runner\index.js:6480:18)
+    at runTests (B:\AAi\node_modules\.bun\playwright@1.60.0\node_modules\playwright\lib\cli\testActions.js:93:18)
+    at _Command.<anonymous> (B:\AAi\node_modules\.bun\playwright@1.60.0\node_modules\playwright\lib\program.js:50:7) {
+  errno: -4048,
+  code: 'EPERM',
+  syscall: 'open',
+  path: 'B:\\AAi\\packages\\app\\e2e\\playwright-report\\index.html'
+}
+[1A[2K  1 passed (1.8m)

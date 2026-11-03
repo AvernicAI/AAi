@@ -30,6 +30,7 @@ describe("settings search index", () => {
     const multi = rankSettings("models", index({ selected: "remote" })).filter((item) => item.topLevel)
     expect(multi.map((item) => item.view)).toEqual([
       { type: "root", server: "remote", tab: "models", target: undefined, subtab: undefined },
+      { type: "root", server: "remote", tab: "developer", target: undefined, subtab: undefined },
     ])
     const single = rankSettings("models", index({ servers: [servers[0]] })).find((item) => item.topLevel)!
     expect(single.server).toBe("local")
@@ -109,9 +110,7 @@ describe("settings search ranking", () => {
 
   test("qualifies project settings by project name on the selected server", () => {
     expect(rankSettings("opencode name", index()).map((item) => item.view.target)).toEqual(["settings-project-name"])
-    expect(rankSettings("opencode name", index({ selected: "remote" })).map((item) => item.server)).toEqual([
-      "remote",
-    ])
+    expect(rankSettings("opencode name", index({ selected: "remote" })).map((item) => item.server)).toEqual(["remote"])
     expect(rankSettings("opencode skills", index()).map((item) => item.view.subtab)).toEqual(["skills"])
   })
 

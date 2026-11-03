@@ -1,0 +1,57 @@
+{
+  "$schema": "https://opencode.ai/desktop-theme.json",
+  "id": "aai-iris",
+  "name": "AAi Iris",
+  "light": {
+    "palette": {
+      "neutral": "#f7f2ff",
+      "ink": "#3d2857",
+      "primary": "#69429a",
+      "accent": "#285b91",
+      "interactive": "#69429a",
+      "success": "#2b7756",
+      "warning": "#a56c21",
+      "error": "#b94d50",
+      "info": "#346e95",
+      "diffAdd": "#2b7756",
+      "diffDelete": "#b94d50"
+    },
+    "overrides": {
+      "background-base": "#f7f2ff",
+      "text-strong": "#3d2857",
+      "syntax-comment": "#4e6c68",
+      "syntax-keyword": "#69429a",
+      "syntax-string": "#2b7756",
+      "syntax-primitive": "#346e95",
+      "syntax-property": "#3d2857",
+      "syntax-type": "#285b91",
+      "syntax-constant": "#a56c21"
+    }
+  },
+  "dark": {
+    "palette": {
+      "neutral": "#1b1428",
+      "ink": "#f1e7ff",
+      "primary": "#caa8ff",
+      "accent": "#a1c6ff",
+      "interactive": "#caa8ff",
+      "success": "#86d8a5",
+      "warning": "#e3c38b",
+      "error": "#ed9b98",
+      "info": "#8cc9e2",
+      "diffAdd": "#86d8a5",
+      "diffDelete": "#ed9b98"
+    },
+    "overrides": {
+      "background-base": "#1b1428",
+      "text-strong": "#f1e7ff",
+      "syntax-comment": "#7c9e9a",
+      "syntax-keyword": "#caa8ff",
+      "syntax-string": "#86d8a5",
+      "syntax-primitive": "#8cc9e2",
+      "syntax-property": "#f1e7ff",
+      "syntax-type": "#a1c6ff",
+      "syntax-constant": "#e3c38b"
+    }
+  }
+}

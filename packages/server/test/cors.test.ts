@@ -1,6 +1,20 @@
 import { expect, test } from "bun:test"
 import { isAllowedCorsOrigin, isAllowedRequestOrigin } from "../src/cors"
 
+test.each([
+  "oc://renderer.evil.example",
+  "oc://renderer@evil.example",
+  "http://localhost:3000@evil.example",
+  "http://127.0.0.1:3000@evil.example",
+  "http://localhost:3000/path",
+  "http://localhost:3000?token=private",
+  "http://localhost:3000#fragment",
+  "ftp://localhost:3000",
+])("rejects origin lookalikes and non-origin URLs: %s", (origin) => {
+  expect(isAllowedCorsOrigin(origin)).toBe(false)
+  expect(isAllowedRequestOrigin(origin, "localhost:3000")).toBe(false)
+})
+
 test("custom origins extend the defaults without allowing other origins", () => {
   const options = { cors: ["http://192.168.1.10:3001", "https://example.com"] }
   expect(isAllowedCorsOrigin("http://192.168.1.10:3001")).toBe(false)

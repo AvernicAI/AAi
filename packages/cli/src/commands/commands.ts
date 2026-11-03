@@ -325,6 +325,16 @@ const Root = Spec.make(typeof OPENCODE_CLI_NAME === "string" ? OPENCODE_CLI_NAME
         }),
       ],
     }),
+    Spec.make("themes", {
+      description: "List built-in terminal themes",
+      params: {
+        filter: Flag.String("filter").pipe(Flag.withDescription("Filter theme IDs by text"), Flag.optional),
+        format: Flag.Literals("format", ["text", "json"]).pipe(
+          Flag.withDescription("Output format"),
+          Flag.withDefault("text"),
+        ),
+      },
+    }),
     Spec.make("models", {
       description: "List all available models",
       globalFlags: ServerFlags,
@@ -427,6 +437,10 @@ const Root = Spec.make(typeof OPENCODE_CLI_NAME === "string" ? OPENCODE_CLI_NAME
         format: Flag.Literals("format", ["default", "json"]).pipe(
           Flag.withDescription("Output format"),
           Flag.withDefault("default"),
+        ),
+        promptFile: Flag.String("prompt-file").pipe(
+          Flag.withDescription("Read the prompt text from a local file"),
+          Flag.optional,
         ),
         file: Flag.String("file").pipe(
           Flag.withAlias("f"),

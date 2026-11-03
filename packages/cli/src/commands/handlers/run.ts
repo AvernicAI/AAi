@@ -22,6 +22,7 @@ export default Runtime.handler(Commands.commands.run, (input) =>
         model: Option.getOrUndefined(input.model),
         agent: Option.getOrUndefined(input.agent),
         format: input.format,
+        promptFile: Option.getOrUndefined(input.promptFile),
         file: [...input.file],
         title: Option.getOrUndefined(input.title),
         thinking: input.thinking,

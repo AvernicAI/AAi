@@ -1918,6 +1918,33 @@ testEffect(Layer.empty).live("batches MCP transforms without connecting intermed
   }),
 )
 
+testEffect(Layer.empty).live(
+  "remote tool selection limits discovery and calls without hiding the editable catalog",
+  () =>
+    Effect.gen(function* () {
+      const server = yield* resourceServer()
+      yield* Effect.gen(function* () {
+        const service = yield* Mcp.Service
+        expect((yield* service.toolCatalog("resources")).map((tool) => tool.name)).toEqual(["echo"])
+        expect(yield* service.tools()).toEqual([])
+        const denied = yield* service.callTool({ server: "resources", name: "echo" }).pipe(Effect.flip)
+        expect(denied.message).toContain("disabled")
+
+        yield* service.transform((editor) =>
+          editor.update("resources", (config) => {
+            if (config.type === "remote") config.tools = ["echo"]
+          }),
+        )
+        expect((yield* service.tools()).map((tool) => tool.name)).toEqual(["echo"])
+        expect((yield* service.callTool({ server: "resources", name: "echo" })).tool).toBe("echo")
+      }).pipe(
+        Effect.provide(
+          resourceMcpLayer(new ConfigMCP.Remote({ type: "remote", url: server.url, oauth: false, tools: [] })),
+        ),
+      )
+    }),
+)
+
 test("reconciles only changed MCP server config", async () => {
   await Effect.runPromise(
     Effect.scoped(

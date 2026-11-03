@@ -22,11 +22,12 @@ declare const WebSocket: {
 
 const authorization = `Basic ${btoa("opencode:secret")}`
 
-const serve = Effect.fnUntraced(function* () {
+const serve = Effect.fnUntraced(function* (mcpHost = false) {
   const directory = (yield* tmpdirScoped("opencode-client-mcp-")).path
   const context = yield* Layer.build(
     createRoutes({
       password: "secret",
+      mcpHost,
       app: { version: "test-version" },
       database: { path: ":memory:" },
       models: { fetch: false },
@@ -58,6 +59,49 @@ const serve = Effect.fnUntraced(function* () {
       effect.pipe(Effect.provide(location), Effect.provideContext(context)),
   }
 })
+
+it.live("hosts authenticated stateless capability discovery", () =>
+  Effect.gen(function* () {
+    const server = yield* serve(true)
+    const url = new URL("/api/experimental/mcp/host/rpc", server.base)
+    url.searchParams.set("location[directory]", server.directory)
+    const rpc = (method: string, params?: object, headers: Record<string, string> = { authorization }) =>
+      fetch(url, {
+        method: "POST",
+        headers: { ...headers, "content-type": "application/json" },
+        body: JSON.stringify({ jsonrpc: "2.0", id: 1, method, params }),
+      })
+    const anonymous = yield* Effect.promise(() =>
+      fetch(url, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ jsonrpc: "2.0", id: 1, method: "initialize" }),
+      }),
+    )
+    expect(anonymous.status).toBe(401)
+    const foreign = yield* Effect.promise(() =>
+      rpc("initialize", {}, { authorization, origin: "https://other.invalid" }),
+    )
+    expect(foreign.status).toBe(403)
+
+    const init = yield* Effect.promise(async () => (await rpc("initialize", { protocolVersion: "2025-06-18" })).json())
+    expect(init).toMatchObject({
+      id: 1,
+      result: { protocolVersion: "2025-06-18", serverInfo: { name: "aai-desktop" } },
+    })
+    const tools = yield* Effect.promise(async () => (await rpc("tools/list")).json())
+    expect(tools).toMatchObject({ result: { tools: [{ name: "discover_capabilities" }] } })
+    const discovery = yield* Effect.promise(async () =>
+      (await rpc("tools/call", { name: "discover_capabilities", arguments: { query: "read file" } })).json(),
+    )
+    expect(discovery).toMatchObject({
+      result: { content: [{ type: "text", text: expect.stringContaining("read") }] },
+    })
+    const get = yield* Effect.promise(() => fetch(url, { headers: { authorization } }))
+    expect(get.status).toBe(405)
+    expect(get.headers.get("allow")).toBe("POST")
+  }),
+)
 
 /** Hosts an MCP server over a WebSocket opened to the endpoint, recording each call's session. */
 const connectClient = (url: URL, headers?: Record<string, string>) =>

@@ -24,6 +24,18 @@ export const ServerName = Schema.String.pipe(Schema.brand("MCP.ServerName"))
 export type ServerName = typeof ServerName.Type
 export const PromptsChanged = ephemeral({ type: "mcp.prompts.changed", schema: { server: Schema.String } })
 
+const convioWorkflow = `When the user asks to use Convio, apply the following preamble to their request. Continue an existing Convio project when the user is answering its stage questions. If a required tool is unavailable, ask the user to enable it before continuing that stage.
+
+Use Convio (the "convio" MCP server) for what I ask below.
+1. Call start_project with my request. Convio picks the right pipeline and gives you its first stage.
+2. Work through each stage in order: ask me the questions it lists, and read every skill it names with get_skill before you follow it.
+3. Call find_skills whenever an expert skill would do a part better.
+4. Call next_stage once a stage’s “done when” list is met, and keep going to the end.
+5. If you need an account I don’t have, such as hosting or a database, use Convio’s lent services and claimable previews first, and give me the claim links at the end.
+Don’t skip the security review, the testing stage or the launch checklist.
+
+My request:`
+
 export const Status = Mcp.Status
 export type Status = Mcp.Status
 export type ServerInfo = Mcp.Server
@@ -77,7 +89,7 @@ const unavailable = (server: ServerName, status: Status) => {
 }
 
 type ServerEntry = {
-  readonly config: Mcp.ServerConfig
+  config: Mcp.ServerConfig
   status: Status
   readonly startup: Latch.Latch
   scope?: Scope.Closeable
@@ -136,6 +148,7 @@ export interface Interface extends State.Transformable<Editor> {
    */
   readonly attach: (name: string, transport: Transport) => Effect.Effect<void, McpClient.ConnectError, Scope.Scope>
   readonly tools: () => Effect.Effect<Tool[]>
+  readonly toolCatalog: (server: string) => Effect.Effect<ReadonlyArray<Tool>, NotFoundError>
   readonly callTool: (input: {
     readonly server: ServerName | string
     readonly name: string
@@ -698,6 +711,17 @@ export const layer = (options?: Options) =>
             yield* removeServer(name).pipe(locks.withLock(name))
             continue
           }
+          const entry = entries.get(name)
+          if (
+            entry &&
+            previous?.type === "remote" &&
+            updated.type === "remote" &&
+            isDeepStrictEqual({ ...previous, tools: undefined }, { ...updated, tools: undefined })
+          ) {
+            entry.config = updated
+            yield* bus.publish(McpEvent.ToolsChanged, { server: name })
+            continue
+          }
           yield* replaceServer(name, updated).pipe(locks.withLock(name))
         }
         applied = servers
@@ -809,10 +833,27 @@ export const layer = (options?: Options) =>
               .flatMap((entry) => entry.tools ?? [])
               .filter((tool) => !shadowed.has(`${tool.server}\0${tool.name}`)),
             ...clients,
-          ].toSorted((a, b) => a.server.localeCompare(b.server) || a.name.localeCompare(b.name))
+          ]
+            .filter((tool) => {
+              const config = entries.get(tool.server)?.config
+              return config?.type !== "remote" || config.tools?.includes(tool.name) !== false
+            })
+            .toSorted((a, b) => a.server.localeCompare(b.server) || a.name.localeCompare(b.name))
+        }),
+        toolCatalog: Effect.fn("MCP.toolCatalog")(function* (server) {
+          const target = yield* requireServer(ServerName.make(server))
+          yield* target.entry.startup.await
+          return target.entry.tools ?? []
         }),
         callTool: Effect.fn("MCP.callTool")(function* (input) {
           const server = ServerName.make(input.server)
+          const config = entries.get(server)?.config
+          if (config?.type === "remote" && config.tools?.includes(input.name) === false)
+            return yield* new ToolCallError({
+              server,
+              tool: input.name,
+              message: `MCP tool "${input.name}" is disabled on "${server}".`,
+            })
           // An attached client owns the tools it lists, even when a configured server shares its name, and
           // owns its name outright when no configured server has it.
           const client = attached.get(server)?.at(-1)
@@ -856,7 +897,15 @@ export const layer = (options?: Options) =>
         instructions: Effect.fn("MCP.instructions")(function* () {
           return Array.from(entries)
             .flatMap(([server, entry]) => {
-              const instructions = entry.client?.instructions
+              if (!entry.client) return []
+              const convio =
+                server === "convio" &&
+                entry.config.type === "remote" &&
+                entry.config.tools?.includes("start_project") !== false &&
+                entry.config.url.replace(/\/$/, "") === "https://mcp.convio.dev"
+              const instructions = convio
+                ? [entry.client.instructions, convioWorkflow].filter(Boolean).join("\n\n")
+                : entry.client.instructions
               if (!instructions) return []
               return [{ server, instructions }]
             })

@@ -1088,6 +1088,43 @@ describe("SessionRunnerLLM", () => {
     expect((yield* s.session.get(sessionID)).title).toBe("Generated title")
   })
 
+  scenario("adds local discovery candidates to the first primary request", function* (s) {
+    const previous = process.env.OPENCODE_EXPERIMENTAL_CAPABILITY_DISCOVERY
+    yield* Effect.acquireRelease(
+      Effect.sync(() => {
+        process.env.OPENCODE_EXPERIMENTAL_CAPABILITY_DISCOVERY = "1"
+      }),
+      () =>
+        Effect.sync(() => {
+          if (previous === undefined) {
+            delete process.env.OPENCODE_EXPERIMENTAL_CAPABILITY_DISCOVERY
+            return
+          }
+          process.env.OPENCODE_EXPERIMENTAL_CAPABILITY_DISCOVERY = previous
+        }),
+    )
+    const registry = yield* Tool.Service
+    yield* transformTools(
+      registry,
+      {
+        viewport_capture: {
+          name: "viewport_capture",
+          description: "Capture the viewport",
+          input: Schema.Struct({}),
+          output: Schema.String,
+          execute: () => Effect.succeed({ output: "captured" }),
+        },
+      },
+      { codemode: false },
+    )
+    yield* s.admit("Capture the viewport")
+    yield* s.llm.push(TestLLM.text("Done", "text-discovery"))
+    yield* s.resume
+
+    expect(s.requests).toHaveLength(1)
+    expect(s.requests[0]?.system.map((part) => part.text).join("\n")).toContain('tool "viewport_capture"')
+  })
+
   scenario("advertises and executes a location registered tool", function* (s) {
     const registry = yield* Tool.Service
     const contexts: Tool.Context[] = []

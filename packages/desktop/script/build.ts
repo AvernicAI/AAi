@@ -4,6 +4,7 @@ import { exists } from "node:fs/promises"
 import path from "node:path"
 import { copyBuiltCliToResources, downloadCliToResources, getCurrentCli, resolveChannel } from "./utils"
 import { verifyBundles } from "./verify-bundles"
+import { bundleUltima3d } from "./bundle-ultima3d"
 
 // Prepares resources/ (icons, metainfo, the bundled CLI) for OPENCODE_CHANNEL and builds the app into out/.
 // The CLI comes from ../cli/dist when it holds the target; otherwise dev downloads the published dev CLI,
@@ -28,6 +29,8 @@ if ((channel === "prod" || process.env.OPENCODE_CLI_DIST) && !built)
 if (built) await copyBuiltCliToResources(cli)
 
 if (!built) await downloadCliToResources(channel === "beta" ? "beta" : undefined)
+
+await bundleUltima3d(path.join(dir, "resources"))
 
 await $`bunx electron-vite build`
 

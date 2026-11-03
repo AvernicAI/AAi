@@ -156,6 +156,14 @@ import type {
   McpListOutput,
   McpResourceCatalogInput,
   McpResourceCatalogOutput,
+  ExperimentalMcpToolCatalogInput,
+  ExperimentalMcpToolCatalogOutput,
+  ExperimentalMcpHostInput,
+  ExperimentalMcpHostOutput,
+  ExperimentalMcpHostStreamInput,
+  ExperimentalMcpHostStreamOutput,
+  ExperimentalMcpHostSessionInput,
+  ExperimentalMcpHostSessionOutput,
   ExperimentalMcpAddInput,
   ExperimentalMcpAddOutput,
   ExperimentalMcpRemoveInput,
@@ -1133,6 +1141,33 @@ const adaptGroupMcp = (raw: RawClient["server.mcp"]) => ({
   resource: { catalog: EndpointMcpResourceCatalog(raw) },
 })
 
+const EndpointExperimentalMcpToolCatalog = (raw: RawClient["server.mcp"]) => (input: ExperimentalMcpToolCatalogInput) =>
+  preserveEffect<ExperimentalMcpToolCatalogOutput>()(
+    raw["mcp.toolCatalog"]({ params: { server: input["server"] }, query: { location: input["location"] } }).pipe(
+      Effect.mapError(mapClientError),
+    ),
+  )
+
+type ExperimentalMcpHostRequest = Parameters<RawClient["server.mcp"]["mcp.host"]>[0]
+const EndpointExperimentalMcpHost = (raw: RawClient["server.mcp"]) => (input: ExperimentalMcpHostInput) =>
+  preserveEffect<ExperimentalMcpHostOutput>()(
+    raw["mcp.host"]({
+      query: { location: input["location"] },
+      payload: input["payload"],
+    } as ExperimentalMcpHostRequest).pipe(Effect.mapError(mapClientError)),
+  )
+
+const EndpointExperimentalMcpHostStream = (raw: RawClient["server.mcp"]) => (input?: ExperimentalMcpHostStreamInput) =>
+  preserveEffect<ExperimentalMcpHostStreamOutput>()(
+    raw["mcp.hostStream"]({ query: { location: input?.["location"] } }).pipe(Effect.mapError(mapClientError)),
+  )
+
+const EndpointExperimentalMcpHostSession =
+  (raw: RawClient["server.mcp"]) => (input?: ExperimentalMcpHostSessionInput) =>
+    preserveEffect<ExperimentalMcpHostSessionOutput>()(
+      raw["mcp.hostSession"]({ query: { location: input?.["location"] } }).pipe(Effect.mapError(mapClientError)),
+    )
+
 const EndpointExperimentalMcpAdd = (raw: RawClient["server.mcp"]) => (input: ExperimentalMcpAddInput) =>
   preserveEffect<ExperimentalMcpAddOutput>()(
     raw["mcp.add"]({
@@ -1172,6 +1207,10 @@ const EndpointExperimentalMcpClientToken = (raw: RawClient["server.mcp"]) => (in
   )
 
 const adaptGroupExperimentalMcp = (raw: RawClient["server.mcp"]) => ({
+  toolCatalog: EndpointExperimentalMcpToolCatalog(raw),
+  host: EndpointExperimentalMcpHost(raw),
+  hostStream: EndpointExperimentalMcpHostStream(raw),
+  hostSession: EndpointExperimentalMcpHostSession(raw),
   add: EndpointExperimentalMcpAdd(raw),
   remove: EndpointExperimentalMcpRemove(raw),
   connect: EndpointExperimentalMcpConnect(raw),
@@ -1970,6 +2009,14 @@ const adaptClient = (raw: RawClient) => {
     },
     mcp: {
       ...client.mcp,
+      /** @deprecated Use `client.experimental.mcp.toolCatalog`. Removed in the next minor. */
+      toolCatalog: client.experimental.mcp.toolCatalog,
+      /** @deprecated Use `client.experimental.mcp.host`. Removed in the next minor. */
+      host: client.experimental.mcp.host,
+      /** @deprecated Use `client.experimental.mcp.hostStream`. Removed in the next minor. */
+      hostStream: client.experimental.mcp.hostStream,
+      /** @deprecated Use `client.experimental.mcp.hostSession`. Removed in the next minor. */
+      hostSession: client.experimental.mcp.hostSession,
       /** @deprecated Use `client.experimental.mcp.add`. Removed in the next minor. */
       add: client.experimental.mcp.add,
       /** @deprecated Use `client.experimental.mcp.remove`. Removed in the next minor. */

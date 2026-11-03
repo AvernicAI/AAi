@@ -5,11 +5,32 @@ import type definition from "./index"
 import css from "./styles.css?inline"
 
 const setup: Plugin.Setup<typeof definition> = (ctx) => {
-  const Library = lazy(() => import("./page"))
+  const Library = lazy(() => import("./hub"))
+  const Recipes = lazy(() => import("./recipes"))
+  const Dialog = ctx.ui.Dialog
 
   onCleanup(onIdle(() => void Library.preload()))
   ctx.add(Style, css)
   ctx.add(Command, () => ({ id: "explore", title: ctx.t("title"), run: () => ctx.layout.settings("library") }))
+  ctx.add(
+    Command,
+    (): Command => ({
+      id: "prompts",
+      title: ctx.t("recipes.command"),
+      section: "prompt",
+      slash: { name: "prompts" },
+      keywords: "templates workflows review debug tests prompts library",
+      run: () => {
+        ctx.dialogs.open((dialog) => (
+          <Dialog title={ctx.t("recipes.command")} size="x-large">
+            <Suspense>
+              <Recipes onUse={dialog.close} />
+            </Suspense>
+          </Dialog>
+        ))
+      },
+    }),
+  )
   ctx.add(SettingsPage, {
     id: "library",
     icon: "code-slash",
@@ -21,7 +42,8 @@ const setup: Plugin.Setup<typeof definition> = (ctx) => {
         {
           id: "library",
           title: ctx.t("title"),
-          keywords: "skills SkillMD catalog explore download install enable disable",
+          keywords:
+            "plugins marketplace library skills SkillMD npm catalog explore download install enable disable prompts templates workflows",
         },
       ]
     },
