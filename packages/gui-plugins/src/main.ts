@@ -17,9 +17,11 @@ import goal from "./goal"
 import ide from "./ide"
 import backgrounds from "./backgrounds"
 import skills from "./skills"
+import merlin from "./merlin"
 
 /** Built-in plugins with their main entries, by id. Lists every built-in so their ids stay reserved. */
 export const builtins = compose({
+  merlin: { ...merlin, mainEntry: () => import("./merlin/main") },
   ide: { ...ide, mainEntry: () => import("./ide/main") },
   backgrounds,
   skills: { ...skills, mainEntry: () => import("./skills/main") },

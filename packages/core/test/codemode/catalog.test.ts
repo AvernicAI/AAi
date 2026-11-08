@@ -30,7 +30,7 @@ const update = (
   )
 
 describe("CodeModeCatalog.summarize", () => {
-  test("retains namespace inventory without retaining tools outside the inline budget", () => {
+  test("retains total inventory size without rendering entries outside the inline budget", () => {
     const catalog = CodeModeCatalog.summarize(
       { tools: Array.from({ length: 10_000 }, (_, index) => entry(`bulk.tool${index}`, `Tool ${index}`)) },
       { budget: 0 },
@@ -38,17 +38,17 @@ describe("CodeModeCatalog.summarize", () => {
     expect(catalog).toEqual({
       total: 10_000,
       shown: 0,
-      namespaces: [{ name: "bulk", count: 10_000, entries: [] }],
+      namespaces: [],
     })
   })
 
-  test("retains every namespace when no full tool listing fits", () => {
+  test("omits namespaces when their headers exceed the inline budget", () => {
     const catalog = CodeModeCatalog.summarize(
       { tools: [entry("alpha.one", "One"), entry("beta.two", "Two"), entry("gamma.three", "Three")] },
       { budget: 0 },
     )
-    expect(catalog.namespaces.map((namespace) => namespace.name)).toEqual(["alpha", "beta", "gamma"])
-    expect(catalog.namespaces.every((namespace) => namespace.entries.length === 0)).toBe(true)
+    expect(catalog.namespaces).toEqual([])
+    expect(CodeModeInstructions.render(catalog)).toContain("The catalog is partial.")
   })
 
   test("always retains pinned tools beyond the inline budget", () => {
@@ -99,7 +99,7 @@ describe("CodeModeCatalog.summarize", () => {
     expect(description).toEndWith("...")
   })
 
-  test("always retains namespace descriptions and charges them before tool listings", () => {
+  test("charges namespace descriptions before tool listings", () => {
     const tool = entry("alpha.one", "One")
     const listingCost = Math.round(`  - ${tool.signature} // One`.length / 4)
     const namespaceCost = Math.round(CodeModeCatalog.namespaceLine({ name: "alpha", count: 1, entries: [] }).length / 4)
@@ -107,10 +107,36 @@ describe("CodeModeCatalog.summarize", () => {
     const namespace = { type: "namespace" as const, name: "alpha", description, tools: [tool] }
 
     expect(CodeModeCatalog.summarize({ tools: [tool] }, { budget: namespaceCost + listingCost }).shown).toBe(1)
-    const catalog = CodeModeCatalog.summarize({ tools: [namespace] }, { budget: namespaceCost + listingCost })
+    const catalog = CodeModeCatalog.summarize(
+      { tools: [namespace] },
+      {
+        budget: Math.round(
+          CodeModeCatalog.namespaceLine({ name: "alpha", count: 1, entries: [], description }).length / 4,
+        ),
+      },
+    )
     expect(catalog.shown).toBe(0)
     expect(catalog.namespaces[0]?.description).toBe(description)
     expect(CodeModeInstructions.render(catalog)).toContain(`- alpha (1 tool, none shown) // ${description}`)
+  })
+
+  test("bounds large namespace inventories and their descriptions while preserving pinned tools", () => {
+    const tools: CodeModeCatalog.Namespace[] = Array.from({ length: 500 }, (_, index) => ({
+      type: "namespace",
+      name: `server${index}`,
+      description: "x".repeat(10_000),
+      tools: [{ ...entry("lookup", "Lookup"), pinned: index === 499 }],
+    }))
+    const catalog = CodeModeCatalog.summarize({ tools }, { budget: 200 })
+    expect(catalog.total).toBe(500)
+    expect(catalog.namespaces.length).toBeLessThan(10)
+    expect(catalog.namespaces.some((namespace) => namespace.name === "server499")).toBe(true)
+    expect(catalog.namespaces.every((namespace) => (namespace.description?.length ?? 0) <= 120)).toBe(true)
+    const lines = catalog.namespaces.flatMap((namespace) => [
+      CodeModeCatalog.namespaceLine(namespace),
+      ...namespace.entries.map((entry) => entry.line),
+    ])
+    expect(lines.reduce((total, line) => total + Math.round(line.length / 4), 0)).toBeLessThanOrEqual(200)
   })
 })
 
@@ -128,7 +154,7 @@ describe("CodeModeInstructions.render", () => {
   })
 
   test("adds search guidance when the catalog exceeds the budget", () => {
-    const partial = render([lookup], 0)
+    const partial = render([lookup], 12)
     expect(partial).toContain("## Code Mode tools (call only inside `execute`)")
     expect(partial).toContain("- orders (1 tool, none shown)")
     expect(partial).toContain(
@@ -243,10 +269,19 @@ describe("CodeModeInstructions.update", () => {
 
   test("renders namespace-only deltas without persisting hidden tool entries", () => {
     const alpha = Array.from({ length: 10 }, (_, index) => entry(`alpha.tool${index}`, `Tool ${index}`))
-    const text = update(alpha, [...alpha, entry("alpha.tool10", "Tool 10")], 0)
+    const text = update(alpha, [...alpha, entry("alpha.tool10", "Tool 10")], 12)
     expect(text).toContain("`alpha` now has 11 tools")
     expect(text).toContain("search them again before relying on previous results")
     expect(text).not.toContain("tools.alpha.tool10(input:")
     expect(text).not.toContain("## Code Mode tools (call only inside `execute`)")
+  })
+
+  test("restates a truncated namespace inventory without declaring hidden namespaces unavailable", () => {
+    const previous = [entry("alpha.one", "One"), entry("beta.two", "Two")]
+    const current = [entry("aardvark.one", "One"), ...previous]
+    const text = update(previous, current, 12)
+    expect(text).toContain("This catalog supersedes the previous Code Mode tool catalog.")
+    expect(text).toContain("The catalog is partial.")
+    expect(text).not.toContain("no longer available")
   })
 })

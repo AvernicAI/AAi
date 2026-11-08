@@ -16,6 +16,7 @@ type Decorations = { current?: editor.IEditorDecorationsCollection }
 export default function CodeEditor(props: {
   model: IdeModel
   screen: SessionScreen
+  editing: boolean
   reveal?: { path: string; line: number; column: number }
   onReady: (value: editor.IStandaloneCodeEditor | undefined) => void
   breakpoint: (line: number) => void
@@ -35,13 +36,13 @@ export default function CodeEditor(props: {
     new Range(value.start.line + 1, value.start.character + 1, value.end.line + 1, value.end.character + 1)
 
   const cursor = (model: editor.ITextModel, at: { lineNumber: number; column: number }) => {
-    const path = props.model.state.documents.find((item) => props.model.models.get(item.path) === model)?.path
+    const path = props.model.documents().find((item) => props.model.models.get(item.path) === model)?.path
 
     return path ? { binding: props.model.binding, path, position: position(at) } : undefined
   }
 
   const document = (model: editor.ITextModel) =>
-    props.model.state.documents.find((item) => props.model.models.get(item.path) === model)
+    props.model.documents().find((item) => props.model.models.get(item.path) === model)
 
   const sync = async (model: editor.ITextModel) => {
     const item = document(model)
@@ -194,16 +195,16 @@ export default function CodeEditor(props: {
 
   // Keep Monaco's active model and view state in step with the selected workspace tab.
   createKeyed(
-    () => props.model.state.active,
+    () => (props.editing ? props.model.state.active : ""),
     (path) => {
       const widget = target.editor
-      const item = props.model.state.documents.find((item) => item.path === path)
+      const item = props.model.documents().find((item) => item.path === path)
 
       if (!widget || !item) return
       const previous = widget.getModel()
 
       const previousPath =
-        previous && props.model.state.documents.find((item) => props.model.models.get(item.path) === previous)?.path
+        previous && props.model.documents().find((item) => props.model.models.get(item.path) === previous)?.path
 
       const view = widget.saveViewState()
 
@@ -219,7 +220,17 @@ export default function CodeEditor(props: {
       widget.focus()
       void props.model.run(() => props.model.sync(item))
     },
-    { otherwise: () => target.editor?.setModel(null) },
+    {
+      otherwise: () => {
+        const widget = target.editor
+        const model = widget?.getModel()
+        if (!widget || !model) return
+        const item = document(model)
+        const view = widget.saveViewState()
+        if (item && view) props.model.viewStates.set(item.path, view)
+        widget.setModel(null)
+      },
+    },
   )
 
   // Providers exist only for the language servers connected to this workspace.
@@ -383,6 +394,7 @@ export default function CodeEditor(props: {
   return (
     <div
       class="aai-ide-editor"
+      hidden={!props.editing}
       ref={(element) => {
         target.element = element
       }}

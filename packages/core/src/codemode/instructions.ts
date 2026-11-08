@@ -56,6 +56,11 @@ ${render(current)}`
   const entriesChanged = diff.added.length > 0 || diff.removed.length > 0 || diff.changed.length > 0
 
   if (!currentComplete) {
+    if (
+      previous.namespaces.reduce((total, namespace) => total + namespace.count, 0) < previous.total ||
+      current.namespaces.reduce((total, namespace) => total + namespace.count, 0) < current.total
+    )
+      return replacement
     if (entriesChanged) return replacement
     const namespaces = Instructions.diffByKey(
       previous.namespaces,

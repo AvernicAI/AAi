@@ -1,0 +1,15 @@
+export default {
+  title: "Merlin",
+  open: "Open Merlin",
+  sessionRequired: "Open a session to use Merlin beside your workspace.",
+  description: "Sign in to Merlin to use the models available with your free or paid account.",
+  loading: "Opening Merlin…",
+  unavailable: "Merlin requires the desktop app.",
+  failed: "Merlin could not load. Try reloading or opening Merlin in your browser.",
+  reload: "Reload Merlin",
+  chat: "Merlin chat",
+  plans: "Merlin plans",
+  browser: "Open Merlin in browser",
+  signOut: "Clear Merlin sign-in",
+  signOutDescription: "This signs out every Merlin panel in AAi.",
+}

@@ -1,7 +1,8 @@
-import { For, Show, createMemo, onCleanup, onMount } from "solid-js"
+import { For, Show, createMemo, createSignal, onCleanup, onMount } from "solid-js"
 import { createStore } from "solid-js/store"
 import type { editor } from "monaco-editor"
 import { Icon } from "@opencode/ui/icon"
+import { artifactKind } from "@opencode/util/artifact"
 import { Style, createLatest, usePlugin, type MountedSession, type SessionScreen } from "@opencode/plugin/gui"
 import { Ide } from "./contract"
 import type definition from "./index"
@@ -131,6 +132,7 @@ function IdeWorkspace(props: { model: IdeModel; session: MountedSession; screen:
   })
 
   const widget: WorkspaceHost = {}
+  const [svgSource, setSvgSource] = createSignal("")
 
   const refreshGit = async () => {
     const result = await props.model.client.git({ binding: props.model.binding }, props.model.options)
@@ -138,7 +140,7 @@ function IdeWorkspace(props: { model: IdeModel; session: MountedSession; screen:
     if (!props.model.options.signal.aborted) setState({ branch: result.branch, changes: result.changes })
   }
 
-  const reveal = async (path: string, line = 1, column = 1) => {
+  const reveal = async (path: string, line?: number, column = 1) => {
     const normalized = path.replaceAll("\\", "/")
     const root = props.model.root.replaceAll("\\", "/")
 
@@ -146,9 +148,11 @@ function IdeWorkspace(props: { model: IdeModel; session: MountedSession; screen:
       ? normalized.slice(root.length + 1)
       : normalized
 
-    await props.model.open(relative, line, column)
-
-    if (!props.model.options.signal.aborted) setState("reveal", { path: props.model.state.active, line, column })
+    const opened = await props.model.open(relative, line, column)
+    if (!opened) return
+    const openedPath = props.model.state.active
+    setState({ diff: undefined, reveal: line === undefined ? undefined : { path: openedPath, line, column } })
+    setSvgSource(line === undefined ? "" : openedPath)
   }
 
   const breakpoint = (line: number) => {
@@ -204,7 +208,12 @@ function IdeWorkspace(props: { model: IdeModel; session: MountedSession; screen:
 
     if (props.model.options.signal.aborted) return
     props.model.setState("languages", (items) => [...items.filter((item) => item !== language), language])
-    await Promise.all(props.model.state.documents.filter((item) => item.language === language).map(props.model.sync))
+    await Promise.all(
+      props.model
+        .documents()
+        .filter((item) => item.language === language)
+        .map(props.model.sync),
+    )
     props.model.append(ctx.t("connected", { language }))
   }
 
@@ -218,8 +227,8 @@ function IdeWorkspace(props: { model: IdeModel; session: MountedSession; screen:
   }
 
   const attach = () => {
-    const current = props.model.current()
-    const editor = widget.editor
+    const current = active()
+    const editor = preview() ? undefined : widget.editor
     const selection = editor?.getSelection()
 
     if (!current) return
@@ -262,7 +271,22 @@ function IdeWorkspace(props: { model: IdeModel; session: MountedSession; screen:
       }),
   )
 
-  const active = () => props.model.current()
+  const active = props.model.activeFile
+  const document = props.model.current
+  const svg = () => {
+    const file = document()
+    return file && artifactKind(file.path) === "svg" ? file : undefined
+  }
+  const preview = createMemo(() => {
+    const file = active()
+    if (file?.kind === "image") return file.src
+    const vector = svg()
+    if (!vector || svgSource() === vector.path) return
+    const src = URL.createObjectURL(new Blob([vector.text], { type: "image/svg+xml" }))
+    onCleanup(() => URL.revokeObjectURL(src))
+    return src
+  })
+  const editing = () => !!document() && !preview()
 
   const save = () =>
     props.model.run(async () => {
@@ -279,7 +303,8 @@ function IdeWorkspace(props: { model: IdeModel; session: MountedSession; screen:
       event.preventDefault()
       event.stopPropagation()
 
-      if (key === "s") void (event.shiftKey ? props.model.run(props.model.saveAll) : save())
+      if (key === "s" && (event.shiftKey || editing()))
+        void (event.shiftKey ? props.model.run(props.model.saveAll) : save())
 
       if (key === "w" && active()) props.model.close(props.model.state.active)
 
@@ -584,7 +609,7 @@ function IdeWorkspace(props: { model: IdeModel; session: MountedSession; screen:
         </aside>
         <main class="aai-ide-main">
           <div class="aai-ide-tabs" role="tablist" aria-label={ctx.t("files")}>
-            <For each={props.model.state.documents}>
+            <For each={props.model.state.files}>
               {(item) => (
                 <div class="aai-ide-tab">
                   <button
@@ -592,12 +617,12 @@ function IdeWorkspace(props: { model: IdeModel; session: MountedSession; screen:
                     aria-selected={props.model.state.active === item.path}
                     title={item.path}
                     onClick={() => {
-                      props.model.setState("active", item.path)
+                      void props.model.open(item.path)
                       setState("diff", undefined)
                     }}
                   >
                     {item.path.split("/").at(-1)}
-                    <Show when={item.text !== item.saved}>
+                    <Show when={item.kind === "text" && item.text !== item.saved}>
                       <span aria-label={ctx.t("dirty")}> ●</span>
                     </Show>
                   </button>
@@ -609,32 +634,43 @@ function IdeWorkspace(props: { model: IdeModel; session: MountedSession; screen:
             </For>
           </div>
           <div class="aai-ide-toolbar">
-            <button disabled={!active() || props.model.state.saving} onClick={() => void save()}>
+            <button disabled={!editing() || props.model.state.saving} onClick={() => void save()}>
               {ctx.t("save")}
             </button>
             <button disabled={props.model.state.saving} onClick={() => void props.model.run(props.model.saveAll)}>
               {ctx.t("saveAll")}
             </button>
             <button disabled={!active()} onClick={attach}>
-              {ctx.t("attach")}
+              {ctx.t(preview() ? "attachFile" : "attach")}
             </button>
             <button onClick={() => ctx.layout.open("terminal:main", props.session)}>{ctx.t("terminal")}</button>
+            <Show when={svg()} keyed>
+              {(file) => (
+                <button onClick={() => setSvgSource(preview() ? file.path : "")}>
+                  {ctx.t(preview() ? "svgSource" : "imagePreview")}
+                </button>
+              )}
+            </Show>
             <Show when={active()}>
               <details class="aai-ide-file-actions">
                 <summary>{ctx.t("common.moreOptions")}</summary>
                 <div>
-                  <button onClick={() => void widget.editor?.getAction("editor.action.formatDocument")?.run()}>
-                    {ctx.t("format")}
-                  </button>
-                  <button onClick={() => void widget.editor?.getAction("editor.action.revealDefinition")?.run()}>
-                    {ctx.t("definition")}
-                  </button>
-                  <button onClick={() => void widget.editor?.getAction("editor.action.referenceSearch.trigger")?.run()}>
-                    {ctx.t("references")}
-                  </button>
-                  <button onClick={() => void widget.editor?.getAction("editor.action.rename")?.run()}>
-                    {ctx.t("rename")}
-                  </button>
+                  <Show when={editing()}>
+                    <button onClick={() => void widget.editor?.getAction("editor.action.formatDocument")?.run()}>
+                      {ctx.t("format")}
+                    </button>
+                    <button onClick={() => void widget.editor?.getAction("editor.action.revealDefinition")?.run()}>
+                      {ctx.t("definition")}
+                    </button>
+                    <button
+                      onClick={() => void widget.editor?.getAction("editor.action.referenceSearch.trigger")?.run()}
+                    >
+                      {ctx.t("references")}
+                    </button>
+                    <button onClick={() => void widget.editor?.getAction("editor.action.rename")?.run()}>
+                      {ctx.t("rename")}
+                    </button>
+                  </Show>
                   <button
                     onClick={() => {
                       tool("explorer")
@@ -646,7 +682,7 @@ function IdeWorkspace(props: { model: IdeModel; session: MountedSession; screen:
                   <button
                     onClick={() => {
                       if (
-                        active()?.text === active()?.saved ||
+                        document()?.text === document()?.saved ||
                         window.confirm(ctx.t("confirmReload", { path: props.model.state.active }))
                       )
                         void props.model.run(props.model.reload)
@@ -683,14 +719,23 @@ function IdeWorkspace(props: { model: IdeModel; session: MountedSession; screen:
             <CodeEditor
               model={props.model}
               screen={props.screen}
+              editing={editing()}
               reveal={state.reveal}
               onReady={(value) => {
                 widget.editor = value
               }}
               breakpoint={breakpoint}
             />
-            <Show when={!active()}>
-              <div class="aai-ide-empty">{ctx.t(props.model.state.loading ? "common.loading" : "empty")}</div>
+            <Show when={preview()} keyed>
+              {(src) => <ImageTab src={src} path={props.model.state.active} />}
+            </Show>
+            <Show when={props.model.state.loading}>
+              <div class="aai-ide-empty" role="status">
+                {ctx.t("common.loading")}
+              </div>
+            </Show>
+            <Show when={!active() && !props.model.state.loading}>
+              <div class="aai-ide-empty">{ctx.t("empty")}</div>
             </Show>
             <Show when={state.diff}>
               {(diff) => (
@@ -747,14 +792,58 @@ function IdeWorkspace(props: { model: IdeModel; session: MountedSession; screen:
             >
               {ctx.t("output")}
             </button>
-            <span>{active()?.language}</span>
-            <span>
-              {ctx.t("lineColumn", { line: props.model.state.cursor.line, column: props.model.state.cursor.column })}
-            </span>
-            <span>{active()?.text !== active()?.saved ? ctx.t("dirty") : ctx.t("saved")}</span>
+            <Show
+              when={preview()}
+              fallback={
+                <Show when={document()}>
+                  <span>{document()?.language}</span>
+                  <span>
+                    {ctx.t("lineColumn", {
+                      line: props.model.state.cursor.line,
+                      column: props.model.state.cursor.column,
+                    })}
+                  </span>
+                  <span>{document()?.text !== document()?.saved ? ctx.t("dirty") : ctx.t("saved")}</span>
+                </Show>
+              }
+            >
+              <span>{ctx.t("imagePreview")}</span>
+            </Show>
           </footer>
         </main>
       </div>
     </div>
+  )
+}
+
+function ImageTab(props: { src: string; path: string }) {
+  const ctx = usePlugin<typeof definition>()
+  const [size, setSize] = createSignal("")
+  const [failed, setFailed] = createSignal(false)
+  const [actual, setActual] = createSignal(false)
+  const name = () => props.path.split("/").at(-1) ?? props.path
+
+  return (
+    <section class="aai-ide-image" aria-label={ctx.t("imagePreview")}>
+      <div class="aai-ide-image-body" data-actual={actual()} tabindex={actual() ? 0 : undefined}>
+        <img
+          src={props.src}
+          alt={name()}
+          hidden={failed()}
+          onLoad={(event) => setSize(`${event.currentTarget.naturalWidth} × ${event.currentTarget.naturalHeight}`)}
+          onError={() => setFailed(true)}
+        />
+        <Show when={failed()}>
+          <p role="status">{ctx.t("imageError")}</p>
+        </Show>
+      </div>
+      <div class="aai-ide-toolbar">
+        <span title={props.path}>{name()}</span>
+        <span>{size()}</span>
+        <button disabled={failed() || !size()} onClick={() => setActual(!actual())}>
+          {ctx.t(actual() ? "fitImage" : "actualSize")}
+        </button>
+      </div>
+    </section>
   )
 }

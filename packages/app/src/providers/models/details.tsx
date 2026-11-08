@@ -5,6 +5,7 @@ import { useLanguage } from "@/runtime/i18n/language"
 import type { ModelUsageLabel } from "@/usage/model"
 import type { ModelSelection } from "./selection"
 import { ProviderModelIcon } from "./provider-group"
+import { freeAPIModel, freeAPITier, freeAPIUse } from "@/providers/catalog/free-apis"
 
 type ModelInfo = NonNullable<ReturnType<ModelSelection["current"]>>
 
@@ -29,6 +30,7 @@ export function ModelDetails(props: {
   usage?: ModelUsageLabel
 }) {
   const language = useLanguage()
+  const guide = () => freeAPIModel(props.model.provider.id, props.model.id)
   const input = () => inputs.filter((type) => props.model.capabilities.input[type])
 
   const modalities = () =>
@@ -162,6 +164,15 @@ export function ModelDetails(props: {
           })}
         </bdi>
         <Show when={summary()}>{(value) => <div>{value()}</div>}</Show>
+        <Show when={guide()}>
+          {(entry) => (
+            <div>
+              {language.t(freeAPITier(entry().profile))}
+              {" · "}
+              {language.t("settings.freeAPI.bestFor", { use: language.t(freeAPIUse(entry().model, entry().profile)) })}
+            </div>
+          )}
+        </Show>
         <Show when={props.usage}>
           {(usage) => (
             <div classList={{ "text-v2-state-fg-danger": usage().reached }}>

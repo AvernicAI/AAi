@@ -23,6 +23,7 @@ import { AccountNameInput } from "./account-name"
 import { useProviderAccountActions } from "./account-actions"
 import "@/settings/settings.css"
 import { CompatibilityConnector } from "./compatibility"
+import { freeAPIProfile, freeAPITier } from "@/providers/catalog/free-apis"
 
 type ProviderSource = "env" | "api" | "account" | "config" | "custom"
 
@@ -198,6 +199,10 @@ export const SettingsProviders: Component<{
   }
 
   const type = (item: ProviderItem) => {
+    const profile = freeAPIProfile(item.id)
+
+    if (profile) return language.t(freeAPITier(profile))
+
     if (item.id.startsWith("aai-compatible-")) return language.t("settings.compatible.tag")
     const current = source(item)
 

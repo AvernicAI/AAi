@@ -239,7 +239,11 @@ export const serverSettings: Entry<SettingsServerTab | "servers">[] = [
   },
   { tab: "projects", label: "settings.tab.projects" },
   { tab: "workspaces", label: "settings.tab.workspaces", keywords: "workspaces disk usage cleanup delete" },
-  { tab: "providers", label: "settings.providers.title", keywords: "connect api key credentials" },
+  {
+    tab: "providers",
+    label: "settings.providers.title",
+    keywords: "connect api key credentials free llm apis anonymous inference presets",
+  },
   { tab: "models", label: "settings.models.title", keywords: "model picker visibility" },
   { tab: "extensions", label: "settings.tab.extensions" },
   {

@@ -76,6 +76,7 @@ const setup: Plugin.MainSetup = (ctx) => {
     },
     list: (input, caller) => get(input.binding, caller.window).workspace.list(input.path),
     read: (input, caller) => get(input.binding, caller.window).workspace.read(input.path),
+    readImage: (input, caller) => get(input.binding, caller.window).workspace.readImage(input.path, caller.signal),
     save: (input, caller) => get(input.binding, caller.window).workspace.save(input.path, input.text, input.version),
     create: (input, caller) => get(input.binding, caller.window).workspace.create(input.path, input.directory),
     renameFile: (input, caller) => get(input.binding, caller.window).workspace.rename(input.path, input.target),

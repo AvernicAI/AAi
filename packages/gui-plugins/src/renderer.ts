@@ -35,6 +35,8 @@ import backgrounds from "./backgrounds"
 import backgroundsRenderer from "./backgrounds/renderer"
 import skills from "./skills"
 import skillsRenderer from "./skills/renderer"
+import merlin from "./merlin"
+import merlinRenderer from "./merlin/renderer"
 
 // The window renders once every built-in is active, so the small renderer entries load with the app, like the
 // features they replaced. Heavy UI stays behind `lazy()` inside them.
@@ -43,6 +45,7 @@ const eager = (setup: Awaited<ReturnType<NonNullable<Entry["windowEntry"]>>>["de
 
 /** Built-in plugins with their window entries, by id. The only place host builds name built-ins. */
 export const builtins = compose({
+  merlin: { ...merlin, windowEntry: eager(merlinRenderer) },
   ide: { ...ide, windowEntry: eager(ideRenderer) },
   backgrounds: { ...backgrounds, windowEntry: eager(backgroundsRenderer) },
   skills: { ...skills, windowEntry: eager(skillsRenderer) },

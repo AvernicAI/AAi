@@ -48,8 +48,7 @@ const DESCRIPTION_LIMIT = 120
 const CHARACTERS_PER_TOKEN = 4
 const INLINE_BUDGET = 2_000
 
-// Keep every namespace visible, then select full listings one per namespace per round,
-// considering shorter listings first until the inline budget is exhausted.
+// Reserve pinned listings, then fit namespaces and full listings within the inline budget.
 export function summarize(inventory: Inventory, options: Options = {}): Summary {
   const budget = options.budget ?? INLINE_BUDGET
   const flattened = flatten(inventory.tools)
@@ -60,7 +59,9 @@ export function summarize(inventory: Inventory, options: Options = {}): Summary 
       return 0
     })
     .map(([name, namespaceEntries]) => {
-      const description = flattened.namespaces.get(name)?.description
+      const source = flattened.namespaces.get(name)?.description?.split("\n", 1)[0]?.trim()
+      const description =
+        source && source.length > DESCRIPTION_LIMIT ? source.slice(0, DESCRIPTION_LIMIT - 3) + "..." : source
       const listings = namespaceEntries
         .map((entry) => {
           const firstLine = entry.description.split("\n", 1)[0]?.trim() ?? ""
@@ -91,26 +92,41 @@ export function summarize(inventory: Inventory, options: Options = {}): Summary 
       }
     })
 
-  const active = new Set(namespaces)
-  // TODO: Bound namespace discovery once large namespace inventories and descriptions can no longer stay inline.
   let remaining =
     budget -
-    namespaces.reduce(
-      (total, namespace) =>
-        total +
-        cost(
-          namespaceLine({
-            name: namespace.name,
-            ...(namespace.description === undefined ? {} : { description: namespace.description }),
-            count: namespace.listings.length,
-            entries: [],
-          }),
-        ),
-      0,
-    ) -
+    namespaces
+      .filter((namespace) => namespace.selectedListings.size > 0)
+      .reduce(
+        (total, namespace) =>
+          total +
+          cost(
+            namespaceLine({
+              name: namespace.name,
+              ...(namespace.description === undefined ? {} : { description: namespace.description }),
+              count: namespace.listings.length,
+              entries: [],
+            }),
+          ),
+        0,
+      ) -
     namespaces
       .flatMap((namespace) => namespace.listings.filter((listing) => namespace.selectedListings.has(listing)))
       .reduce((total, listing) => total + cost(listing.line), 0)
+  const visible = namespaces.filter((namespace) => {
+    if (namespace.selectedListings.size > 0) return true
+    const required = cost(
+      namespaceLine({
+        name: namespace.name,
+        ...(namespace.description === undefined ? {} : { description: namespace.description }),
+        count: namespace.listings.length,
+        entries: [],
+      }),
+    )
+    if (required > remaining) return false
+    remaining -= required
+    return true
+  })
+  const active = new Set(visible)
   while (active.size > 0) {
     for (const namespace of active) {
       const candidate = namespace.selectionOrder[namespace.selectionIndex]
@@ -125,7 +141,7 @@ export function summarize(inventory: Inventory, options: Options = {}): Summary 
     }
   }
 
-  const namespaceSummaries = namespaces.map((namespace) => ({
+  const namespaceSummaries = visible.map((namespace) => ({
     name: namespace.name,
     ...(namespace.description === undefined ? {} : { description: namespace.description }),
     count: namespace.listings.length,

@@ -19,6 +19,234 @@ const contributors = "https://api.github.com/repos/anomalyco/opencode/contributo
 
 test.use({ serviceWorkers: "block" })
 
+test("free API presets use fixed endpoints, labeled capabilities, and scoped credentials", async ({ page }) => {
+  const connections: { integrationID: string; body: unknown }[] = []
+
+  const { settings } = await openSettings(page, {
+    name: "Free API presets",
+    directory,
+    provider: NO_PROVIDER,
+    sessions: [],
+    onConnectKey: (input) => connections.push(input),
+  })
+
+  await settings.getByRole("tab", { name: "Providers", exact: true }).click()
+  const catalog = settings.getByRole("region", { name: "Free LLM APIs", exact: true })
+  const select = catalog.getByRole("combobox", { name: "Free API provider" })
+  await select.selectOption("mistral")
+  await expect(catalog.getByText("Billing required", { exact: true })).toBeVisible()
+  await select.selectOption("ovh")
+  await expect(catalog.getByText("No API key", { exact: true })).toBeVisible()
+  await catalog.getByText("Review models and capabilities", { exact: true }).click()
+  await expect(catalog.getByRole("listitem").filter({ hasText: "Qwen3.5-397B-A17B" })).toContainText(
+    "AAi chat accepts text and images · Tool calling off",
+  )
+  await catalog.getByRole("button", { name: "Set up preset" }).click()
+  await expect(settings.getByLabel("API key", { exact: true })).toHaveCount(0)
+
+  const patch = () =>
+    page.waitForRequest(
+      (request) => request.method() === "PATCH" && new URL(request.url()).pathname === "/api/experimental/config",
+    )
+
+  const anonymous = patch()
+  await settings.getByRole("button", { name: "Save provider", exact: true }).click()
+  const ovh = (await anonymous).postDataJSON().providers["aai-compatible-free-ovh"]
+  expect(ovh.settings).toMatchObject({
+    baseURL: "https://oai.endpoints.kepler.ai.cloud.ovh.net/v1",
+    aaiNoAuth: true,
+  })
+  expect(ovh.models["Qwen3.5-397B-A17B"].capabilities).toMatchObject({ input: ["text", "image"], output: ["text"] })
+  expect(ovh.models["Mistral-Small-3.2-24B-Instruct-2506"]).toBeUndefined()
+  await expect(catalog).toBeVisible()
+
+  await select.selectOption("cloudflare")
+  await catalog.getByRole("button", { name: "Set up preset" }).click()
+  const account = settings.getByRole("textbox", { name: "Cloudflare account ID" })
+  await account.fill("../unexpected")
+  const credential = "aai-cloudflare-fixture"
+  await settings.getByLabel("API key", { exact: true }).fill(credential)
+  await settings.getByRole("button", { name: "Save provider", exact: true }).click()
+  await expect(settings.getByRole("alert")).toContainText("Enter the required account ID or API key")
+  await account.fill("0123456789abcdef0123456789abcdef")
+
+  const authenticated = patch()
+  await settings.getByRole("button", { name: "Save provider", exact: true }).click()
+  const request = await authenticated
+  expect(request.postData()).not.toContain(credential)
+  expect(request.postDataJSON().providers["aai-compatible-free-cloudflare"].settings).toMatchObject({
+    baseURL: "https://api.cloudflare.com/client/v4/accounts/0123456789abcdef0123456789abcdef/ai/v1",
+    aaiNoAuth: false,
+  })
+  await expect(catalog).toBeVisible()
+  expect(connections).toEqual([
+    {
+      integrationID: "aai-compatible-free-ovh",
+      body: { key: "aai-keyless-endpoint", label: "OVHcloud AI Endpoints" },
+    },
+    {
+      integrationID: "aai-compatible-free-cloudflare",
+      body: { key: credential, label: "Cloudflare Workers AI" },
+    },
+  ])
+})
+
+test("supplemental free API presets label access and save models with separate credentials", async ({ page }) => {
+  const connections: { integrationID: string; body: unknown }[] = []
+
+  const { settings } = await openSettings(page, {
+    name: "Supplemental free APIs",
+    directory,
+    provider: NO_PROVIDER,
+    sessions: [],
+    onConnectKey: (input) => connections.push(input),
+  })
+
+  await settings.getByRole("tab", { name: "Providers", exact: true }).click()
+  const catalog = settings.getByRole("region", { name: "Free LLM APIs", exact: true })
+
+  for (const preset of [
+    {
+      id: "hetzner",
+      name: "Hetzner Inference",
+      tier: "Free experimental",
+      url: "https://inference.hetzner.com/api/v1",
+      count: 2,
+      model: "Qwen/Qwen3.6-35B-A3B-FP8",
+      input: ["text", "image"],
+      tools: false,
+    },
+    {
+      id: "pollinations",
+      name: "Pollinations Classic",
+      tier: "Free routes",
+      url: "https://text.pollinations.ai/v1",
+      count: 1,
+      model: "openai-fast",
+      input: ["text"],
+      tools: true,
+    },
+    {
+      id: "publicai",
+      name: "Public AI",
+      tier: "Free starter credit",
+      url: "https://api.publicai.co/v1",
+      count: 9,
+      model: "swiss-ai/apertus-v1.5-8b",
+      input: ["text"],
+      tools: false,
+    },
+  ]) {
+    await catalog.getByRole("combobox", { name: "Free API provider" }).selectOption(preset.id)
+    await expect(catalog.getByText(preset.tier, { exact: true })).toBeVisible()
+    await catalog.getByText("Review models and capabilities", { exact: true }).click()
+    await expect(catalog.getByRole("listitem")).toHaveCount(preset.count)
+    await catalog.getByRole("button", { name: "Set up preset" }).click()
+    const key = `fixture-${preset.id}`
+
+    if (preset.id === "pollinations") {
+      await expect(settings.getByLabel("API key", { exact: true })).toHaveCount(0)
+    }
+
+    if (preset.id !== "pollinations") {
+      await settings.getByRole("button", { name: "Save provider", exact: true }).click()
+      await expect(settings.getByRole("alert")).toContainText("Enter the required account ID or API key")
+      await settings.getByLabel("API key", { exact: true }).fill(key)
+    }
+
+    const saved = page.waitForRequest(
+      (request) => request.method() === "PATCH" && new URL(request.url()).pathname === "/api/experimental/config",
+    )
+
+    await settings.getByRole("button", { name: "Save provider", exact: true }).click()
+    const request = await saved
+    const provider = request.postDataJSON().providers[`aai-compatible-free-${preset.id}`]
+
+    expect(request.postData()).not.toContain(key)
+    expect(provider.settings).toMatchObject({ baseURL: preset.url, aaiNoAuth: preset.id === "pollinations" })
+    expect(Object.keys(provider.models)).toHaveLength(preset.count)
+    expect(provider.models[preset.model].capabilities).toMatchObject({
+      input: preset.input,
+      output: ["text"],
+      tools: preset.tools,
+    })
+
+    if (preset.id === "hetzner") expect(provider.models[preset.model].limit).toEqual({ context: 262144, output: 4096 })
+
+    if (preset.id === "pollinations")
+      expect(provider.models[preset.model].capabilities.reasoning).toEqual({ supported: true })
+
+    if (preset.id === "publicai") expect(provider.headers).toEqual({ "User-Agent": "AlphaAi" })
+
+    await expect(catalog).toBeVisible()
+  }
+
+  expect(connections).toEqual([
+    { integrationID: "aai-compatible-free-hetzner", body: { key: "fixture-hetzner", label: "Hetzner Inference" } },
+    {
+      integrationID: "aai-compatible-free-pollinations",
+      body: { key: "aai-keyless-endpoint", label: "Pollinations Classic" },
+    },
+    { integrationID: "aai-compatible-free-publicai", body: { key: "fixture-publicai", label: "Public AI" } },
+  ])
+})
+
+test("community free API presets preserve free routing, input limits, and gateway configuration", async ({ page }) => {
+  const { settings } = await openSettings(page, {
+    name: "Community free API presets",
+    directory,
+    provider: NO_PROVIDER,
+    sessions: [],
+  })
+
+  await settings.getByRole("tab", { name: "Providers", exact: true }).click()
+  const catalog = settings.getByRole("region", { name: "Free LLM APIs", exact: true })
+  const providers = catalog.getByRole("combobox", { name: "Free API provider" })
+
+  await expect(providers.getByRole("option")).toHaveCount(36)
+
+  for (const id of ["waterfall", "dreamprompting", "requesty", "freellmapi"]) {
+    await providers.selectOption(id)
+    await expect(catalog.getByRole("link", { name: "Model catalog source" })).toHaveAttribute(
+      "href",
+      "https://freellmapi.co/models",
+    )
+    await catalog.getByRole("button", { name: "Set up preset" }).click()
+
+    if (id === "freellmapi") {
+      const endpoint = settings.getByRole("textbox", { name: "API base URL", exact: true })
+
+      await expect(endpoint).toHaveValue("http://localhost:3001/v1")
+      await endpoint.fill("http://127.0.0.1:4531/v1")
+    }
+
+    await settings.getByLabel("API key", { exact: true }).fill(`fixture-${id}`)
+
+    const saved = page.waitForRequest(
+      (request) => request.method() === "PATCH" && new URL(request.url()).pathname === "/api/experimental/config",
+    )
+
+    await settings.getByRole("button", { name: "Save provider", exact: true }).click()
+    const request = await saved
+    const provider = request.postDataJSON().providers[`aai-compatible-free-${id}`]
+
+    expect(request.postData()).not.toContain(`fixture-${id}`)
+
+    if (id === "waterfall") expect(provider.body).toEqual({ routing_strategy: "free_smart" })
+
+    if (id === "dreamprompting")
+      expect(Object.values(provider.models)).toEqual(
+        expect.arrayContaining([expect.objectContaining({ limit: { context: 40192, input: 32000, output: 8192 } })]),
+      )
+
+    if (id === "requesty") expect(provider.models["mistral/leanstral-1-5"].body).toEqual({ temperature: 0.7 })
+
+    if (id === "freellmapi") expect(provider.settings.baseURL).toBe("http://127.0.0.1:4531/v1")
+
+    await expect(catalog).toBeVisible()
+  }
+})
+
 test("developer prompts save personal workflows and insert alongside the existing draft without sending", async ({ page }) => {
   const { editor } = await openSession(page, { name: "Developer prompt library", directory, provider: NO_PROVIDER })
   await editor.fill("Keep my existing draft.")

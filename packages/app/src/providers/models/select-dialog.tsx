@@ -17,6 +17,7 @@ import { useLocal, type ModelSelection } from "@/providers/models/selection"
 import { isFreeModel } from "@/providers/models/models"
 import { useDialog } from "@opencode/ui/context/dialog"
 import { popularProviders } from "@/providers/catalog/providers"
+import { freeAPIModel, freeAPITier, freeAPIUse } from "@/providers/catalog/free-apis"
 import { Button } from "@opencode/ui/button"
 import { Badge } from "@opencode/ui/badge"
 import { Dialog, DialogBody, DialogTitle } from "@opencode/ui/dialog"
@@ -195,11 +196,23 @@ const ModelList: Component<{
                   <Show when={isFreeModel(item)}>
                     <Badge class="shrink-0">{language.t("model.tag.free")}</Badge>
                   </Show>
+                  <Show when={freeAPIModel(item.provider.id, item.id)}>
+                    {(entry) => <Badge class="shrink-0">{language.t(freeAPITier(entry().profile))}</Badge>}
+                  </Show>
                   <Show when={item.latest}>
                     <Badge class="shrink-0">{language.t("model.tag.latest")}</Badge>
                   </Show>
                   <Show when={usage(item)}>{(value) => <ModelUsageTag usage={value()} />}</Show>
                 </div>
+                <Show when={freeAPIModel(item.provider.id, item.id)}>
+                  {(entry) => (
+                    <span class="text-xs text-v2-text-text-muted">
+                      {language.t("settings.freeAPI.bestFor", {
+                        use: language.t(freeAPIUse(entry().model, entry().profile)),
+                      })}
+                    </span>
+                  )}
+                </Show>
               </div>
               <div data-slot="settings-row-control" class="size-4">
                 <Show when={controller.current() === modelKey(item)}>
@@ -456,6 +469,7 @@ function createModelSelectorController(input: {
   model?: ModelState
   onSelect: () => void
 }) {
+  const language = useLanguage()
   const model = input.model ?? useLocal().model
 
   const allModels = createMemo(() =>
@@ -471,7 +485,15 @@ function createModelSelectorController(input: {
       const query = search.trim()
 
       const filtered = query
-        ? allModels().filter((item) => matchesModelSearch(query, [item.name, item.id, item.provider.name]))
+        ? allModels().filter((item) => {
+            const guide = freeAPIModel(item.provider.id, item.id)
+
+            const terms = guide
+              ? [language.t(freeAPITier(guide.profile)), language.t(freeAPIUse(guide.model, guide.profile))]
+              : []
+
+            return matchesModelSearch(query, [item.name, item.id, item.provider.name, ...terms])
+          })
         : allModels()
 
       return [...filtered].sort((a, b) => a.name.localeCompare(b.name))
@@ -937,6 +959,9 @@ export function DialogSelectModel(props: { provider?: string; model?: ModelState
           </Show>
           <Show when={isFreeModel(item())}>
             <Badge class="shrink-0">{language.t("model.tag.free")}</Badge>
+          </Show>
+          <Show when={freeAPIModel(item().provider.id, item().id)}>
+            {(entry) => <Badge class="shrink-0">{language.t(freeAPITier(entry().profile))}</Badge>}
           </Show>
           <Show when={item().latest}>
             <Badge class="shrink-0">{language.t("model.tag.latest")}</Badge>

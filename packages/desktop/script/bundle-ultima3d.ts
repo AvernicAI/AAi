@@ -31,28 +31,41 @@ export async function bundleUltima3d(resources: string) {
     const upstream = path.join(work, binary)
     const published = cli.os === "win32" && cli.cpu === "x64"
     if (published) {
-      const response = await fetch("https://github.com/buffbot88/Ultima3D/releases/download/v0.6.0/ultima3d-server.exe")
-      if (!response.ok) throw new Error(`Ultima3D download failed: ${response.status}`)
-      const bytes = await response.arrayBuffer()
-      const digest = Bun.CryptoHasher.hash("sha256", bytes, "hex")
-      if (digest !== "cb2aacb84c1f017bc63b176413ba70200aaeb90dc5631e71547cb57c60c7717b")
-        throw new Error("Ultima3D release binary did not match the pinned SHA-256")
-      await Bun.write(upstream, bytes)
+      const expected = "cb2aacb84c1f017bc63b176413ba70200aaeb90dc5631e71547cb57c60c7717b"
+      const existing = Bun.file(path.join(dest, binary))
+      const cached = (await existing.exists()) ? await existing.arrayBuffer() : undefined
+      if (cached && Bun.CryptoHasher.hash("sha256", cached, "hex") === expected) {
+        await Bun.write(upstream, cached)
+      }
+      if (!(await Bun.file(upstream).exists())) {
+        const response = await fetch(
+          "https://github.com/buffbot88/Ultima3D/releases/download/v0.6.0/ultima3d-server.exe",
+        ).catch(() => undefined)
+        if (response?.ok) {
+          const bytes = await response.arrayBuffer()
+          if (Bun.CryptoHasher.hash("sha256", bytes, "hex") !== expected)
+            throw new Error("Ultima3D release binary did not match the pinned SHA-256")
+          await Bun.write(upstream, bytes)
+        }
+      }
     }
 
-    if (!published) {
+    const released = published && (await Bun.file(upstream).exists())
+    if (!released) {
       await $`rustup target add ${target}`
       await $`cargo build --locked --release --target ${target} -p ultima3d-server`.cwd(path.join(work, "rust"))
     }
 
     await mkdir(dest, { recursive: true })
     await Promise.all([
-      cp(published ? upstream : compiled, path.join(dest, binary)),
+      cp(released ? upstream : compiled, path.join(dest, binary)),
       cp(path.join(work, "LICENSE"), path.join(dest, "LICENSE")),
       ...["blender", "godot", "photoshop"].map((dir) =>
         cp(path.join(work, dir), path.join(dest, dir), { recursive: true }),
       ),
-      ...(blender ? [cp(blender, path.join(dest, "blender-runtime"), { recursive: true, verbatimSymlinks: true })] : []),
+      ...(blender
+        ? [cp(blender, path.join(dest, "blender-runtime"), { recursive: true, verbatimSymlinks: true })]
+        : []),
     ])
   } finally {
     await rm(work, { recursive: true, force: true })

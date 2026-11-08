@@ -1,5 +1,5 @@
 import { afterEach, expect, test } from "bun:test"
-import { mkdir, mkdtemp, readFile, rm, symlink, writeFile } from "node:fs/promises"
+import { mkdir, mkdtemp, readFile, rm, symlink, truncate, writeFile } from "node:fs/promises"
 import { tmpdir } from "node:os"
 import path from "node:path"
 import { openWorkspace, parseStatus } from "./workspace"
@@ -75,6 +75,23 @@ test("workspace search respects Git ignores and reports exact file and line posi
     truncated: false,
   })
   expect((await workspace.search("Needle", false, signal)).matches).toHaveLength(2)
+})
+
+test("image previews preserve binary bytes and reject out-of-workspace or oversized files", async () => {
+  const root = await directory()
+  const png = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+aRZkAAAAASUVORK5CYII="
+  await writeFile(path.join(root, "Image.PNG"), Buffer.from(png, "base64"))
+  const workspace = await openWorkspace(root)
+  const signal = new AbortController().signal
+
+  expect(await workspace.readImage("Image.PNG", signal)).toEqual({
+    path: "Image.PNG",
+    mime: "image/png",
+    base64: png,
+  })
+  await expect(workspace.readImage("../outside.png", signal)).rejects.toThrow("ide.path")
+  await truncate(path.join(root, "Image.PNG"), 16 * 1024 * 1024 + 1)
+  await expect(workspace.readImage("Image.PNG", signal)).rejects.toThrow("ide.image.large")
 })
 
 test("Git status keeps renamed and punctuated paths intact", () => {

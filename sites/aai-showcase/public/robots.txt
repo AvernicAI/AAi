@@ -1,0 +1,3 @@
+User-agent: *
+Allow: /
+Sitemap: https://aai.avernic.com/sitemap.xml

@@ -8,6 +8,7 @@ import { useLanguage } from "@/runtime/i18n/language"
 import { useModels } from "@/providers/models/models"
 import { useServerSDK } from "@/runtime/server/client"
 import { popularProviders } from "@/providers/catalog/providers"
+import { freeAPIModel, freeAPITier, freeAPIUse } from "@/providers/catalog/free-apis"
 import { Persist, persisted } from "@/runtime/persistence/storage"
 import { SettingsList } from "@/settings/list"
 import { SettingsRow } from "@/settings/row"
@@ -82,9 +83,25 @@ export const SettingsModels: Component<{
         <For each={props.items}>
           {(item) => {
             const key = { providerID: item.provider.id, modelID: item.id }
+            const guide = () => freeAPIModel(item.provider.id, item.id)
 
             return (
-              <SettingsRow title={item.name} description="">
+              <SettingsRow
+                title={item.name}
+                description={
+                  <Show when={guide()}>
+                    {(entry) => (
+                      <>
+                        {language.t(freeAPITier(entry().profile))}
+                        {" · "}
+                        {language.t("settings.freeAPI.bestFor", {
+                          use: language.t(freeAPIUse(entry().model, entry().profile)),
+                        })}
+                      </>
+                    )}
+                  </Show>
+                }
+              >
                 <div>
                   <Switch
                     checked={models.visible(key)}

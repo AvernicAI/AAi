@@ -2,15 +2,19 @@ import { onCleanup } from "solid-js"
 import { createStore } from "solid-js/store"
 import type { editor } from "monaco-editor"
 import type { IpcClient, SetupContext } from "@opencode/plugin/gui"
+import { artifactKind } from "@opencode/util/artifact"
 import type definition from "./index"
 import type { Diagnostic, Entry, Ide } from "./contract"
 
 export type WorkspaceClient = IpcClient<Ide["spec"]>
 
-export type OpenDocument = { path: string; text: string; saved: string; version: string; language: string }
+type OpenDocument = { kind: "text"; path: string; text: string; saved: string; version: string; language: string }
+
+type OpenImage = { kind: "image"; path: string; src: string }
+type OpenFile = OpenDocument | OpenImage
 
 type IdeState = {
-  documents: OpenDocument[]
+  files: OpenFile[]
   active: string
   entries: (typeof Entry.Type)[]
   expanded: string[]
@@ -36,7 +40,7 @@ export function createIdeModel(input: {
   const viewStates = new Map<string, editor.ICodeEditorViewState>()
 
   const [state, setState] = createStore<IdeState>({
-    documents: [],
+    files: [],
     active: "",
     entries: [],
     expanded: [],
@@ -52,6 +56,13 @@ export function createIdeModel(input: {
 
   const alive = () => !controller.signal.aborted
   const options = { signal: controller.signal }
+  const documents = () => state.files.filter((item) => item.kind === "text")
+  const activeFile = () => state.files.find((item) => item.path === state.active)
+  const current = () => {
+    const file = activeFile()
+    return file?.kind === "text" ? file : undefined
+  }
+  let openRequest = 0
 
   const report = (error: Error) => {
     if (!alive()) return
@@ -103,58 +114,64 @@ export function createIdeModel(input: {
   }
 
   const update = (path: string, text: string) => {
-    const index = state.documents.findIndex((item) => item.path === path)
+    const index = state.files.findIndex((item) => item.path === path)
+    const document = state.files[index]
+    if (document?.kind !== "text") return
+    const updated = { ...document, text }
+    setState("files", index, updated)
+    draft(updated)
+  }
 
-    if (index < 0) return
-    setState("documents", index, "text", text)
-    const document = state.documents[index]
-
-    if (document) draft(document)
+  const readImage = async (path: string): Promise<OpenImage> => {
+    const value = await input.client.readImage({ binding: input.binding, path }, options)
+    return { kind: "image", path: value.path, src: `data:${value.mime};base64,${value.base64}` }
   }
 
   const open = async (path: string, line?: number, column?: number) => {
-    if (state.documents.some((item) => item.path === path)) {
-      setState("active", path)
-
+    const request = ++openRequest
+    if (state.files.some((item) => item.path === path)) {
+      setState({ active: path, loading: false, error: "" })
       return { line, column }
     }
 
     setState({ loading: true, error: "" })
 
-    return input.client.read({ binding: input.binding, path }, options).then(
-      (value) => {
-        if (!alive()) return
-
-        const recovered = input.ctx.stores.drafts.value.find(
-          (item) => item.root === input.root && item.path === value.path,
-        )
-
-        if (!state.documents.some((item) => item.path === value.path))
-          setState("documents", (items) => [
-            ...items,
-            {
+    const read =
+      artifactKind(path) === "image"
+        ? readImage(path)
+        : input.client.read({ binding: input.binding, path }, options).then((value): OpenDocument => {
+            const recovered = input.ctx.stores.drafts.value.find(
+              (item) => item.root === input.root && item.path === value.path,
+            )
+            return {
               ...value,
+              kind: "text",
               text: recovered?.text ?? value.text,
               saved: value.text,
               version: recovered?.version ?? value.version,
               language: languageOf(path),
-            },
-          ])
+            }
+          })
+
+    return read.then(
+      (value) => {
+        if (!alive() || request !== openRequest) return
+        if (!state.files.some((item) => item.path === value.path)) setState("files", (items) => [...items, value])
         setState({ active: value.path, loading: false })
 
         return { line, column }
       },
       (error: Error) => {
-        if (alive()) setState("loading", false)
+        if (!alive() || request !== openRequest) return
+        setState("loading", false)
         report(error)
-
         return undefined
       },
     )
   }
 
   const save = async (path = state.active) => {
-    const document = state.documents.find((item) => item.path === path)
+    const document = documents().find((item) => item.path === path)
 
     if (!document || document.text === document.saved || state.saving) return
     const text = document.text
@@ -163,13 +180,12 @@ export function createIdeModel(input: {
       .save({ binding: input.binding, path, text, version: document.version }, options)
       .then((value) => {
         if (!alive()) return
-        const index = state.documents.findIndex((item) => item.path === path)
-
-        if (index < 0) return
-        setState("documents", index, { saved: value.text, version: value.version })
-        const current = state.documents[index]
-
-        if (current) draft(current)
+        const index = state.files.findIndex((item) => item.path === path)
+        const current = state.files[index]
+        if (current?.kind !== "text") return
+        const saved = { ...current, saved: value.text, version: value.version }
+        setState("files", index, saved)
+        draft(saved)
       })
       .finally(() => {
         if (alive()) setState("saving", false)
@@ -201,18 +217,25 @@ export function createIdeModel(input: {
   }
 
   const reload = async () => {
-    const path = state.active
+    const file = activeFile()
+    if (!file) return
+    const path = file.path
+    if (file.kind === "image") {
+      const value = await readImage(path)
+      if (!alive()) return
+      const index = state.files.findIndex((item) => item === file)
+      if (index >= 0) setState("files", index, value)
+      return
+    }
+
     const value = await input.client.read({ binding: input.binding, path }, options)
-
     if (!alive()) return
-    const index = state.documents.findIndex((item) => item.path === path)
-
+    const index = state.files.findIndex((item) => item === file)
     if (index < 0) return
-    setState("documents", index, { text: value.text, saved: value.text, version: value.version })
+    const reloaded = { ...file, text: value.text, saved: value.text, version: value.version }
+    setState("files", index, reloaded)
     models.get(path)?.setValue(value.text)
-    const current = state.documents[index]
-
-    if (current) draft(current)
+    draft(reloaded)
   }
 
   input.client.on("diagnostics", (event) => {
@@ -250,20 +273,22 @@ export function createIdeModel(input: {
     client: input.client,
     binding: input.binding,
     root: input.root,
-    current: () => state.documents.find((item) => item.path === state.active),
+    documents,
+    activeFile,
+    current,
     close(path: string) {
-      const item = state.documents.find((item) => item.path === path)
+      const item = documents().find((item) => item.path === path)
 
       if (item) draft(item)
-      const next = state.documents.filter((item) => item.path !== path)
-      setState("documents", next)
+      const next = state.files.filter((item) => item.path !== path)
+      setState("files", next)
 
       if (state.active === path) setState("active", next.at(-1)?.path ?? "")
     },
     async saveAll() {
-      for (const item of state.documents) await save(item.path)
+      for (const item of documents()) await save(item.path)
 
-      if (state.documents.some((item) => item.text !== item.saved)) throw new Error("ide.unsaved")
+      if (documents().some((item) => item.text !== item.saved)) throw new Error("ide.unsaved")
     },
   }
 }

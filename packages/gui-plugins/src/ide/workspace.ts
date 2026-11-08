@@ -2,11 +2,14 @@ import { createHash } from "node:crypto"
 import { execFile } from "node:child_process"
 import { lstat, mkdir, open, readFile, readdir, realpath, rename, stat } from "node:fs/promises"
 import path from "node:path"
+import { buffer } from "node:stream/consumers"
 import { promisify } from "node:util"
+import { artifactMime } from "@opencode/util/artifact"
 
 const execute = promisify(execFile)
 
 const MAX_FILE = 4 * 1024 * 1024
+const MAX_IMAGE = 16 * 1024 * 1024
 
 export async function openWorkspace(directory: string) {
   const root = await realpath(directory)
@@ -66,6 +69,22 @@ export async function openWorkspace(directory: string) {
     resolve,
     relative,
     read,
+    async readImage(name: string, signal: AbortSignal) {
+      const file = await resolve(name)
+      const mime = artifactMime(file)
+      if (!mime?.startsWith("image/")) throw new Error("ide.image.type")
+      const handle = await open(file, "r")
+
+      return Promise.try(async () => {
+        const info = await handle.stat()
+        if (!info.isFile()) throw new Error("ide.image.type")
+        if (info.size > MAX_IMAGE) throw new Error("ide.image.large")
+        signal.throwIfAborted()
+        const bytes = await buffer(handle.createReadStream({ end: MAX_IMAGE, autoClose: false, signal }))
+        if (bytes.length > MAX_IMAGE) throw new Error("ide.image.large")
+        return { path: relative(file), mime, base64: bytes.toString("base64") }
+      }).finally(() => handle.close())
+    },
     git,
     async stage(name: string, staged: boolean, signal?: AbortSignal) {
       const file = relative(candidate(name))

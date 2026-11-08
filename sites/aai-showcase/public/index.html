@@ -1,0 +1,613 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#100c0c" />
+    <title>AlphaAi — by AAi | The AI desktop for developers and creators</title>
+    <meta
+      name="description"
+      content="Build with AlphaAi by AAi. Explore an integrated IDE, AI agents, free model presets, browser and terminal, an extensible skills library, and 3D workflows."
+    />
+    <link rel="canonical" href="https://aai.avernic.com/" />
+    <meta property="og:title" content="AlphaAi — by AAi" />
+    <meta
+      property="og:description"
+      content="Your models, code, and tools in one desktop workspace. Try AlphaAi for Windows."
+    />
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://aai.avernic.com/" />
+    <meta property="og:site_name" content="AlphaAi — by AAi" />
+    <meta property="og:image" content="https://aai.avernic.com/assets/social.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="AlphaAi by AAi with a copper Alpha mark on a dark orbital grid" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <link rel="icon" type="image/svg+xml" href="assets/favicon.svg" />
+    <link rel="preload" href="assets/Inter.ttf" as="font" type="font/ttf" crossorigin />
+    <link rel="stylesheet" href="styles.css" />
+    <script src="app.js" defer></script>
+  </head>
+  <body>
+    <a class="skip" href="#main">Skip to content</a>
+    <header class="header">
+      <a class="brand" href="#" aria-label="AlphaAi home">
+        <svg class="brand-icon" viewBox="0 0 32 32" aria-hidden="true"><path d="M13 3h6l12 25h-7l-2.5-5h-11L8 28H1L13 3Zm.3 14h5.4L16 10.9 13.3 17Z" fill="currentColor" fill-rule="evenodd"/></svg>
+        <span class="brand-mark">Alpha<span>Ai</span></span><span class="brand-by">by AAi</span>
+      </a>
+      <button
+        class="menu-toggle icon-button"
+        aria-label="Open navigation"
+        aria-expanded="false"
+        aria-controls="navigation"
+      >
+        ☰
+      </button>
+      <nav id="navigation" aria-label="Main navigation">
+        <a href="#workspace">Workspace</a><a href="#models">Models</a>
+        <a href="#capabilities">Capabilities</a><a href="#integrations">Integrations</a>
+      </nav>
+      <div class="header-actions">
+        <button id="theme-toggle" class="icon-button" aria-label="Switch to light theme" title="Switch theme">☼</button
+        ><a class="button small" href="#download">Download <span aria-hidden="true">↗</span></a>
+      </div>
+    </header>
+    <main id="main">
+      <section class="hero wrap">
+        <div class="hero-mast">
+          <div class="hero-copy">
+            <p class="eyebrow hero-kicker"><span class="status-dot"></span> THE AI DESKTOP WORKSPACE</p>
+            <h1>Alpha<span>Ai</span></h1>
+            <p class="hero-credit">by AAi</p>
+            <p class="hero-statement">Build with your models.<br />Stay in your workspace.</p>
+            <p class="hero-description">
+              Write code in Monaco, work with an agent, inspect the browser, and run commands beside your project.
+            </p>
+            <div class="actions">
+              <a class="button" href="#download">Get AlphaAi for Windows <span aria-hidden="true">↓</span></a>
+              <a class="text-link" href="#workspace">Tour the desktop <span aria-hidden="true">↘</span></a>
+            </div>
+            <p class="fine hero-spec">Windows x64 <span></span> Open source <span></span> v{{VERSION}}</p>
+          </div>
+          <div class="hero-forge" aria-hidden="true">
+            <img src="assets/alpha-forge.svg" width="700" height="620" alt="" fetchpriority="high" />
+            <span class="forge-caption"><i></i> ALPHA MARK <b>FIG. 01</b></span>
+          </div>
+        </div>
+        <div class="workbench" id="workspace">
+          <div class="window-bar">
+            <div class="window-dots" aria-hidden="true"><i></i><i></i><i></i></div>
+            <span>AlphaAi / Orbital Studio</span><span class="window-note">Interactive workspace tour</span>
+          </div>
+          <div class="workspace-tabs" role="tablist" aria-label="Workspace tour">
+            <button id="tab-ide" role="tab" aria-selected="true" aria-controls="workspace-panel" data-workspace="ide">
+              ⌘ <span>IDE & code</span></button
+            ><button
+              id="tab-agent"
+              role="tab"
+              aria-selected="false"
+              aria-controls="workspace-panel"
+              tabindex="-1"
+              data-workspace="agent"
+            >
+              ✧ <span>AI agent</span></button
+            ><button
+              id="tab-browser"
+              role="tab"
+              aria-selected="false"
+              aria-controls="workspace-panel"
+              tabindex="-1"
+              data-workspace="browser"
+            >
+              ◎ <span>Browser</span></button
+            ><button
+              id="tab-create"
+              role="tab"
+              aria-selected="false"
+              aria-controls="workspace-panel"
+              tabindex="-1"
+              data-workspace="create"
+            >
+              ◇ <span>3D & creation</span>
+            </button>
+          </div>
+          <div id="workspace-panel" role="tabpanel" aria-labelledby="tab-ide" tabindex="0">
+            <noscript><img src="assets/desktop-ide.png" width="1280" height="800" alt="AlphaAi desktop with a session and Monaco editor" /></noscript>
+          </div>
+          <div class="workbench-footer">
+            <span><i class="status-dot"></i> One workspace. Connected context.</span
+            ><span>Illustrative project · Explore the tabs above</span>
+          </div>
+        </div>
+        <div class="tour-caption">
+          <p id="tour-description">
+            Edit with Monaco, search your project, review Git changes, and bring a code selection straight into chat.
+          </p>
+          <a class="text-link" href="assets/desktop-ide.png" data-screenshot="ide"
+            >View real desktop screenshot <span aria-hidden="true">↗</span></a
+          >
+        </div>
+      </section>
+
+      <section class="principles wrap" aria-label="Built around your workflow">
+        <div>
+          <span class="mini-number">01 / CONNECT</span>
+          <h2>Choose a model for the job.</h2>
+          <p>Try keyless routes, connect provider accounts, or point AlphaAi at your own compatible endpoint.</p>
+        </div>
+        <div>
+          <span class="mini-number">02 / FOCUS</span>
+          <h2>Keep useful context close.</h2>
+          <p>Bring files, editor selections, and reusable instructions into a project session.</p>
+        </div>
+        <div>
+          <span class="mini-number">03 / BUILD</span>
+          <h2>Go from idea to output.</h2>
+          <p>Edit the code, inspect your preview, review Git changes, and work with creative tools.</p>
+        </div>
+      </section>
+
+      <section class="wrap section-space model-section" id="models" aria-labelledby="models-title">
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow">01 / MODEL ROUTING</p>
+            <h2 id="models-title">Pick the model.<br /><em>Match the work.</em></h2>
+          </div>
+          <p>Bring your own provider, connect an OpenAI-compatible endpoint, or start with a free route. The desktop shows what each model can handle before you send a prompt.</p>
+        </div>
+        <div class="model-lab">
+          <div class="model-lab-options">
+            <p class="eyebrow"><span class="status-dot"></span> MODEL FIELD GUIDE</p>
+            <div class="model-tasks" role="group" aria-label="Explore model use cases">
+              <button type="button" data-model-task="code" aria-pressed="true"><span>01</span> Code &amp; review <i aria-hidden="true">↗</i></button>
+              <button type="button" data-model-task="vision" aria-pressed="false"><span>02</span> Screenshots &amp; diagrams <i aria-hidden="true">↗</i></button>
+              <button type="button" data-model-task="reasoning" aria-pressed="false"><span>03</span> Plan &amp; reason <i aria-hidden="true">↗</i></button>
+              <button type="button" data-model-task="chat" aria-pressed="false"><span>04</span> Quick text tasks <i aria-hidden="true">↗</i></button>
+            </div>
+          </div>
+          <div class="model-lab-result" aria-live="polite" aria-atomic="true">
+            <div class="model-signal" aria-hidden="true"></div>
+            <p class="eyebrow" id="route-provider">KILO CODE / FREE ROUTE</p>
+            <h3 id="route-title">North Mini Code</h3>
+            <code id="route-id">cohere/north-mini-code:free</code>
+            <p id="route-description">Use it to generate or explain code, review a focused patch, and ask for a test plan. This route supports tool calls.</p>
+            <ul class="route-tags" id="route-tags" aria-label="Capabilities and access">
+              <li>No API key</li><li>Text</li><li>Tool calling</li>
+            </ul>
+            <p class="route-note" id="route-note">Anonymous traffic shares an IP quota. Model and router availability can change.</p>
+          </div>
+        </div>
+        <div class="model-lab-footer">
+          <p><strong>15 provider presets.</strong> Find them in <b>Settings → Providers → Free LLM APIs</b>. The catalog flags trial keys, free allowances, and billing requirements.</p>
+          <a class="text-link" href="https://github.com/mnfst/awesome-free-llm-apis" target="_blank" rel="noopener noreferrer">View catalog source ↗</a>
+        </div>
+      </section>
+
+      <section class="ide-section wrap section-space" id="ide">
+        <div class="section-intro">
+          <p class="eyebrow">02 / THE INTEGRATED IDE</p>
+          <h2>Stay close<br />to the code.</h2>
+          <p>
+            Edit in Monaco with your session beside it. Send an exact selection to the agent, inspect its changes,
+            and open a terminal or debugger in the same workspace.
+          </p>
+          <div class="shortcut"><span>Open IDE</span><kbd>Ctrl / ⌘</kbd><kbd>⇧</kbd><kbd>I</kbd></div>
+        </div>
+        <div class="ide-details">
+          <figure class="desktop-capture">
+            <a href="assets/desktop-ide.png" data-screenshot="ide"
+              ><img
+                src="assets/desktop-ide.png"
+                alt="AlphaAi desktop capture with an AI session on the left and the IDE on the right"
+                width="1280"
+                height="800"
+                loading="lazy"
+            /></a>
+            <figcaption>Actual desktop capture <span>Open in IDE preview ↗</span></figcaption>
+          </figure>
+          <div class="ide-feature-grid">
+            <div>
+              <h3>Make the edit</h3>
+              <p>Files, workspace search, syntax highlighting, and code selections sent to chat.</p>
+            </div>
+            <div>
+              <h3>Follow the change</h3>
+              <p>Inspect diffs, stage changes, and commit directly from source control.</p>
+            </div>
+            <div>
+              <h3>Find your bearings</h3>
+              <p>Completions and diagnostics, with support for installed language servers.</p>
+            </div>
+            <div>
+              <h3>Work through the problem</h3>
+              <p>Integrated terminals and debugging with a configured DAP adapter.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="discovery-section section-space" id="discovery">
+        <div class="wrap discovery-grid">
+          <div>
+            <p class="eyebrow">03 / LOCAL TOOL DISCOVERY</p>
+            <h2>Find the right tool.<br /><em>Before the model call.</em></h2>
+            <p>
+              AlphaAi ranks available skills and tools locally for your prompt. Relevant capabilities surface first and
+              detailed tool signatures load when they’re needed.
+            </p>
+            <p class="muted">
+              Designed to reduce unnecessary context and avoid a separate discovery model request. Actual usage and
+              costs depend on your provider and workflow.
+            </p>
+            <a class="text-link" href="#integrations">Meet your integrations <span aria-hidden="true">↗</span></a>
+          </div>
+          <div class="discovery-visual" aria-label="Local discovery workflow">
+            <div class="prompt-line"><span>YOU</span> “Build and test my project”</div>
+            <div class="discovery-path"><i></i><span>LOCAL CAPABILITY DISCOVERY</span><i></i></div>
+            <div class="tool-chips">
+              <span>⌘ Workspace</span><span>▸ Terminal</span><span>✧ Expert skills</span><span>⎇ MCP tools</span>
+            </div>
+            <div class="discovery-result">
+              <span class="status-dot"></span>
+              <div>
+                <strong>Relevant context, ready.</strong><small>Then your selected provider gets the request.</small>
+              </div>
+              <span aria-hidden="true">↗</span>
+            </div>
+            <p class="diagram-note">Illustrative flow · Tool access follows your configuration and permissions.</p>
+          </div>
+        </div>
+      </section>
+
+      <section class="wrap section-space" id="capabilities">
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow">04 / CAPABILITY INDEX</p>
+            <h2>Explore the<br /><em>entire desktop.</em></h2>
+          </div>
+          <p>From daily coding to the tools that take you further. Explore what’s built in and what you can connect.</p>
+        </div>
+        <div class="catalog-controls">
+          <div class="filters" role="group" aria-label="Filter capabilities">
+            <button aria-pressed="true" data-filter="all">Everything</button
+            ><button aria-pressed="false" data-filter="build">Build</button
+            ><button aria-pressed="false" data-filter="connect">Connect</button
+            ><button aria-pressed="false" data-filter="create">Create</button
+            ><button aria-pressed="false" data-filter="personalize">Make it yours</button>
+          </div>
+          <label class="search"
+            ><span aria-hidden="true">⌕</span><span class="sr-only">Search capabilities</span
+            ><input id="feature-search" type="search" placeholder="Find a capability…" autocomplete="off"
+          /></label>
+        </div>
+        <p class="catalog-count" id="catalog-count" aria-live="polite"></p>
+        <div id="feature-catalog" class="feature-catalog"></div>
+        <p id="empty-results" class="empty-results" hidden>
+          No capabilities match. Try another term or select Everything.
+        </p>
+        <noscript
+          ><p>
+            AlphaAi includes an IDE, AI sessions, browser, terminals, Git review, MCP connections, skills, themes, and
+            document workflows. Enable JavaScript to explore the full searchable catalog and workspace tour.
+          </p></noscript
+        >
+      </section>
+
+      <section class="wrap section-space" id="integrations">
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow">05 / INTEGRATIONS</p>
+            <h2>Your toolkit,<br /><em>expanded.</em></h2>
+          </div>
+          <p>Start with the included integrations. Connect your accounts and enable the tools your workflow needs.</p>
+        </div>
+        <div class="integration-list">
+          <article class="integration">
+            <span class="integration-icon">C↗</span>
+            <div>
+              <div class="integration-title">
+                <h3>Convio</h3>
+                <span class="tag">API KEY</span>
+              </div>
+              <p>
+                Guided project pipelines, expert skills, and stages for security, testing, and launch. Choose individual
+                tools after connecting your Convio API key.
+              </p>
+            </div>
+            <a
+              href="https://convio.dev"
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label="Visit Convio (opens in a new tab)"
+              >↗</a
+            >
+          </article>
+          <article class="integration">
+            <span class="integration-icon cube-icon">◇</span>
+            <div>
+              <div class="integration-title">
+                <h3>Ultima3D</h3>
+                <span class="tag">BUNDLED HOST</span>
+              </div>
+              <p>
+                Generate procedural assets, inspect and validate them, then export GLB. Rendering and live editor connections
+                require the relevant Blender or Godot setup.
+              </p>
+            </div>
+            <a
+              href="https://github.com/buffbot88/Ultima3D"
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label="View Ultima3D source (opens in a new tab)"
+              >↗</a
+            >
+          </article>
+          <article class="integration">
+            <span class="integration-icon">m✦</span>
+            <div>
+              <div class="integration-title">
+                <h3>Merlin</h3>
+                <span class="tag">IN DEVELOPMENT</span>
+              </div>
+              <p>
+                An integrated Merlin web workspace with a persistent profile is in development. Merlin’s own plans and
+                limits apply.
+              </p>
+              <small>Available in development source. The downloadable preview uses separate agent provider settings.</small>
+            </div>
+            <a
+              href="https://www.getmerlin.in/"
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label="Visit Merlin (opens in a new tab)"
+              >↗</a
+            >
+          </article>
+          <article class="integration">
+            <span class="integration-icon" aria-hidden="true">V</span>
+            <div>
+              <div class="integration-title">
+                <h3>Vyce Code</h3>
+                <span class="tag">PROVIDER</span>
+              </div>
+              <p>Find Vyce Code under Popular providers, sign in or use a Vyce Code API key, then choose from the models available to your account.</p>
+            </div>
+            <a href="https://www.vyce-code.com/" target="_blank" rel="noopener noreferrer" aria-label="Visit Vyce Code (opens in a new tab)">↗</a>
+          </article>
+          <article class="integration">
+            <span class="integration-icon">B◉</span>
+            <div>
+              <div class="integration-title">
+                <h3>MCP for Blender</h3>
+                <span class="tag">PRESET</span>
+              </div>
+              <p>
+                Connect AI to a live Blender scene with the included MCP preset. Requires Blender, the upstream add-on,
+                and uv.
+              </p>
+            </div>
+            <a
+              href="https://github.com/ahujasid/mcp-for-blender"
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label="View MCP for Blender source (opens in a new tab)"
+              >↗</a
+            >
+          </article>
+          <article class="integration">
+            <span class="integration-icon">P↓</span>
+            <div>
+              <div class="integration-title">
+                <h3>Pullstack</h3>
+                <span class="tag">INCLUDED SKILLS</span>
+              </div>
+              <p>
+                Repository and artifact comparison, updates, and license checks. Repository workflows need Git and
+                Python; artifact extraction requires Docker and gVisor on Linux.
+              </p>
+            </div>
+            <a
+              href="https://github.com/VenTheZone/pullstack"
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label="View Pullstack source (opens in a new tab)"
+              >↗</a
+            >
+          </article>
+          <article class="integration">
+            <span class="integration-icon">r_</span>
+            <div>
+              <div class="integration-title">
+                <h3>REA</h3>
+                <span class="tag">PRESET</span>
+              </div>
+              <p>
+                Bring reverse engineering workflows to your workspace. The preset uses REA’s MCP server; install
+                rea-agents and its supported Node runtime first.
+              </p>
+            </div>
+            <a
+              href="https://github.com/morluto/rea"
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label="View REA source (opens in a new tab)"
+              >↗</a
+            >
+          </article>
+        </div>
+        <div class="mcp-note">
+          <span>⎇</span>
+          <div>
+            <h3>And your own MCP servers.</h3>
+            <p>
+              Add local or remote servers with a form, paste an MCP configuration block, and manage enabled tools. AlphaAi also includes an
+              experimental desktop-hosted capability discovery endpoint.
+            </p>
+          </div>
+          <a class="text-link" href="#start">See how to start ↗</a>
+        </div>
+      </section>
+
+      <section class="wrap appearance-section section-space" id="appearance">
+        <div class="appearance-art" aria-hidden="true">
+          <div class="appearance-eclipse"><span>α</span></div>
+          <span class="appearance-coordinate">ALPHA / EMBER</span>
+          <div class="appearance-lines"></div>
+        </div>
+        <div>
+          <p class="eyebrow">06 / APPEARANCE</p>
+          <h2>Make the workspace<br />feel like yours.</h2>
+          <p>
+            Start with Avernic Ember in dark mode. Try Aurora, Blueprint, or your own artwork, then tune the colors
+            in the theme editor and export your palette.
+          </p>
+          <div class="theme-preview">
+            <button id="appearance-toggle" class="button secondary">
+              Try the light theme <span aria-hidden="true">☼</span></button
+            ><a class="text-link" href="assets/desktop-appearance.png" data-screenshot="appearance"
+              >See desktop appearance ↗</a
+            >
+          </div>
+          <p class="fine">Try both Ember palettes on this page.</p>
+        </div>
+      </section>
+
+      <section class="wrap section-space" id="start">
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow">YOUR FIRST SESSION</p>
+            <h2>Make yourself<br />at home.</h2>
+          </div>
+          <p>Start with a project and a model. Add the rest as your work grows.</p>
+        </div>
+        <ol class="start-steps">
+          <li>
+            <span>01</span>
+            <h3>Install the desktop</h3>
+            <p>Download the Windows x64 desktop preview and run the installer.</p>
+          </li>
+          <li>
+            <span>02</span>
+            <h3>Choose your model</h3>
+            <p>
+              Start with a keyless preset or connect your own provider. Each provider sets its access rules and rates.
+            </p>
+          </li>
+          <li>
+            <span>03</span>
+            <h3>Open a project</h3>
+            <p>Start a session, bring files into context, and open the IDE or browser alongside your agent.</p>
+          </li>
+          <li>
+            <span>04</span>
+            <h3>Connect your tools</h3>
+            <p>Enable skills and MCP integrations. For Convio, provide your key and select the tools you want.</p>
+          </li>
+        </ol>
+      </section>
+
+      <section class="wrap section-space faq-section" id="faq">
+        <div>
+          <p class="eyebrow">A FEW USEFUL DETAILS</p>
+          <h2>Before you<br />jump in.</h2>
+        </div>
+        <div class="faq-list">
+          <details>
+            <summary>What is AlphaAi?</summary>
+            <p>
+              AlphaAi is the AI desktop workspace by AAi. It brings agent conversations, an IDE,
+              terminals, a browser, skills, and integrations together. The project also includes terminal and web
+              workflows.
+            </p>
+          </details>
+          <details>
+            <summary>Can I use my own models?</summary>
+            <p>
+              Yes. Connect supported providers with your own credentials, or configure a compatible endpoint and model
+              ID. Local endpoints can be used where compatible. Model availability, capabilities, and costs depend on
+              the provider you choose.
+            </p>
+          </details>
+          <details>
+            <summary>Which model routes can I try for free?</summary>
+            <p>
+              The desktop includes keyless presets for Kilo Code, LLM7.io, and OVHcloud. Other presets may require an
+              account, a trial key, or billing. Provider usage and third-party subscriptions follow the provider’s terms.
+            </p>
+          </details>
+          <details>
+            <summary>How does local discovery help with costs?</summary>
+            <p>
+              AlphaAi ranks eligible tools and skills locally before the first primary provider request and loads detailed
+              tool signatures on demand. This helps keep unnecessary tool context out of the request, without adding a
+              separate discovery model call. Savings vary by task, model, and configuration.
+            </p>
+          </details>
+          <details>
+            <summary>Do integrations need setup?</summary>
+            <p>
+              Convio needs an API key. Ultima3D includes its host, and live editor connections need add-ons. Blender MCP,
+              REA, and some Pullstack workflows need the dependencies listed above. You choose which tools to enable.
+            </p>
+          </details>
+          <details>
+            <summary>What control do I have over agent actions?</summary>
+            <p>
+              AlphaAi provides permission controls and tool approvals. Review changes in the workspace and manage the tools
+              available to your sessions. Desktop mouse and keyboard actions are intended for a local interactive
+              Windows session.
+            </p>
+          </details>
+          <details>
+            <summary>Which desktop download is available here?</summary>
+            <p>
+              The Windows x64 development preview is version {{VERSION}}. Windows and the installer display its build
+              name, AAi Dev. The repository contains the broader project and platform build configuration.
+            </p>
+          </details>
+        </div>
+      </section>
+
+      <section class="download-section wrap" id="download">
+        <p class="eyebrow"><span class="status-dot"></span> WINDOWS DEVELOPMENT PREVIEW</p>
+        <h2>Get <em>AlphaAi.</em></h2>
+        <p>Open a project, choose a model, and start your first session.</p>
+        <div class="actions">
+          <a class="button" href="downloads/AAi-Setup-x64.exe" download
+            >Download for Windows <span aria-hidden="true">↓</span></a
+          ><a class="text-link" href="#start">Set up your first session ↗</a>
+        </div>
+        <p class="fine">
+          Windows x64 · v{{VERSION}} development preview · <a href="downloads/SHA256SUMS.txt">SHA-256 checksum</a>
+        </p>
+        <p class="fine">Approximately {{SIZE_MB}} MB · Installer appears as AAi Dev</p>
+      </section>
+    </main>
+    <footer class="footer wrap">
+      <a class="brand" href="#" aria-label="Back to AlphaAi home">
+        <svg class="brand-icon" viewBox="0 0 32 32" aria-hidden="true"><path d="M13 3h6l12 25h-7l-2.5-5h-11L8 28H1L13 3Zm.3 14h5.4L16 10.9 13.3 17Z" fill="currentColor" fill-rule="evenodd"/></svg>
+        <span class="brand-mark">Alpha<span>Ai</span></span><span class="brand-by">by AAi</span>
+      </a>
+      <p>Created by Broduer at AvernicAi.</p>
+      <div>
+        <a href="https://avernic.com" target="_blank" rel="noopener noreferrer">AvernicAi ↗</a>
+        <a href="https://github.com/AvernicAI/AAi" target="_blank" rel="noopener noreferrer">Source ↗</a>
+        <a href="https://github.com/Broduer" target="_blank" rel="noopener noreferrer">Broduer ↗</a>
+        <a href="LICENSE.txt">MIT license</a>
+      </div>
+      <span class="footer-note">Third-party names belong to their respective owners.</span>
+    </footer>
+    <dialog id="screenshot-dialog" aria-labelledby="screenshot-title">
+      <div class="dialog-header">
+        <h2 id="screenshot-title">AlphaAi desktop</h2>
+        <button id="close-dialog" class="icon-button" aria-label="Close screenshot">×</button>
+      </div>
+      <img
+        id="screenshot-image"
+        src="assets/desktop-ide.png"
+        alt="AlphaAi desktop IDE with file explorer, editor, source control, and debug tabs"
+      />
+      <p>Actual desktop capture. Theme and layout can vary with your settings.</p>
+    </dialog>
+  </body>
+</html>

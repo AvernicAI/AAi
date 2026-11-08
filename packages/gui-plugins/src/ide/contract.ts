@@ -43,6 +43,10 @@ export const Ide = Ipc.define({
     close: { input: Binding },
     list: { input: Path, output: Schema.Array(Entry) },
     read: { input: Path, output: Document },
+    readImage: {
+      input: Path,
+      output: Schema.Struct({ path: Schema.String, mime: Schema.String, base64: Schema.String }),
+    },
     save: {
       input: Schema.Struct({
         binding: Schema.String,

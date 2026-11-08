@@ -1455,6 +1455,123 @@ export const dict = {
     "Enter a provider name, an HTTP or HTTPS API URL, at least one model ID, valid token limits and an API key unless authentication is disabled.",
   "settings.compatible.failed":
     "Could not save this provider. Check its configuration and ensure the selected server supports provider editing.",
+  "settings.freeAPI.title": "Free LLM APIs",
+  "settings.freeAPI.description":
+    "Explore presets from Awesome Free LLM APIs, FreeLLMAPI, and official provider documentation. Compare capabilities, access requirements, and model quotas before connecting.",
+  "settings.freeAPI.provider": "Free API provider",
+  "settings.freeAPI.source": "View the Awesome Free LLM APIs catalog",
+  "settings.freeAPI.connect": "Set up preset",
+  "settings.freeAPI.configure": "Configure preset",
+  "settings.freeAPI.installDescription":
+    "Save to add the preset’s available chat models to the model picker. Use Models settings to choose which ones are visible.",
+  "settings.freeAPI.account": "Cloudflare account ID",
+  "settings.freeAPI.invalid": "Enter the required account ID or API key for this preset.",
+  "settings.freeAPI.trial": "Free trial key",
+  "settings.freeAPI.allowance": "Free allowance",
+  "settings.freeAPI.routes": "Free routes",
+  "settings.freeAPI.paid": "Billing required",
+  "settings.freeAPI.experimental": "Free experimental",
+  "settings.freeAPI.credit": "Free starter credit",
+  "settings.freeAPI.promotional": "Free promotional",
+  "settings.freeAPI.gateway": "Self-hosted gateway",
+  "settings.freeAPI.modelSource": "Model catalog source",
+  "settings.freeAPI.anonymous": "No API key",
+  "settings.freeAPI.optionalKey": "Optional API key",
+  "settings.freeAPI.requiresKey": "API key required",
+  "settings.freeAPI.review": "Review models and capabilities",
+  "settings.freeAPI.terms": "Provider limits and access",
+  "settings.freeAPI.getKey": "Get an API key",
+  "settings.freeAPI.bestFor": "Best for {{use}}",
+  "settings.freeAPI.listedInputs": "Provider catalog lists {{modality}}",
+  "settings.freeAPI.limits": "Catalog context {{context}} · Max output {{output}}",
+  "settings.freeAPI.varies": "Varies or unpublished",
+  "settings.freeAPI.chatVision": "AAi chat accepts text and images",
+  "settings.freeAPI.chatText": "AAi chat accepts text",
+  "settings.freeAPI.tools": "Tool calling enabled",
+  "settings.freeAPI.toolsOff": "Tool calling off",
+  "settings.freeAPI.embeddings": "Embeddings model · Reference only",
+  "settings.freeAPI.retirement": "Retirement listed · Reference only",
+  "settings.freeAPI.use.translation": "translation and multilingual work",
+  "settings.freeAPI.use.coding": "code generation, explanation, and review",
+  "settings.freeAPI.use.vision": "screenshots, diagrams, and visual questions",
+  "settings.freeAPI.use.creative": "creative writing, roleplay, and story development",
+  "settings.freeAPI.use.reasoning": "planning and multi-step problem solving",
+  "settings.freeAPI.use.documents": "summaries and document question answering",
+  "settings.freeAPI.use.fast": "quick replies and short interactive tasks",
+  "settings.freeAPI.use.general": "everyday chat and general writing",
+  "settings.freeAPI.use.embeddings": "semantic search and retrieval",
+  "settings.freeAPI.use.moderation": "content moderation and safety classification",
+  "settings.freeAPI.note.aion":
+    "Storytelling and roleplay. Check your account’s daily free allowance and model prices.",
+  "settings.freeAPI.note.hetzner":
+    "Prototype coding, document review, and visual Q&A with Qwen. Create a token in Hetzner Experiments. Free only during the experimental phase, with shared per-key limits and no guaranteed availability. The model selection may change.",
+  "settings.freeAPI.note.pollinations":
+    "Try text reasoning and small coding tasks without a key. This preset uses the free Classic API. Requests share an IP quota, and a 402 response means the free slot is not ready. Paid upgrades require separate setup.",
+  "settings.freeAPI.note.publicai":
+    "Explore multilingual writing and reasoning with Apertus, SEA-LION, and Bielik. New accounts receive $2 of starter credit. The Free plan is a request-rate tier, and token usage consumes wallet credits. Further usage requires a top-up.",
+  "settings.freeAPI.note.agnes":
+    "Try Agnes text and visual models using its API Hub key. Zero-cost access is promotional, and availability or pricing may change.",
+  "settings.freeAPI.note.bazaarlink":
+    "Compare free router aliases for reasoning and writing. The allowance is shared, and the provider can bill overages from wallet credit. Check the current free-model rules.",
+  "settings.freeAPI.note.nara":
+    "Try Laguna for coding and general tasks. The Free plan lists 7M tokens/day and 15 requests/minute. Enrollment capacity and account verification apply.",
+  "settings.freeAPI.note.radeon":
+    "Experiment with AMD's rotating Shared Model API. Create a developer account and key. Free-model availability and per-account limits can change. Parallel tool calls are disabled for this preset.",
+  "settings.freeAPI.note.requesty":
+    "Use eligible open models for code, reasoning, and vision within the shared 200-request daily free quota. Leanstral uses its required non-zero sampling temperature.",
+  "settings.freeAPI.note.routeway":
+    "Try the listed experimental free route in a shared, low-priority queue. The Starter plan allows 200 daily requests and one concurrent request. Availability can vary.",
+  "settings.freeAPI.note.sealion":
+    "Work with Southeast Asian languages and regional context through AI Singapore's first-party API. Create an account and key. The source catalog lists a 10-request/minute allowance.",
+  "settings.freeAPI.note.unorouter":
+    "Try the explicit free GLM route for reasoning and visual questions. A provider account and key are required. Per-model rate limits and availability apply.",
+  "settings.freeAPI.note.xkiro":
+    "Use the provider's zero-priced model routes for code, writing, and vision. Free accounts share 500K tokens/day, increased to 1M after Telegram verification.",
+  "settings.freeAPI.note.electronhub":
+    "Compare eligible standard models using the Free plan's shared $0.25 weekly wallet. Credits reset weekly and do not roll over. Usage may consume paid wallet credits after the free balance runs out.",
+  "settings.freeAPI.note.router9":
+    "Explore the provider's Free-tier models using its shared 10,000 monthly credits. Model eligibility is controlled by the account plan. Check the dashboard before using a route.",
+  "settings.freeAPI.note.septor":
+    "Try free model aliases for code and chat within the shared 50-request and 500K-token daily allowance. Free aliases can route to substitute models. The separate signup credit expires after 90 days.",
+  "settings.freeAPI.note.clod":
+    "Try eligible models for reasoning and general chat within the shared 100-request daily free allowance. Other models and usage follow the provider's prices.",
+  "settings.freeAPI.note.airforce":
+    "Try basic text and coding models on the Free plan, with one request/minute and 1,000 requests/day shared across the account.",
+  "settings.freeAPI.note.dreamprompting":
+    "Use a router over upstream free tiers for chat and coding. Accounts share 500K tokens and 5,000 requests/day. Inputs are capped at 32K tokens and outputs at 8,192 tokens. Upstream capacity can vary.",
+  "settings.freeAPI.note.waterfall":
+    "Route coding and general tasks through the provider's Free Smart strategy. This preset explicitly requests free_smart routing. Create a Waterfall key and review its logging and free-route availability.",
+  "settings.freeAPI.note.logfare":
+    "Try general chat and automatic routing with a free account key. Fair-use limits apply, and the provider logs prompts and responses. Review its privacy terms before sending project content.",
+  "settings.freeAPI.note.freellmapi":
+    "Connect your own running FreeLLMAPI server and unified API key. The auto router uses the upstream providers you configure there, including AI Horde's queued API. Set your server's /v1 URL below. Upstream access rules, costs, and quotas apply.",
+  "settings.freeAPI.note.cohere":
+    "Document Q&A and multilingual work. Trial keys are for evaluation and have a shared monthly cap.",
+  "settings.freeAPI.note.google":
+    "Long documents and visual analysis. Free model access, data use, and quotas depend on region and account. Check AI Studio and the Gemini API terms.",
+  "settings.freeAPI.note.mistral":
+    "Coding, summarization, and visual tasks. Mistral’s current documentation requires billing activation for API access.",
+  "settings.freeAPI.note.zhipu": "Reasoning and visual Q&A. The listed Flash routes have limited concurrency.",
+  "settings.freeAPI.note.cloudflare":
+    "Edge AI prototypes. Workers AI shares a daily allocation across models. Workers Paid accounts can incur charges beyond it.",
+  "settings.freeAPI.note.gonka":
+    "Long-context reasoning. Eligible accounts get a monthly grant after phone verification. The API can spend paid deposits when the grant runs out.",
+  "settings.freeAPI.note.groq":
+    "Quick coding feedback and interactive chat. Free-plan limits vary by model and account.",
+  "settings.freeAPI.note.kilo":
+    "Code assistance and model trials. Anonymous access shares an IP quota. Router choices and provider data policies can vary.",
+  "settings.freeAPI.note.llm7":
+    "Quick chat and lightweight coding. The preset uses Turbo models. A free token can raise limits on the same models.",
+  "settings.freeAPI.note.modelscope":
+    "Qwen chat and long documents. API inference requires Alibaba Cloud account binding and real-name verification. Model quotas vary.",
+  "settings.freeAPI.note.nvidia":
+    "Evaluate hosted open models for reasoning or vision. Developer Program access and model-specific quotas apply.",
+  "settings.freeAPI.note.openrouter":
+    "Compare free variants or use the Free Models Router. Requests share a free-model quota and router capabilities vary.",
+  "settings.freeAPI.note.ovh":
+    "Occasional model trials and visual questions. Anonymous access has a low per-IP, per-model request limit.",
+  "settings.freeAPI.note.siliconflow":
+    "Translation and text tasks. This preset uses the mainland China service and its listed free models. Identity verification applies.",
 }
 
 export default dict
