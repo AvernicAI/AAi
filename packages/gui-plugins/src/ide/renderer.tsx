@@ -1,11 +1,21 @@
-import { lazy, onCleanup, Suspense } from "solid-js"
+import { createSignal, lazy, onCleanup, Suspense } from "solid-js"
 import { showToast } from "@opencode/ui/toast"
 import { MenuItem, createKeyed, type Plugin } from "@opencode/plugin/gui"
 import { BuiltinCommand, BuiltinPanel, onIdle } from "@opencode/plugin/gui/builtin"
-import { Ide } from "./contract"
+import { Ide, IdeEditor, type RevealRequest } from "./contract"
 import type definition from "./index"
 
 const setup: Plugin.Setup<typeof definition> = (ctx) => {
+  const [requested, request] = createSignal<RevealRequest>()
+  ctx.provide(IdeEditor, {
+    reveal: (value) => {
+      request(value)
+      const session = ctx.sessions.current()
+
+      if (session?.key === value.session) ctx.layout.open("ide:workspace", session, { tab: "select" })
+    },
+    pending: (session) => (requested()?.session === session ? requested() : undefined),
+  })
   const Workspace = lazy(() => import("./panel"))
   onCleanup(onIdle(() => void Workspace.preload()))
 
@@ -43,6 +53,7 @@ const setup: Plugin.Setup<typeof definition> = (ctx) => {
 
   const tab = {
     id: "workspace",
+    group: "workspace",
     get title() {
       return ctx.t("title")
     },

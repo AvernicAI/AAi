@@ -136,6 +136,12 @@ export const dict = {
   "dialog.provider.group.popular": "Popular",
   "dialog.provider.group.mcp": "MCP",
   "dialog.provider.group.services": "Services",
+  "dialog.provider.group.freeAccess": "Free access available (paid options may apply)",
+  "dialog.provider.group.trial": "Trials and temporary access",
+  "dialog.provider.group.paid": "Paid APIs",
+  "dialog.provider.group.pricingUnknown": "Other / pricing unverified",
+  "dialog.provider.pricingDisclaimer":
+    "Free access is limited to eligible models and accounts. Check pricing before use.",
   "dialog.provider.environmentOnly": "Environment only",
   "dialog.provider.signInRequired": "Sign in required →",
   "dialog.provider.needsSignIn": "Needs sign-in",
@@ -503,8 +509,21 @@ export const dict = {
   "error.page.description": "An error occurred while loading the application.",
   "error.page.description.status": "The server returned an HTTP {{status}} response.",
   "error.page.description.localServerStartup": "An error occurred while starting the local server.",
+  "error.page.description.localServerStartup.cliMissing":
+    "AAi could not find its bundled server. Reinstall the app or check that it was not moved.",
+  "error.page.description.localServerStartup.spawnFailed":
+    "The local server could not be launched. Check that AAi is allowed to run programs on this computer.",
+  "error.page.description.localServerStartup.portConflict":
+    "Another program is using the local server's port. Close it and try again.",
+  "error.page.description.localServerStartup.authMismatch":
+    "The local server started without the credentials AAi expects.",
+  "error.page.description.localServerStartup.versionMismatch":
+    "The running local server is a different version. Restart AAi to replace it.",
+  "error.page.description.localServerStartup.timeout":
+    "The local server took too long to start. Try again when the computer is less busy.",
   "error.page.details.label": "Error Details",
   "error.page.action.restart": "Restart",
+  "error.page.action.retry": "Retry starting the server",
   "error.page.action.reload": "Reload",
   "error.page.action.report": "Report Error",
   "error.page.action.reported": "Error Reported",
@@ -783,6 +802,31 @@ export const dict = {
   "settings.search.empty.query": '"{{query}}"',
   "settings.search.refine": "Narrow your search to see more specific results.",
   "settings.tab.preferences": "Preferences",
+  "settings.tab.desktop": "Desktop",
+  "settings.desktop.description": "Startup, global shortcut, and window behavior for the desktop app.",
+  "settings.desktop.unavailable": "Desktop settings are only available in the AAi desktop app.",
+  "settings.desktop.section.startup": "Startup",
+  "settings.desktop.launchAtLogin.title": "Launch at login",
+  "settings.desktop.launchAtLogin.description": "Start AAi automatically when you sign in to this computer.",
+  "settings.desktop.launchAtLogin.unsupported": "Launch at login is only available in the installed desktop app.",
+  "settings.desktop.section.windows": "Windows",
+  "settings.desktop.closeBehavior.title": "Closing the window",
+  "settings.desktop.closeBehavior.description":
+    "Choose whether closing the window quits AAi or keeps it running in the tray.",
+  "settings.desktop.closeBehavior.quit": "Quit AAi",
+  "settings.desktop.closeBehavior.background": "Keep running in the tray",
+  "settings.desktop.section.shortcut": "Shortcut",
+  "settings.desktop.summonShortcut.title": "Summon shortcut",
+  "settings.desktop.summonShortcut.description": "Shows AAi from anywhere, even when another app is focused.",
+  "settings.desktop.summonShortcut.record": "Record shortcut",
+  "settings.desktop.summonShortcut.recording": "Press keys…",
+  "settings.desktop.summonShortcut.clear": "Clear",
+  "settings.desktop.summonShortcut.none": "Not set",
+  "settings.desktop.problem.shortcutInvalid":
+    "That shortcut is not valid. Use a modifier and a key, like Ctrl+Shift+Space.",
+  "settings.desktop.problem.shortcutConflict": "Another app already uses that shortcut. Choose a different one.",
+  "settings.desktop.problem.shortcutFailed": "The shortcut could not be registered on this system.",
+  "settings.desktop.problem.loginItemFailed": "The system login item could not be updated.",
   "settings.tab.shortcuts": "Shortcuts",
   "settings.tab.notifications": "Notifications",
   "settings.tab.projects": "Projects",
@@ -1354,11 +1398,9 @@ export const dict = {
   "settings.mcp.blender.add": "Add MCP for Blender",
   "settings.mcp.blender.setup":
     "Install uv and run uvx mcp-for-blender install-addon. Enable MCP for Blender in Blender and start its server from the viewport sidebar. If the app cannot find uvx, enter its full path in Command. If another bridge uses port 9876, set a different port in both the add-on and this server’s environment.",
-  "settings.mcp.convio.connect": "Connect Convio",
-  "settings.mcp.convio.key": "Convio API key",
-  "settings.mcp.convio.tools": "Convio tools",
-  "settings.mcp.convio.allTools": "Allow all tools, including new tools",
-  "settings.mcp.convio.toolsUnavailable": "Connect Convio to load its tool list.",
+  "settings.mcp.tools": "MCP tools",
+  "settings.mcp.allTools": "Allow all tools, including new tools",
+  "settings.mcp.toolsUnavailable": "Connect this MCP server to load its tool list.",
   "settings.mcp.refresh": "Refresh",
   "settings.mcp.jsonExample": '{\n  "mcpServers": {\n    "my-server": { "url": "https://example.com/mcp" }\n  }\n}',
   "settings.mcp.edit": "Edit",
@@ -1455,10 +1497,17 @@ export const dict = {
     "Enter a provider name, an HTTP or HTTPS API URL, at least one model ID, valid token limits and an API key unless authentication is disabled.",
   "settings.compatible.failed":
     "Could not save this provider. Check its configuration and ensure the selected server supports provider editing.",
-  "settings.freeAPI.title": "Free LLM APIs",
+  "settings.freeAPI.title": "LLM API presets",
   "settings.freeAPI.description":
     "Explore presets from Awesome Free LLM APIs, FreeLLMAPI, and official provider documentation. Compare capabilities, access requirements, and model quotas before connecting.",
-  "settings.freeAPI.provider": "Free API provider",
+  "settings.freeAPI.provider": "LLM API provider",
+  "settings.freeAPI.group.free": "Free routes and allowances",
+  "settings.freeAPI.group.limited": "Trials, credits and temporary access",
+  "settings.freeAPI.group.paid": "Paid APIs",
+  "settings.freeAPI.group.unverified": "Pricing unverified",
+  "settings.freeAPI.group.gateway": "Self-hosted gateways",
+  "settings.freeAPI.pricingWarning":
+    "Free access depends on the model and account. Paid plans, overages and extras may be billed; verify current terms before connecting.",
   "settings.freeAPI.source": "View the Awesome Free LLM APIs catalog",
   "settings.freeAPI.connect": "Set up preset",
   "settings.freeAPI.configure": "Configure preset",
@@ -1470,6 +1519,7 @@ export const dict = {
   "settings.freeAPI.allowance": "Free allowance",
   "settings.freeAPI.routes": "Free routes",
   "settings.freeAPI.paid": "Billing required",
+  "settings.freeAPI.unverified": "Pricing unverified",
   "settings.freeAPI.experimental": "Free experimental",
   "settings.freeAPI.credit": "Free starter credit",
   "settings.freeAPI.promotional": "Free promotional",
@@ -1478,6 +1528,14 @@ export const dict = {
   "settings.freeAPI.anonymous": "No API key",
   "settings.freeAPI.optionalKey": "Optional API key",
   "settings.freeAPI.requiresKey": "API key required",
+  "settings.freeAPI.kind.chat": "Chat API",
+  "settings.freeAPI.kind.media": "Media API",
+  "settings.freeAPI.kind.platform": "Platform credits",
+  "settings.freeAPI.kind.agent": "Coding agent",
+  "settings.freeAPI.directoryOnly":
+    "Directory only: this provider does not expose an OpenAI-compatible chat endpoint here. Use it directly through its own API or platform.",
+  "settings.freeAPI.manualOnly":
+    "Manual setup only: this provider needs a custom auth header rather than a Bearer token. Follow its documentation to configure it directly.",
   "settings.freeAPI.review": "Review models and capabilities",
   "settings.freeAPI.terms": "Provider limits and access",
   "settings.freeAPI.getKey": "Get an API key",
@@ -1501,8 +1559,18 @@ export const dict = {
   "settings.freeAPI.use.general": "everyday chat and general writing",
   "settings.freeAPI.use.embeddings": "semantic search and retrieval",
   "settings.freeAPI.use.moderation": "content moderation and safety classification",
+  "settings.freeAPI.note.opentyphoon":
+    "Typhoon describes its research API as free. The provider collects usage data to improve its models and API; review its terms before sending project content.",
+  "settings.freeAPI.note.mixlayer":
+    "The listed Qwen route is free. Other models and hosted tools may be billed; review current pricing and limits.",
+  "settings.freeAPI.note.sambanova":
+    "SambaNova's rate-limit documentation describes a free tier, but its plan page requires purchased credits. Verify your account's pricing before use.",
+  "settings.freeAPI.note.aihubmix":
+    "Only listed free routes are included. Eligibility, quotas and availability can change; other routes may be billed.",
+  "settings.freeAPI.note.cerebras":
+    "New accounts receive time-limited trial credit after adding a payment method. There is no recurring free tier; check current terms before connecting.",
   "settings.freeAPI.note.aion":
-    "Storytelling and roleplay. Check your account’s daily free allowance and model prices.",
+    "Storytelling and roleplay models. Sources disagree about whether the API includes a recurring free allowance, and the current catalog lists per-token prices. Verify your account's pricing before use.",
   "settings.freeAPI.note.hetzner":
     "Prototype coding, document review, and visual Q&A with Qwen. Create a token in Hetzner Experiments. Free only during the experimental phase, with shared per-key limits and no guaranteed availability. The model selection may change.",
   "settings.freeAPI.note.pollinations":
@@ -1550,7 +1618,7 @@ export const dict = {
   "settings.freeAPI.note.google":
     "Long documents and visual analysis. Free model access, data use, and quotas depend on region and account. Check AI Studio and the Gemini API terms.",
   "settings.freeAPI.note.mistral":
-    "Coding, summarization, and visual tasks. Mistral’s current documentation requires billing activation for API access.",
+    "Free mode does not include API access. Creating API keys and using the API require billing activation and pay-as-you-go.",
   "settings.freeAPI.note.zhipu": "Reasoning and visual Q&A. The listed Flash routes have limited concurrency.",
   "settings.freeAPI.note.cloudflare":
     "Edge AI prototypes. Workers AI shares a daily allocation across models. Workers Paid accounts can incur charges beyond it.",

@@ -1,4 +1,4 @@
-import { onCleanup, onMount } from "solid-js"
+import { createSignal, onCleanup, onMount } from "solid-js"
 import { createKeyed, usePlugin, type SessionScreen } from "@opencode/plugin/gui"
 import { editor, languages, KeyCode, KeyMod, Uri, Range } from "monaco-editor"
 import EditorWorker from "monaco-editor/esm/vs/editor/editor.worker?worker"
@@ -23,6 +23,7 @@ export default function CodeEditor(props: {
 }) {
   const ctx = usePlugin<typeof definition>()
   const target: EditorHost = {}
+  const [ready, setReady] = createSignal(false)
   const pending = new Map<string, ReturnType<typeof setTimeout>>()
   onCleanup(() => pending.forEach(clearTimeout))
   const uri = (path: string) => Uri.file(props.model.root + "/" + path)
@@ -68,10 +69,14 @@ export default function CodeEditor(props: {
 
     const widget = editor.create(target.element, {
       automaticLayout: true,
-      fontSize: 13,
+      fontSize: ctx.stores.preferences.value.fontSize ?? 13,
       lineHeight: 22,
       fontFamily: "var(--font-family-mono, monospace)",
-      minimap: { enabled: false },
+      minimap: { enabled: ctx.stores.preferences.value.minimap ?? true, maxColumn: 90, renderCharacters: false },
+      wordWrap: ctx.stores.preferences.value.wordWrap ? "on" : "off",
+      bracketPairColorization: { enabled: true },
+      guides: { bracketPairs: true, indentation: true },
+      padding: { top: 12, bottom: 12 },
       glyphMargin: true,
       scrollBeyondLastLine: false,
       smoothScrolling: false,
@@ -83,11 +88,37 @@ export default function CodeEditor(props: {
 
     target.editor = widget
     props.onReady(widget)
+    createKeyed(
+      () => ({
+        fontSize: Math.min(28, Math.max(10, ctx.stores.preferences.value.fontSize ?? 13)),
+        minimap: { enabled: ctx.stores.preferences.value.minimap ?? true },
+        wordWrap: ctx.stores.preferences.value.wordWrap ? ("on" as const) : ("off" as const),
+      }),
+      (options) => widget.updateOptions(options),
+    )
 
     const theme = () => {
-      const background = getComputedStyle(target.element!).getPropertyValue("--background-base").trim()
-      const probe = documentColor(background)
-      editor.setTheme(probe < 128 ? "vs-dark" : "vs")
+      const style = getComputedStyle(target.element!)
+      const background = documentColor(style.getPropertyValue("--background-base"))
+      const foreground = documentColor(style.getPropertyValue("--text-base"), background.hex)
+      editor.defineTheme("aai-workspace", {
+        base: background.brightness < 128 ? "vs-dark" : "vs",
+        inherit: true,
+        rules: [],
+        colors: {
+          "editor.background": background.hex,
+          "editor.foreground": foreground.hex,
+          "editorGutter.background": background.hex,
+          "minimap.background": background.hex,
+          "editorLineNumber.foreground": documentColor(style.getPropertyValue("--text-weak"), background.hex).hex,
+          "editorLineNumber.activeForeground": foreground.hex,
+          "editor.lineHighlightBackground": documentColor(
+            style.getPropertyValue("--surface-base-hover"),
+            background.hex,
+          ).hex,
+        },
+      })
+      editor.setTheme("aai-workspace")
     }
 
     theme()
@@ -140,6 +171,25 @@ export default function CodeEditor(props: {
       props.model.setState("cursor", { line: event.position.lineNumber, column: event.position.column }),
     )
 
+    const markers = editor.onDidChangeMarkers((resources) =>
+      resources.forEach((resource) => {
+        const path = props.model.documents().find((item) => uri(item.path).toString() === resource.toString())?.path
+
+        if (!path) return
+
+        const items = editor.getModelMarkers({ resource }).map((item) => ({
+          range: {
+            start: { line: item.startLineNumber - 1, character: item.startColumn - 1 },
+            end: { line: item.endLineNumber - 1, character: item.endColumn - 1 },
+          },
+          severity: diagnosticSeverity(item.severity),
+          message: item.message,
+        }))
+
+        props.model.setState("markers", (files) => [...files.filter((file) => file.path !== path), { path, items }])
+      }),
+    )
+
     const mouse = widget.onMouseDown((event) => {
       if (event.target.type === editor.MouseTargetType.GUTTER_GLYPH_MARGIN && event.target.position)
         props.breakpoint(event.target.position.lineNumber)
@@ -179,11 +229,13 @@ export default function CodeEditor(props: {
       },
     })
 
+    setReady(true)
     onCleanup(() => {
       observer.disconnect()
       content.dispose()
       opener.dispose()
       selection.dispose()
+      markers.dispose()
       mouse.dispose()
       save.dispose()
       attach.dispose()
@@ -195,7 +247,7 @@ export default function CodeEditor(props: {
 
   // Keep Monaco's active model and view state in step with the selected workspace tab.
   createKeyed(
-    () => (props.editing ? props.model.state.active : ""),
+    () => (ready() && props.editing ? props.model.state.active : ""),
     (path) => {
       const widget = target.editor
       const item = props.model.documents().find((item) => item.path === path)
@@ -224,9 +276,11 @@ export default function CodeEditor(props: {
       otherwise: () => {
         const widget = target.editor
         const model = widget?.getModel()
+
         if (!widget || !model) return
         const item = document(model)
         const view = widget.saveViewState()
+
         if (item && view) props.model.viewStates.set(item.path, view)
         widget.setModel(null)
       },
@@ -414,15 +468,28 @@ function markerSeverity(value: number) {
   return 2
 }
 
-function documentColor(color: string) {
+function diagnosticSeverity(value: number) {
+  if (value === 8) return 1
+
+  if (value === 4) return 2
+
+  return 3
+}
+
+function documentColor(color: string, background = "#ffffff") {
   const canvas = window.document.createElement("canvas").getContext("2d")
 
-  if (!canvas) return 255
+  if (!canvas) return { hex: "#ffffff", brightness: 255 }
+  canvas.fillStyle = background
+  canvas.fillRect(0, 0, 1, 1)
   canvas.fillStyle = color || "#ffffff"
   canvas.fillRect(0, 0, 1, 1)
   const pixel = canvas.getImageData(0, 0, 1, 1).data
 
-  return ((pixel[0] ?? 255) + (pixel[1] ?? 255) + (pixel[2] ?? 255)) / 3
+  return {
+    hex: "#" + Array.from(pixel.slice(0, 3), (value) => value.toString(16).padStart(2, "0")).join(""),
+    brightness: ((pixel[0] ?? 255) + (pixel[1] ?? 255) + (pixel[2] ?? 255)) / 3,
+  }
 }
 
 function completionKind(kind: number) {

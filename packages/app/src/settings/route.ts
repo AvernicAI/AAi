@@ -3,6 +3,7 @@ export type SettingsRootTab =
   | "appearance"
   | "notifications"
   | "shortcuts"
+  | "desktop"
   | "projects"
   | "workspaces"
   | "providers"
@@ -49,6 +50,7 @@ const rootTabs: Record<SettingsRootTab, true> = {
   appearance: true,
   notifications: true,
   shortcuts: true,
+  desktop: true,
   projects: true,
   workspaces: true,
   providers: true,

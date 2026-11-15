@@ -4,6 +4,45 @@ import { createStore } from "solid-js/store"
 import { createServerHealth, type ServerHealth } from "../src/runtime/server/health"
 import { ServerConnection } from "../src/runtime/server/registry"
 
+test("manual health retries give sidecar recovery a fresh cancellation signal", async () => {
+  const signals: AbortSignal[] = []
+
+  const app = createRoot((dispose) => {
+    const connection: ServerConnection.Sidecar = {
+      type: "sidecar",
+      variant: "base",
+      http: { url: "http://127.0.0.1:12345" },
+      reconnect: async (signal) => {
+        signals.push(signal)
+        signal.throwIfAborted()
+
+        return connection.http
+      },
+    }
+
+    const health = createServerHealth(
+      () => [connection],
+      () => true,
+      async () => ({ healthy: false }),
+    )
+
+    return { dispose, health }
+  })
+
+  try {
+    // The first round fails; a manual retry is the second consecutive failed probe.
+    await Promise.resolve()
+    await Promise.resolve()
+    await app.health.retry()
+    expect(signals).toHaveLength(1)
+    expect(signals[0]?.aborted).toBe(false)
+    await app.health.retry()
+    expect(signals[0]?.aborted).toBe(true)
+  } finally {
+    app.dispose()
+  }
+})
+
 test("SSH health is checked only with an active tunnel, and cancellation clears stale failures", async () => {
   const requests: ReturnType<typeof Promise.withResolvers<ServerHealth>>[] = []
 

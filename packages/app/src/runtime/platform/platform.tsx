@@ -25,6 +25,37 @@ type PlatformName = "web" | "desktop"
 
 type DesktopOS = "macos" | "windows" | "linux"
 
+export type DesktopCloseBehavior = "quit" | "background"
+
+export type DesktopPreferenceProblem =
+  | "shortcut-invalid"
+  | "shortcut-conflict"
+  | "shortcut-failed"
+  | "login-item-failed"
+
+export type DesktopPreferences = {
+  /** Whether the app should start when the user signs in, as the user asked. */
+  launchAtLogin: boolean
+  /** False when the build or platform cannot register a login item. */
+  launchAtLoginSupported: boolean
+  closeBehavior: DesktopCloseBehavior
+  /** The canonical global accelerator, or null when none is set. */
+  summonShortcut: string | null
+  summonShortcutSupported: boolean
+}
+
+export type DesktopPreferencesPatch = {
+  launchAtLogin?: boolean
+  closeBehavior?: DesktopCloseBehavior
+  summonShortcut?: string | null
+}
+
+export type DesktopPreferencesResult = {
+  preferences: DesktopPreferences
+  /** Set when part of the patch could not be applied. */
+  problem?: DesktopPreferenceProblem
+}
+
 export type FatalRendererErrorLog = {
   error: string
   url: string
@@ -56,6 +87,9 @@ type PlatformBase = {
 
   /** Restart the app  */
   restart(): Promise<void>
+
+  /** Retry starting the local server after a typed startup failure (desktop only) */
+  retryLocalServer?(): Promise<void>
 
   /** Send a system notification */
   notify(title: string, description?: string, onClick?: () => void): Promise<void>
@@ -128,6 +162,15 @@ type PlatformBase = {
 
   /** Record a fatal renderer error in platform logs (desktop only) */
   recordFatalRendererError?(error: FatalRendererErrorLog): Promise<void>
+
+  /** Read the desktop app's OS integration preferences (desktop only) */
+  getDesktopPreferences?(): Promise<DesktopPreferences>
+
+  /** Update OS integration preferences; a refusal comes back as a problem code (desktop only) */
+  setDesktopPreferences?(patch: DesktopPreferencesPatch): Promise<DesktopPreferencesResult>
+
+  /** Observe preference changes made outside this page, such as from the tray (desktop only) */
+  onDesktopPreferencesChanged?(callback: (preferences: DesktopPreferences) => void): () => void
 
   /** GUI plugin bridge to the main-process plugin host (desktop only). */
   plugins?: Bridge

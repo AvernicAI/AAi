@@ -25,6 +25,13 @@ describe("desktop renderer initialization", () => {
     expect(initializationData(Object.assign(() => sidecar, { error: undefined }))).toBe(sidecar)
   })
 
+  test("keeps the typed local server failure on the thrown error", () => {
+    const error = Object.assign(new Error("startup failed"), { localServerFailure: "cli-missing" })
+
+    expect(failure(error)).toBe(error)
+    expect(error).toHaveProperty("localServerFailure", "cli-missing")
+  })
+
   test("refreshes the managed sidecar endpoint", async () => {
     const sidecar = { url: "http://127.0.0.1:4321" }
     const updates: (typeof sidecar)[] = []

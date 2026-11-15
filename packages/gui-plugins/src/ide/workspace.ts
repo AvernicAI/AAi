@@ -5,10 +5,12 @@ import path from "node:path"
 import { buffer } from "node:stream/consumers"
 import { promisify } from "node:util"
 import { artifactMime } from "@opencode/util/artifact"
+import { Schema } from "effect"
 
 const execute = promisify(execFile)
 
 const MAX_FILE = 4 * 1024 * 1024
+
 const MAX_IMAGE = 16 * 1024 * 1024
 
 export async function openWorkspace(directory: string) {
@@ -64,7 +66,44 @@ export async function openWorkspace(directory: string) {
       signal,
     })
 
+  const files = async (signal: AbortSignal) => {
+    signal.throwIfAborted()
+
+    const indexed = await git(["ls-files", "-z", "--cached", "--others", "--exclude-standard"], signal).then(
+      (result) => [...new Set(result.stdout.split("\0").filter(Boolean))],
+      () => undefined,
+    )
+
+    signal.throwIfAborted()
+
+    if (indexed) return { paths: indexed.slice(0, 20000), truncated: indexed.length > 20000 }
+    const paths: string[] = []
+
+    const collect = async (folder: string): Promise<void> => {
+      signal.throwIfAborted()
+
+      for (const item of await readdir(folder, { withFileTypes: true })) {
+        signal.throwIfAborted()
+
+        if (paths.length >= 20000) return
+
+        if ([".git", "node_modules", "dist", "build", ".next", ".cache"].includes(item.name) || item.isSymbolicLink())
+          continue
+        const file = path.join(folder, item.name)
+
+        if (item.isDirectory()) await collect(file)
+
+        if (item.isFile()) paths.push(relative(file))
+      }
+    }
+
+    await collect(root)
+
+    return { paths, truncated: paths.length >= 20000 }
+  }
+
   return {
+    files,
     root,
     resolve,
     relative,
@@ -72,16 +111,21 @@ export async function openWorkspace(directory: string) {
     async readImage(name: string, signal: AbortSignal) {
       const file = await resolve(name)
       const mime = artifactMime(file)
+
       if (!mime?.startsWith("image/")) throw new Error("ide.image.type")
       const handle = await open(file, "r")
 
       return Promise.try(async () => {
         const info = await handle.stat()
+
         if (!info.isFile()) throw new Error("ide.image.type")
+
         if (info.size > MAX_IMAGE) throw new Error("ide.image.large")
         signal.throwIfAborted()
         const bytes = await buffer(handle.createReadStream({ end: MAX_IMAGE, autoClose: false, signal }))
+
         if (bytes.length > MAX_IMAGE) throw new Error("ide.image.large")
+
         return { path: relative(file), mime, base64: bytes.toString("base64") }
       }).finally(() => handle.close())
     },
@@ -157,25 +201,8 @@ export async function openWorkspace(directory: string) {
 
       if (!query) return { matches, truncated: false }
 
-      const indexed = await git(["ls-files", "-z", "--cached", "--others", "--exclude-standard"], signal).then(
-        (result) => result.stdout.split("\0").filter(Boolean),
-        () => undefined,
-      )
-
-      const collect = async (folder: string): Promise<string[]> =>
-        (await readdir(folder, { withFileTypes: true })).reduce(async (pending, item) => {
-          const files = await pending
-
-          if ([".git", "node_modules", "dist", "build", ".next", ".cache"].includes(item.name) || item.isSymbolicLink())
-            return files
-          const file = path.join(folder, item.name)
-
-          if (files.length >= 20000) return files
-
-          return files.concat(item.isDirectory() ? await collect(file) : item.isFile() ? [relative(file)] : [])
-        }, Promise.resolve<string[]>([]))
-
-      const names = indexed ?? (await collect(root))
+      const indexed = await files(signal)
+      const names = indexed.paths
       const needle = caseSensitive ? query : query.toLocaleLowerCase()
 
       for (const name of names.slice(0, 20000)) {
@@ -192,12 +219,66 @@ export async function openWorkspace(directory: string) {
         }
       }
 
-      return { matches, truncated: names.length > 20000 }
+      return { matches, truncated: indexed.truncated }
     },
     async status(signal?: AbortSignal) {
       const result = await git(["status", "--porcelain=v1", "-z", "--branch"], signal)
 
       return parseStatus(result.stdout)
+    },
+    async tasks() {
+      const manifest = await read("package.json").catch(() => undefined)
+
+      if (!manifest) return []
+
+      const value = Schema.decodeUnknownSync(
+        Schema.fromJsonString(
+          Schema.Struct({
+            scripts: Schema.optional(Schema.Record(Schema.String, Schema.String)),
+            packageManager: Schema.optional(Schema.String),
+          }),
+        ),
+      )(manifest.text)
+
+      const manager = value.packageManager?.split("@")[0] ?? "npm"
+      const executable = ["bun", "npm", "pnpm", "yarn"].includes(manager) ? manager : "npm"
+
+      return Object.entries(value.scripts ?? {})
+        .filter(([name]) => /^[\w:./-]+$/.test(name))
+        .map(([name, script]) => ({
+          name,
+          script,
+          command: `${executable} run ${name}`,
+        }))
+    },
+    async compare(name: string, staged: boolean, signal: AbortSignal) {
+      const file = relative(candidate(name))
+      const prefix = (await git(["rev-parse", "--show-prefix"], signal)).stdout.replace(/\r?\n$/, "")
+
+      const show = (revision: string) =>
+        git(["show", `${revision}:${prefix}${file}`], signal).then(
+          (result) => result.stdout,
+          () => "",
+        )
+
+      const [before, after] = await Promise.all([
+        show("HEAD"),
+        staged
+          ? show("")
+          : read(name).then(
+              (document) => document.text,
+              (error: Error) => {
+                if (Schema.is(Schema.Struct({ code: Schema.Literals(["ENOENT"]) }))(error)) return ""
+                throw error
+              },
+            ),
+      ])
+
+      if (before.includes("\0") || after.includes("\0")) throw new Error("ide.binary")
+
+      if (Buffer.byteLength(before) > MAX_FILE || Buffer.byteLength(after) > MAX_FILE) throw new Error("ide.large")
+
+      return { before, after }
     },
     async diff(name: string, signal?: AbortSignal) {
       candidate(name)

@@ -55,6 +55,8 @@ export interface Interface {
   readonly resolveModel: (
     session: SessionSchema.Info,
   ) => Effect.Effect<SessionRunnerModel.Resolved, SessionRunnerModel.Error>
+  /** Marks the active provider route as exhausted and reports whether another route can serve the model. */
+  readonly exhaust?: (ref: Model.Ref, cooldown: number) => Effect.Effect<boolean>
   /** Selects auxiliary title capabilities without instruction or tool preflight. */
   readonly selectTitle: (session: SessionSchema.Info) => Effect.Effect<
     | {
@@ -183,7 +185,15 @@ const layer = Layer.effect(
       }
     })
 
-    return Service.of({ select, load, resolveModel, selectTitle, request })
+    return Service.of({
+      select,
+      load,
+      resolveModel,
+      exhaust: (ref, cooldown) =>
+        models.exhaust?.(ref, model.available, cooldown).pipe(Effect.orElseSucceed(() => false)) ?? Effect.succeed(false),
+      selectTitle,
+      request,
+    })
   }),
 )
 

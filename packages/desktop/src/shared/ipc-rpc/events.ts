@@ -1,6 +1,7 @@
 import { desktopZoomLevels } from "@opencode/app/desktop-menu"
 import { Schema } from "effect"
 import { Rpc, RpcGroup } from "effect/rpc"
+import { DesktopPreferencesSchema } from "./desktop"
 import { PluginInstalled, PluginMenubarItem, PluginPayload, PluginGuis } from "./plugins"
 
 export class DeepLinksOpened extends Schema.TaggedClass<DeepLinksOpened>()("DeepLinksOpened", {
@@ -29,6 +30,12 @@ export class WindowZoomChanged extends Schema.TaggedClass<WindowZoomChanged>()("
   factor: Schema.Number,
   level: Schema.Literals(desktopZoomLevels),
 }) {}
+
+// Preferences changed in main, such as from the tray menu; every window refreshes its copy.
+export class DesktopPreferencesChanged extends Schema.TaggedClass<DesktopPreferencesChanged>()(
+  "DesktopPreferencesChanged",
+  { preferences: DesktopPreferencesSchema },
+) {}
 
 // Another window wrote to a storage namespace; recipients refresh their in-memory copy.
 export class StorageChanged extends Schema.TaggedClass<StorageChanged>()("StorageChanged", {
@@ -77,6 +84,7 @@ export const DesktopEvent = Schema.Union([
   WindowFocusChanged,
   WindowPinchZoomChanged,
   WindowZoomChanged,
+  DesktopPreferencesChanged,
   StorageChanged,
   PluginState,
   PluginEvent,

@@ -6,6 +6,46 @@ import { openWorkspace, parseStatus } from "./workspace"
 
 const roots: string[] = []
 
+test("project script discovery honors the package manager and rejects malformed manifests", async () => {
+  const root = await directory()
+  const workspace = await openWorkspace(root)
+  expect(await workspace.tasks()).toEqual([])
+  await writeFile(
+    path.join(root, "package.json"),
+    JSON.stringify({ packageManager: "bun@1.4.4", scripts: { test: "bun test", "build:web": "vite build" } }),
+  )
+  expect(await workspace.tasks()).toEqual([
+    { name: "test", command: "bun run test", script: "bun test" },
+    { name: "build:web", command: "bun run build:web", script: "vite build" },
+  ])
+  await writeFile(path.join(root, "package.json"), '{"scripts":{"test":123}}')
+  await expect(workspace.tasks()).rejects.toThrow()
+})
+
+test("Git comparisons separate staged and working text and honor a nested workspace", async () => {
+  const root = await directory()
+  const repo = await openWorkspace(root)
+  await repo.git(["init"])
+  const folder = path.join(root, " nested folder")
+  await mkdir(folder)
+  const file = path.join(folder, "file.ts")
+  await writeFile(file, "original\n")
+  await repo.git(["add", "--", "."])
+  await repo.git(["-c", "user.name=IDE Test", "-c", "user.email=ide@example.invalid", "commit", "-m", "fixture"])
+  const workspace = await openWorkspace(folder)
+  await writeFile(file, "staged\n")
+  await workspace.stage("file.ts", true)
+  await writeFile(file, "working\n")
+  const signal = new AbortController().signal
+  expect(await workspace.compare("file.ts", true, signal)).toEqual({ before: "original\n", after: "staged\n" })
+  expect(await workspace.compare("file.ts", false, signal)).toEqual({ before: "original\n", after: "working\n" })
+  await expect(workspace.compare("../escape.ts", false, signal)).rejects.toThrow("ide.path")
+  await writeFile(file, Buffer.from([1, 0, 2]))
+  await expect(workspace.compare("file.ts", false, signal)).rejects.toThrow("ide.binary")
+  await rm(file)
+  expect(await workspace.compare("file.ts", false, signal)).toEqual({ before: "original\n", after: "" })
+})
+
 afterEach(async () => {
   await Promise.all(roots.splice(0).map((root) => rm(root, { recursive: true, force: true })))
 })
@@ -70,11 +110,29 @@ test("workspace search respects Git ignores and reports exact file and line posi
     writeFile(path.join(root, "ignored.txt"), "Needle"),
   ])
   const signal = new AbortController().signal
+  expect((await workspace.files(signal)).paths.sort()).toEqual([".gitignore", "file.ts"])
   expect(await workspace.search("Needle", true, signal)).toEqual({
     matches: [{ path: "file.ts", line: 2, text: "Needle here" }],
     truncated: false,
   })
   expect((await workspace.search("Needle", false, signal)).matches).toHaveLength(2)
+})
+
+test("file picker indexes collapsed folders without Git and skips build output and links", async () => {
+  const root = await directory()
+  await mkdir(path.join(root, "src", "nested"), { recursive: true })
+  await mkdir(path.join(root, "node_modules"))
+  await writeFile(path.join(root, "src", "nested", "editor.ts"), "export const answer = 42")
+  await writeFile(path.join(root, "node_modules", "ignored.ts"), "ignored")
+  await symlink(path.join(root, "src"), path.join(root, "linked"), "junction")
+  const workspace = await openWorkspace(root)
+  expect(await workspace.files(new AbortController().signal)).toEqual({
+    paths: ["src/nested/editor.ts"],
+    truncated: false,
+  })
+  const cancelled = new AbortController()
+  cancelled.abort()
+  await expect(workspace.files(cancelled.signal)).rejects.toThrow()
 })
 
 test("image previews preserve binary bytes and reject out-of-workspace or oversized files", async () => {

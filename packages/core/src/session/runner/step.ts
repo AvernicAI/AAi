@@ -38,6 +38,7 @@ export type Outcome = Data.TaggedEnum<{
   }
   RecoverFull: {}
   Compacted: {}
+  Fallback: { readonly error: SessionError.Error }
   OutputLimit: { readonly needsContinuation: boolean }
 }>
 export const Outcome = Data.taggedEnum<Outcome>()
@@ -57,6 +58,8 @@ interface Input {
   readonly recoverContinuation: boolean
   /** The runner owns compaction policy; the attempt invokes it only before durable output. */
   readonly recoverOverflow: Effect.Effect<boolean>
+  /** Cools an exhausted provider route and reports whether a same-model route can take over. */
+  readonly fallback?: (error: SessionError.Error) => Effect.Effect<boolean>
 }
 
 const TOOLS_INTERRUPTED = { type: "aborted", message: "Tool execution interrupted" } as const
@@ -186,6 +189,20 @@ export const make = Effect.gen(function* () {
           !recorded.outputStarted
         )
           return Outcome.RecoverFull()
+        if (
+          llmFailure &&
+          llmError &&
+          input.fallback &&
+          !recorded.outputStarted &&
+          (yield* restore(input.fallback(llmError)))
+        ) {
+          yield* Effect.logWarning("provider route exhausted; retrying with another provider", {
+            sessionID: input.sessionID,
+            model: input.model.ref,
+            error: llmError.type,
+          })
+          return Outcome.Fallback({ error: llmError })
+        }
         const retry =
           llmFailure && llmError && !isContextOverflowFailure(llmFailure)
             ? yield* restore(

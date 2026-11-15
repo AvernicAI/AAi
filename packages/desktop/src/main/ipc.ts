@@ -8,6 +8,7 @@ import { DragCancelEvent, IpcTransportPort } from "../shared/ipc-transport"
 import { Plugins } from "./plugin"
 import { DesktopFiles, openExternalURL } from "./files"
 import { appHandlers } from "./ipc-handlers/app"
+import { desktopHandlers } from "./ipc-handlers/desktop"
 import { eventHandlers } from "./ipc-handlers/events"
 import { pluginHandlers } from "./ipc-handlers/plugins"
 import { fileHandlers } from "./ipc-handlers/files"
@@ -32,6 +33,7 @@ const handlers = Layer.mergeAll(
   menuHandlers,
   eventHandlers,
   pluginHandlers,
+  desktopHandlers,
 )
 
 export const layer = RpcServer.layer(DesktopRpcs, { disableFatalDefects: true }).pipe(

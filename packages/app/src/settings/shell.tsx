@@ -5,6 +5,7 @@ import { createStore } from "solid-js/store"
 import { useLanguage } from "@/runtime/i18n/language"
 import { useTabs } from "@/shell/tabs/tabs"
 import { useGlobal, useServerCtx } from "@/runtime/server/runtime"
+import { usePlatform } from "@/runtime/platform/platform"
 import { ServerConnection } from "@/runtime/server/registry"
 import type { LocalProject } from "@/shell/state/layout"
 import { DialogServer } from "@/servers/connect/dialog"
@@ -14,6 +15,7 @@ import { SettingsAppearance } from "./appearance/appearance"
 import { experimentalSettingsAvailable, SettingsExperimental } from "./experimental/experimental"
 import { SettingsKeybinds } from "./keybinds/keybinds"
 import { SettingsNotifications } from "./notifications/notifications"
+import { SettingsDesktop } from "./desktop/desktop"
 import { SettingsProviders } from "./providers/providers"
 import { SettingsModels } from "./models/models"
 import { SettingsServerGeneral, SettingsServerList } from "./servers/servers"
@@ -42,6 +44,7 @@ const rootClientTabs = [
   { value: "appearance", icon: pageIcons.appearance, label: "settings.general.section.appearance" },
   { value: "notifications", icon: pageIcons.notifications, label: "settings.tab.notifications" },
   { value: "shortcuts", icon: pageIcons.shortcuts, label: "settings.tab.shortcuts" },
+  { value: "desktop", icon: pageIcons.desktop, label: "settings.tab.desktop" },
 ] as const
 
 const serverTabs = [
@@ -228,6 +231,7 @@ function RootSettings() {
   const dialog = useDialog()
   const surface = useSettingsSurface()
   const global = useGlobal()
+  const platform = usePlatform()
   const inventory = useSettingsServers()
 
   const [state, setState] = createStore<{ worktreeFilterReset: number; modelProvider: string | undefined }>({
@@ -236,6 +240,11 @@ function RootSettings() {
   })
 
   const multiple = createMemo(() => inventory().length > 1)
+
+  // The Desktop page is an operating-system surface, so a browser build never lists it.
+  const clientTabs = createMemo(() =>
+    rootClientTabs.filter((item) => item.value !== "desktop" || platform.platform === "desktop"),
+  )
 
   // The selected server while its pages can load; an unreachable one shows its pages' unavailable state instead.
   const reachable = createMemo(() => {
@@ -252,6 +261,8 @@ function RootSettings() {
     if (view.type !== "root") return
 
     if (view.tab === "experimental" && !experimentalSettingsAvailable) surface.open("general")
+
+    if (view.tab === "desktop" && platform.platform !== "desktop") surface.open("general")
   })
 
   const selectServer = (server: ServerConnection.Any) => surface.selectServer(ServerConnection.key(server))
@@ -273,7 +284,7 @@ function RootSettings() {
       })),
     },
     {
-      items: [...rootClientTabs.map((item) => ({ ...item, label: language.t(item.label) })), ...pluginTabs()],
+      items: [...clientTabs().map((item) => ({ ...item, label: language.t(item.label) })), ...pluginTabs()],
     },
     {
       items: [
@@ -316,6 +327,9 @@ function RootSettings() {
       </Tabs.Content>
       <Tabs.Content value="shortcuts" class="settings-panel">
         <SettingsKeybinds active={surface.view().tab === "shortcuts"} />
+      </Tabs.Content>
+      <Tabs.Content value="desktop" class="settings-panel">
+        <SettingsDesktop />
       </Tabs.Content>
       <PluginSettingsPages />
       <Tabs.Content value="experimental" class="settings-panel">

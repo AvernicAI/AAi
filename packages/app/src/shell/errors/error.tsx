@@ -10,7 +10,7 @@ import { usePlatform } from "@/runtime/platform/platform"
 import { useLanguage } from "@/runtime/i18n/language"
 import { createIpcClients } from "@/runtime/plugin/ipc"
 import { Icon } from "@opencode/ui/icon"
-import { errorDescriptionKey, errorStatus } from "./description"
+import { errorDescriptionKey, errorStatus, hasLocalServerStartup } from "./description"
 
 type InitError = {
   name: unknown
@@ -327,6 +327,17 @@ export const ErrorPage: Component<ErrorPageProps> = (props) => {
       })
   }
 
+  async function retryLocalServer() {
+    const retry = platform.retryLocalServer
+
+    if (!retry) return
+    await retry()
+      .then(() => location.reload())
+      .catch((err) => {
+        setStore("actionError", formatError(err, language.t))
+      })
+  }
+
   return (
     <div
       class="relative flex-1 h-full w-full min-h-0 min-w-0 overflow-y-auto flex flex-col items-center justify-start sm:justify-center p-4 sm:p-8 font-sans"
@@ -354,6 +365,11 @@ export const ErrorPage: Component<ErrorPageProps> = (props) => {
           hideLabel
         />
         <div class="flex flex-row items-center justify-center gap-3 flex-wrap max-w-64">
+          <Show when={platform.retryLocalServer && hasLocalServerStartup(props.error)}>
+            <Button size="large" onClick={retryLocalServer}>
+              {language.t("error.page.action.retry")}
+            </Button>
+          </Show>
           <Button size="large" onClick={platform.restart}>
             {language.t(platform.platform === "web" ? "error.page.action.reload" : "error.page.action.restart")}
           </Button>

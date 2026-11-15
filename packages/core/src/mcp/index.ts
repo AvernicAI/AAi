@@ -24,18 +24,6 @@ export const ServerName = Schema.String.pipe(Schema.brand("MCP.ServerName"))
 export type ServerName = typeof ServerName.Type
 export const PromptsChanged = ephemeral({ type: "mcp.prompts.changed", schema: { server: Schema.String } })
 
-const convioWorkflow = `When the user asks to use Convio, apply the following preamble to their request. Continue an existing Convio project when the user is answering its stage questions. If a required tool is unavailable, ask the user to enable it before continuing that stage.
-
-Use Convio (the "convio" MCP server) for what I ask below.
-1. Call start_project with my request. Convio picks the right pipeline and gives you its first stage.
-2. Work through each stage in order: ask me the questions it lists, and read every skill it names with get_skill before you follow it.
-3. Call find_skills whenever an expert skill would do a part better.
-4. Call next_stage once a stage’s “done when” list is met, and keep going to the end.
-5. If you need an account I don’t have, such as hosting or a database, use Convio’s lent services and claimable previews first, and give me the claim links at the end.
-Don’t skip the security review, the testing stage or the launch checklist.
-
-My request:`
-
 export const Status = Mcp.Status
 export type Status = Mcp.Status
 export type ServerInfo = Mcp.Server
@@ -898,14 +886,7 @@ export const layer = (options?: Options) =>
           return Array.from(entries)
             .flatMap(([server, entry]) => {
               if (!entry.client) return []
-              const convio =
-                server === "convio" &&
-                entry.config.type === "remote" &&
-                entry.config.tools?.includes("start_project") !== false &&
-                entry.config.url.replace(/\/$/, "") === "https://mcp.convio.dev"
-              const instructions = convio
-                ? [entry.client.instructions, convioWorkflow].filter(Boolean).join("\n\n")
-                : entry.client.instructions
+              const instructions = entry.client.instructions
               if (!instructions) return []
               return [{ server, instructions }]
             })

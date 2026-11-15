@@ -31,6 +31,7 @@ import { useData } from "@/runtime/server/current"
 import { useGlobal } from "@/runtime/server/runtime"
 import { ServerConnection } from "@/runtime/server/registry"
 import { useProviders } from "@/providers/catalog/providers"
+import { providerPricing } from "@opencode/util/provider-pricing"
 import { consoleProviderGroup, consoleProviderName } from "@/providers/catalog/console"
 import { useIntegrations } from "@/providers/catalog/integrations"
 import { ProviderModelGroup, ProviderModelIcon } from "@/providers/models/provider-group"
@@ -265,7 +266,7 @@ export const DialogConnectProvider: Component<{
   )
 }
 
-// The TUI's integration groups and order, with connected integrations pulled up into their own group first.
+// Prioritize familiar providers within each pricing group.
 const POPULAR = ["freebuff", "vyce-code", "opencode", "opencode-go", "openai", "github-copilot", "anthropic", "google"]
 
 function ProviderPicker(props: { directory?: string; onSelect: (provider: string) => void; onPrepare?: () => void }) {
@@ -295,13 +296,21 @@ function ProviderPicker(props: { directory?: string; onSelect: (provider: string
   // MCP servers keep their own group whether or not they are signed in.
   const providers = createMemo(() => all().filter((row) => row.metadata?.source !== "mcp"))
 
-  const connected = createMemo(() =>
-    providers()
-      .filter((row) => row.connections.length > 0)
-      .toSorted((a, b) => a.name.localeCompare(b.name)),
-  )
-
-  const unconnected = createMemo(() => providers().filter((row) => row.connections.length === 0))
+  const pricingGroup = (category: ReturnType<typeof providerPricing>) =>
+    createMemo(() =>
+      providers()
+        .filter((row) => providerPricing(row.id) === category)
+        .toSorted((a, b) =>
+          Number(b.connections.length > 0) - Number(a.connections.length > 0) ||
+          (POPULAR.indexOf(a.id) < 0 ? 99 : POPULAR.indexOf(a.id)) -
+            (POPULAR.indexOf(b.id) < 0 ? 99 : POPULAR.indexOf(b.id)) ||
+          a.name.localeCompare(b.name),
+        ),
+    )
+  const free = pricingGroup("free-access")
+  const trial = pricingGroup("trial")
+  const paid = pricingGroup("paid")
+  const unknown = pricingGroup("unknown")
 
   const mcp = createMemo(() =>
     all()
@@ -309,29 +318,18 @@ function ProviderPicker(props: { directory?: string; onSelect: (provider: string
       .toSorted((a, b) => a.name.localeCompare(b.name)),
   )
 
-  const popular = createMemo(() =>
-    unconnected()
-      .filter((row) => POPULAR.includes(row.id))
-      .toSorted((a, b) => POPULAR.indexOf(a.id) - POPULAR.indexOf(b.id)),
-  )
-
-  const services = createMemo(() =>
-    unconnected()
-      .filter((row) => !POPULAR.includes(row.id))
-      .toSorted((a, b) => a.name.localeCompare(b.name)),
-  )
-
   const groups = () => [
-    { title: language.t("dialog.provider.connected"), items: connected },
     { title: language.t("dialog.provider.group.mcp"), items: mcp },
-    { title: language.t("dialog.provider.group.popular"), items: popular },
-    { title: language.t("dialog.provider.group.services"), items: services },
+    { title: language.t("dialog.provider.group.freeAccess"), items: free },
+    { title: language.t("dialog.provider.group.trial"), items: trial },
+    { title: language.t("dialog.provider.group.paid"), items: paid },
+    { title: language.t("dialog.provider.group.pricingUnknown"), items: unknown },
   ]
 
   // An integration that only reads environment variables has nothing to connect from here.
   const disabled = (row: IntegrationInfo) => connectMethods(row).length === 0 && providerAccounts(row).length === 0
 
-  const rows = createMemo(() => [...connected(), ...mcp(), ...popular(), ...services()].filter((row) => !disabled(row)))
+  const rows = createMemo(() => [...mcp(), ...free(), ...trial(), ...paid(), ...unknown()].filter((row) => !disabled(row)))
 
   let picker: HTMLDivElement | undefined
   let search: HTMLInputElement | undefined
@@ -382,6 +380,7 @@ function ProviderPicker(props: { directory?: string; onSelect: (provider: string
           }}
         />
       </div>
+      <p class="px-2 py-1 text-xs text-v2-text-text-muted">{language.t("dialog.provider.pricingDisclaimer")}</p>
       <div class="relative min-h-0 flex-1">
         <div class="flex size-full min-h-0 flex-col gap-0.5 overflow-y-auto pb-8 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
           <For each={groups()}>

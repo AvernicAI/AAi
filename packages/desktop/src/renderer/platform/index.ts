@@ -27,7 +27,13 @@ export function createDesktopPlatform(api: ElectronAPI, windowState: DesktopWind
     exportDebugLogs: () => api.exportDebugLogs(),
     setForceFocus: (enabled) => api.setForceFocus(enabled),
     recordFatalRendererError: (error) => api.recordFatalRendererError(error),
+    getDesktopPreferences: () => api.getDesktopPreferences(),
+    setDesktopPreferences: (patch) => api.setDesktopPreferences(patch),
+    onDesktopPreferencesChanged: (callback) => api.onDesktopPreferencesChanged(callback),
     restart: async () => api.relaunch(),
+    retryLocalServer: async () => {
+      await api.reconnectService()
+    },
     notify: createDesktopNotify(api),
     fetch: (input, init) => {
       if (input instanceof Request) return fetch(input)

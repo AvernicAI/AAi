@@ -32,6 +32,7 @@ import { SessionStep } from "./step.js"
 import { ToolOutput } from "../../tool-output.js"
 import { Plugin } from "../../plugin.js"
 import { PluginHooks } from "../../plugin/hooks.js"
+import { ProviderRouter } from "../../provider-router.js"
 import { MAX_STEPS_PROMPT } from "./max-steps.js"
 import { CapabilityDiscovery } from "../../capability-discovery.js"
 import { Permission } from "../../permission.js"
@@ -320,6 +321,10 @@ const layer = Layer.effect(
               hook: prepared.retry,
               retry: proposed,
             }),
+          fallback: (error) =>
+            ProviderRouter.isUsageLimit(error.type)
+              ? (context.exhaust?.(loaded.model.ref, ProviderRouter.cooldownFor(error)) ?? Effect.succeed(false))
+              : Effect.succeed(false),
           recoverContinuation,
           recoverOverflow: Effect.suspend(() =>
             recoverOverflow
@@ -391,6 +396,7 @@ const layer = Layer.effect(
           RecoverFull: Effect.fnUntraced(function* () {
             recoverContinuation = false
           }),
+          Fallback: () => Effect.void,
         })
         if (completed !== undefined) return completed
       }

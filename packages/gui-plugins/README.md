@@ -692,6 +692,7 @@ export default setup
 ```ts
 /** Built-in plugins with their main entries, by id. Lists every built-in so their ids stay reserved. */
 export const builtins = compose({
+  alphie: { ...alphie, mainEntry: () => import("./alphie/main") },
   merlin: { ...merlin, mainEntry: () => import("./merlin/main") },
   ide: { ...ide, mainEntry: () => import("./ide/main") },
   backgrounds,
@@ -721,6 +722,7 @@ The window list adds each window entry, loaded with the app:
 ```ts
 /** Built-in plugins with their window entries, by id. The only place host builds name built-ins. */
 export const builtins = compose({
+  alphie: { ...alphie, windowEntry: eager(alphieRenderer) },
   merlin: { ...merlin, windowEntry: eager(merlinRenderer) },
   ide: { ...ide, windowEntry: eager(ideRenderer) },
   backgrounds: { ...backgrounds, windowEntry: eager(backgroundsRenderer) },

@@ -277,6 +277,13 @@ export const DESKTOP_NATIVE_ENGLISH = {
   "desktop.menu.reportBug": "Report a Bug",
   "desktop.menu.ariaLabel": "AAi menu",
 
+  "desktop.tray.tooltip": "AAi",
+  "desktop.tray.show": "Show AAi",
+  "desktop.tray.hide": "Hide AAi",
+  "desktop.tray.keepRunning": "Keep Running After Closing Windows",
+  "desktop.tray.launchAtLogin": "Launch at Login",
+  "desktop.tray.quit": "Quit AAi",
+
   "desktop.cli.installed.title": "CLI Installed",
   "desktop.cli.installed.message": "CLI installed to {{path}}\n\nRestart your terminal to use the 'aai' command.",
   "desktop.cli.failed.title": "Installation Failed",
@@ -288,6 +295,8 @@ export const DESKTOP_NATIVE_ENGLISH = {
   "desktop.recovery.action.quit": "Quit",
   "desktop.recovery.loadFailed": "AAi failed to load",
   "desktop.recovery.terminated": "AAi window terminated unexpectedly",
+  "desktop.recovery.crashLoop": "AAi keeps crashing",
+  "desktop.recovery.crashLoop.detail": "Window: {{window}}\nReason: {{reason}}\nCode: {{code}}\nCrashes in the last minute: {{crashes}}",
   "desktop.recovery.unresponsive": "AAi is not responding",
   "desktop.recovery.unresponsive.detail": "You can relaunch the app, open the logs, or keep waiting.",
   "desktop.recovery.loadFailed.detail": "Window: {{window}}\nURL: {{url}}\nError: {{code}} {{description}}",

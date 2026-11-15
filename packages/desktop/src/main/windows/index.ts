@@ -3,6 +3,7 @@ import { app, BrowserWindow, screen } from "electron"
 import { Effect, FileSystem, Path } from "effect"
 import { openExternalURL } from "../files"
 import { scoped } from "../native/logging"
+import { readDesktopPreferences } from "../native/preferences"
 import { DesktopPaths } from "../paths"
 import { DesktopStorage } from "../storage"
 import { getStore } from "../storage/store"
@@ -223,6 +224,16 @@ export const mainWindows = Effect.fn("Window.make")(function* () {
     win.on("focus", () => registry.focused(id))
     // Windows emits session-end, but not before-quit, during shutdown and logoff.
     win.on("session-end", () => registry.setQuitting())
+    // Keep-running: closing hides the window so tabs, drafts, and terminal panes survive until the
+    // user quits from the tray or the app menu. A quit already in flight closes for real.
+    win.on("close", (event) => {
+      if (registry.isQuitting()) return
+
+      if (readDesktopPreferences().closeBehavior !== "background") return
+
+      event.preventDefault()
+      win.hide()
+    })
     win.on("closed", () => {
       if (!registry.closed(id)) return
       runFork(

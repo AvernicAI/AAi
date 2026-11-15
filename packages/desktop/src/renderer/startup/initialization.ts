@@ -1,3 +1,4 @@
+import { connectFailures, type ConnectFailure } from "../../shared/ipc-rpc/connect"
 import type { ElectronAPI } from "../api-types"
 
 type SidecarData = Awaited<ReturnType<ElectronAPI["awaitInitialization"]>>
@@ -35,9 +36,23 @@ function sameSidecar(current: SidecarData | undefined, next: SidecarData) {
   return current?.url === next.url
 }
 
+/** The typed reason main attached to a failed local-server start, when it sent one. */
+export function localServerFailure(error: unknown): ConnectFailure | undefined {
+  if (!(error instanceof Error) || !Object.hasOwn(error, "localServerFailure")) return undefined
+
+  // SAFETY: the property was checked present; matching against the closed union rejects anything else.
+  const value = (error as Error & { localServerFailure?: unknown }).localServerFailure
+
+  return connectFailures.find((failure) => failure === value)
+}
+
 function markLocalServerStartup(error: unknown) {
   const failure = error instanceof Error ? error : new Error(String(error))
+  const reason = localServerFailure(error)
+
   Object.defineProperty(failure, "localServerStartup", { value: true })
+
+  if (reason) Object.defineProperty(failure, "localServerFailure", { value: reason })
 
   return failure
 }

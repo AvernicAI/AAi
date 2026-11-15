@@ -1,6 +1,7 @@
 import { usePlatform } from "@/runtime/platform/platform"
 import { ServerConnection } from "@/runtime/server/registry"
 import { authTokenFromCredentials } from "./api"
+import { canReconnect, recordReconnect } from "./reconnect-policy"
 import { ClientError, isUnauthorizedError, OpenCode } from "@opencode/client"
 import { Match } from "effect"
 import { Accessor, createEffect, createSignal, onCleanup } from "solid-js"
@@ -14,6 +15,8 @@ export type ServerHealth = {
   incompatible?: boolean
   checking?: boolean
   unauthorized?: boolean
+  /** A sidecar reconnect is in flight after repeated failed polls. */
+  reconnecting?: boolean
 }
 
 interface CheckServerHealthOptions {
@@ -190,6 +193,7 @@ export function createServerHealth(
   const [status, setStatus] = createStore<Record<ServerConnection.Key, ServerHealth | undefined>>({})
   const [attempt, setAttempt] = createSignal(0)
   const endpoints = new Map<ServerConnection.Key, string>()
+  const reconnects = new Map<ServerConnection.Key, { failures: number; timestamps: number[] }>()
   // Callers of `retry` wait for the probe round it starts.
   const waiting: (() => void)[] = []
 
@@ -198,11 +202,15 @@ export function createServerHealth(
 
     if (!enabled()) {
       endpoints.clear()
+      reconnects.clear()
       setStatus(reconcile({}))
       waiting.splice(0).forEach((resolve) => resolve())
 
       return
     }
+
+    // Each probe generation owns its cancellation; Retry disposes the previous generation.
+    const reconnectAbort = new AbortController()
 
     // Snapshot transport fields synchronously so a newly established SSH tunnel
     // invalidates both the old result and any probe still using the old endpoint.
@@ -211,6 +219,7 @@ export function createServerHealth(
       managed: conn.type === "plugin" && conn.managed,
       http: conn.http,
       stage: conn.type === "plugin" ? conn.state : undefined,
+      reconnect: conn.type === "sidecar" ? conn.reconnect : undefined,
     }))
 
     for (const conn of list) {
@@ -230,7 +239,10 @@ export function createServerHealth(
     }
 
     for (const key of endpoints.keys()) {
-      if (!list.some((conn) => conn.key === key)) endpoints.delete(key)
+      if (!list.some((conn) => conn.key === key)) {
+        endpoints.delete(key)
+        reconnects.delete(key)
+      }
     }
 
     let dead = false
@@ -246,9 +258,36 @@ export function createServerHealth(
           }
 
           const result = await check(conn.http)
-          results[conn.key] = result
 
-          if (!dead) setStatus(conn.key, reconcile(result))
+          if (dead) return
+          let final = result
+
+          // A managed sidecar that keeps failing is healed once, then probed again immediately. A
+          // plugin server owns its lifecycle and an unauthorized server would lock the account.
+          if (conn.reconnect && !result.healthy && !result.unauthorized && !result.incompatible) {
+            const entry = reconnects.get(conn.key) ?? { failures: 0, timestamps: [] }
+            reconnects.set(conn.key, entry)
+            entry.failures += 1
+            const now = Date.now()
+
+            if (entry.failures >= 2 && canReconnect(entry.timestamps, now)) {
+              entry.failures = 0
+              entry.timestamps = recordReconnect(entry.timestamps, now)
+
+              if (!dead) setStatus(conn.key, reconcile({ healthy: false, reconnecting: true }))
+
+              try {
+                final = await check(await conn.reconnect(reconnectAbort.signal))
+              } catch {
+                final = { healthy: false }
+              }
+            }
+          }
+
+          if (final.healthy) reconnects.delete(conn.key)
+          results[conn.key] = final
+
+          if (!dead) setStatus(conn.key, reconcile(final))
         }),
       )
 
@@ -263,6 +302,7 @@ export function createServerHealth(
     onCleanup(() => {
       dead = true
       clearInterval(id)
+      reconnectAbort.abort()
     })
   })
 

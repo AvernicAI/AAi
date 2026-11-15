@@ -1,7 +1,9 @@
 import { app } from "electron"
-import { Context, Effect, FileSystem, Layer, Option, Path, Schema } from "effect"
+import { Context, Duration, Effect, FileSystem, Layer, Option, Path, Schema } from "effect"
+import type { ConnectFailure } from "../../shared/ipc-rpc/connect"
 import { CHANNEL } from "../constants"
 import { BackgroundServiceState } from "./background-service-state"
+import { ConnectFailed, classifyConnectFailure, connectRetryDelays, retryableConnectFailure } from "./connect-retry"
 import { cleanStages } from "./cli-stages"
 import { keptStages, serviceVersion, shouldRetryEnsure } from "./cli-version"
 import { DesktopCli } from "./desktop-cli"
@@ -14,8 +16,10 @@ export * as BackgroundService from "./background-service"
 const RegisteredService = Schema.Struct({ version: Schema.optional(Schema.String) })
 
 export interface Interface {
-  readonly connection: Effect.Effect<SidecarCredentials.Data>
-  readonly reconnect: Effect.Effect<SidecarCredentials.Data>
+  readonly connection: Effect.Effect<SidecarCredentials.Data, ConnectFailed>
+  readonly reconnect: Effect.Effect<SidecarCredentials.Data, ConnectFailed>
+  /** Why the last connect failed, while the server is unavailable. */
+  readonly failure: Effect.Effect<ConnectFailure | undefined>
 }
 
 export class Service extends Context.Service<Service, Interface>()("opencode/desktop/BackgroundService") {}
@@ -25,10 +29,23 @@ export const layer = Layer.effect(
   Effect.gen(function* () {
     const context = yield* Effect.context<FileSystem.FileSystem | Path.Path | DesktopCli.Service>()
 
+    const run = (mode: "initial" | "reconnect") =>
+      connect(mode).pipe(
+        Effect.provide(context),
+        Effect.tapError((error) =>
+          Effect.logError("background service connect failed", {
+            mode,
+            failure: classifyConnectFailure(error),
+            error,
+          }),
+        ),
+        Effect.mapError((error) => new ConnectFailed(classifyConnectFailure(error), error)),
+      )
+
     return Service.of(
       yield* BackgroundServiceState.make({
-        initial: connect("initial").pipe(Effect.provide(context)),
-        reconnect: connect("reconnect").pipe(Effect.provide(context), Effect.orDie),
+        initial: run("initial"),
+        reconnect: () => run("reconnect"),
       }),
     )
   }),
@@ -92,12 +109,34 @@ const connect = Effect.fn("BackgroundService.connect")(function* (mode: "initial
       return ensure(cli.version)
     })
 
+  // Retry only failures a second attempt can fix; a missing CLI or rejected credentials cannot.
+  function ensureWithRetry(attempt: number): Effect.Effect<Awaited<ReturnType<typeof runEnsure>>, unknown> {
+    return Effect.tryPromise(runEnsure).pipe(
+      Effect.catch((error) => {
+        const failure = classifyConnectFailure(error)
+
+        if (attempt >= connectRetryDelays.length || !retryableConnectFailure(failure)) return Effect.fail(error)
+
+        return Effect.gen(function* () {
+          yield* Effect.logInfo("retrying background service start", {
+            attempt: attempt + 1,
+            failure,
+            delay: connectRetryDelays[attempt],
+          })
+          yield* Effect.sleep(Duration.millis(connectRetryDelays[attempt] ?? 0))
+
+          return yield* ensureWithRetry(attempt + 1)
+        })
+      }),
+    )
+  }
+
   // A compatible service the entry module already found is adopted at once; ensure() still runs
   // afterwards for its side effects (terminal handoff completion), off the renderer's path.
   const early = mode === "initial" && !isolated ? yield* Effect.promise(sidecarProbe) : undefined
 
   if (early) yield* Effect.sync(() => void runEnsure().catch(() => undefined))
-  const service = early ?? (yield* Effect.tryPromise(runEnsure))
+  const service = early ?? (yield* ensureWithRetry(0))
 
   if (service.auth?.type !== "basic") throw new Error("V2 CLI background service did not provide authentication")
   const url = new URL(service.url)

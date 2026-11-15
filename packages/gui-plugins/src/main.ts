@@ -18,9 +18,11 @@ import ide from "./ide"
 import backgrounds from "./backgrounds"
 import skills from "./skills"
 import merlin from "./merlin"
+import alphie from "./alphie"
 
 /** Built-in plugins with their main entries, by id. Lists every built-in so their ids stay reserved. */
 export const builtins = compose({
+  alphie: { ...alphie, mainEntry: () => import("./alphie/main") },
   merlin: { ...merlin, mainEntry: () => import("./merlin/main") },
   ide: { ...ide, mainEntry: () => import("./ide/main") },
   backgrounds,

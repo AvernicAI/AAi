@@ -1,5 +1,11 @@
 import type { DesktopMenuAction, DesktopZoomLevel } from "@opencode/app/desktop-menu"
 import type { DesktopNativeBundle } from "@opencode/app/i18n/desktop-native"
+import type { ConnectFailure } from "../shared/ipc-rpc/connect"
+import type {
+  DesktopPreferencePatch,
+  DesktopPreferences,
+  DesktopPreferencesResult,
+} from "../shared/ipc-rpc/desktop"
 import type { WindowBootstrap } from "../shared/window-bootstrap"
 import type {
   ClipboardImage,
@@ -15,6 +21,7 @@ import type {
 export type ElectronAPI = {
   awaitInitialization(): Promise<ServerReadyData>
   reconnectService(): Promise<ServerReadyData>
+  connectFailure(): Promise<ConnectFailure | null>
   consumeInitialDeepLinks(): Promise<string[]>
   isFirstLaunchOnboardingPending(): Promise<boolean>
   finishFirstLaunchOnboarding(createDefaultProject: boolean): Promise<string | null>
@@ -73,4 +80,7 @@ export type ElectronAPI = {
   setForceFocus(enabled: boolean): Promise<void>
   recordFatalRendererError(error: FatalRendererError): Promise<void>
   setNativeTranslations(bundle: DesktopNativeBundle): Promise<void>
+  getDesktopPreferences(): Promise<DesktopPreferences>
+  setDesktopPreferences(patch: DesktopPreferencePatch): Promise<DesktopPreferencesResult>
+  onDesktopPreferencesChanged(cb: (preferences: DesktopPreferences) => void): () => void
 }

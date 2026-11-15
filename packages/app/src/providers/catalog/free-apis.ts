@@ -6,6 +6,14 @@ export { freeAPIs, type FreeAPI, type FreeAPIModel }
 // supplemented with Hetzner, Pollinations and Public AI's official documentation (2026-11-08).
 export const freeAPISource = "https://github.com/mnfst/awesome-free-llm-apis"
 
+export function freeAPICategory(profile: FreeAPI) {
+  if (profile.tier === "routes" || profile.tier === "allowance") return "free"
+  if (profile.tier === "paid") return "paid"
+  if (profile.tier === "gateway") return "gateway"
+  if (profile.tier === "unverified") return "unverified"
+  return "limited"
+}
+
 const prefix = "aai-compatible-free-"
 
 const byProvider = new Map(freeAPIs.map((profile) => [freeAPIProviderID(profile), profile]))
@@ -33,7 +41,17 @@ export function freeAPITier(profile: FreeAPI) {
 
   if (profile.tier === "paid") return "settings.freeAPI.paid"
 
+  if (profile.tier === "unverified") return "settings.freeAPI.unverified"
+
   return "settings.freeAPI.routes"
+}
+
+export function freeAPIInstallable(profile: FreeAPI) {
+  return !profile.manual && (profile.kind ?? "chat") === "chat"
+}
+
+export function freeAPIKind(profile: FreeAPI) {
+  return `settings.freeAPI.kind.${profile.kind ?? "chat"}`
 }
 
 export function freeAPIModel(providerID: string, id: string) {

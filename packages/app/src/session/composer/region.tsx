@@ -438,11 +438,17 @@ export function ActiveSessionComposerRegion(props: {
   // Matches the server: the highest-priority document that sets `experimental` decides. Migrated V1 sessions keep their
   // old `todowrite` calls, so without this check their last plan would come back.
 
-  const todoEnabled = () =>
-    data.location.config
-      .list({ directory: location().directory })
-      ?.flatMap((entry) => (entry.type === "document" && entry.info.experimental ? [entry.info.experimental] : []))
-      .at(-1)?.todo === true
+  const todoEnabled = () => {
+    const entries = data.location.config.list({ directory: location().directory })
+
+    if (!entries) return false
+
+    return (
+      entries
+        .flatMap((entry) => (entry.type === "document" && entry.info.experimental ? [entry.info.experimental] : []))
+        .at(-1)?.todo !== false
+    )
+  }
 
   const open = (item: SessionActivityItem) => {
     const current = props.session.identity.params.id

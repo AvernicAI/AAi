@@ -1,14 +1,35 @@
+import { Predicate } from "effect"
+
+const localServerFailureKeys = {
+  "cli-missing": "error.page.description.localServerStartup.cliMissing",
+  "spawn-failed": "error.page.description.localServerStartup.spawnFailed",
+  "port-conflict": "error.page.description.localServerStartup.portConflict",
+  "auth-mismatch": "error.page.description.localServerStartup.authMismatch",
+  "version-mismatch": "error.page.description.localServerStartup.versionMismatch",
+  "timeout": "error.page.description.localServerStartup.timeout",
+} as const
+
+export function hasLocalServerStartup(error: unknown): error is Error & { localServerStartup: true } {
+  if (!(error instanceof Error) || !Object.hasOwn(error, "localServerStartup")) return false
+
+  // SAFETY: the property was checked present; only the literal true marks a startup failure.
+  return (error as Error & { localServerStartup?: unknown }).localServerStartup === true
+}
+
 export function errorDescriptionKey(error: unknown) {
-  if (
-    typeof error === "object" &&
-    error !== null &&
-    "localServerStartup" in error &&
-    error.localServerStartup === true
-  ) {
-    return "error.page.description.localServerStartup" as const
+  if (!hasLocalServerStartup(error)) return "error.page.description" as const
+
+  // SAFETY: the property was checked present; the `isString` guard rejects every other value.
+  const failure = Object.hasOwn(error, "localServerFailure")
+    ? (error as Error & { localServerFailure?: unknown }).localServerFailure
+    : undefined
+
+  if (Predicate.isString(failure) && Object.hasOwn(localServerFailureKeys, failure)) {
+    // SAFETY: Object.hasOwn ensures the string names a key of the closed literal map above.
+    return localServerFailureKeys[failure as keyof typeof localServerFailureKeys]
   }
 
-  return "error.page.description" as const
+  return "error.page.description.localServerStartup" as const
 }
 
 export function errorStatus(error: unknown) {

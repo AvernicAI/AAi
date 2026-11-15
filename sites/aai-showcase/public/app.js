@@ -173,13 +173,6 @@ const features = [
   ],
   [
     "connect",
-    "C↗",
-    "Convio project workflows",
-    "API KEY",
-    "Connect your Convio key, choose individual tools, and use guided project stages, skill discovery, and review checklists.",
-  ],
-  [
-    "connect",
     "◇",
     "Skills library",
     "BUILT IN",

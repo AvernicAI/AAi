@@ -1,5 +1,15 @@
 import { Schema } from "effect"
-import { Ipc } from "@opencode/plugin/gui"
+import { Contract, Ipc } from "@opencode/plugin/gui"
+
+export type RevealRequest = { session: string; path: string; revision: string }
+
+export const IdeEditor = Contract.define<
+  {
+    reveal(request: RevealRequest): void
+    pending(session: string): RevealRequest | undefined
+  },
+  "ide.editor"
+>("ide.editor")
 
 export const Entry = Schema.Struct({ path: Schema.String, directory: Schema.Boolean })
 
@@ -14,6 +24,14 @@ export const Location = Schema.Struct({ path: Schema.String, range: Range })
 export const Edit = Schema.Struct({ range: Range, newText: Schema.String })
 
 export const Diagnostic = Schema.Struct({ range: Range, message: Schema.String, severity: Schema.Number })
+
+export const TaskUpdate = Schema.Struct({
+  id: Schema.String,
+  command: Schema.String,
+  status: Schema.Literals(["running", "completed", "failed", "stopped"]),
+  text: Schema.String,
+  code: Schema.NullOr(Schema.Number),
+})
 
 export const Suggestion = Schema.Struct({
   label: Schema.String,
@@ -42,6 +60,10 @@ export const Ide = Ipc.define({
     },
     close: { input: Binding },
     list: { input: Path, output: Schema.Array(Entry) },
+    files: {
+      input: Binding,
+      output: Schema.Struct({ paths: Schema.Array(Schema.String), truncated: Schema.Boolean }),
+    },
     read: { input: Path, output: Document },
     readImage: {
       input: Path,
@@ -74,6 +96,16 @@ export const Ide = Ipc.define({
       }),
     },
     diff: { input: Path, output: Schema.String },
+    compare: {
+      input: Schema.Struct({ ...Path.fields, staged: Schema.Boolean }),
+      output: Schema.Struct({ before: Schema.String, after: Schema.String }),
+    },
+    tasks: {
+      input: Binding,
+      output: Schema.Array(Schema.Struct({ name: Schema.String, command: Schema.String, script: Schema.String })),
+    },
+    taskRun: { input: Schema.Struct({ ...Binding.fields, command: Schema.String }), output: Schema.String },
+    taskStop: { input: Binding },
     stage: { input: Schema.Struct({ binding: Schema.String, path: Schema.String, staged: Schema.Boolean }) },
     commit: { input: Schema.Struct({ binding: Schema.String, message: Schema.String }), output: Schema.String },
     languageStart: { input: Schema.Struct({ binding: Schema.String, language: Schema.String, command: Command }) },
@@ -120,6 +152,7 @@ export const Ide = Ipc.define({
     diagnostics: Schema.Struct({ binding: Schema.String, path: Schema.String, diagnostics: Schema.Array(Diagnostic) }),
     debug: Schema.Struct({ binding: Schema.String, event: Schema.String, body: Schema.Json }),
     status: Schema.Struct({ binding: Schema.String, service: Schema.String, message: Schema.String }),
+    task: Schema.Struct({ binding: Schema.String, ...TaskUpdate.fields }),
   },
 })
 

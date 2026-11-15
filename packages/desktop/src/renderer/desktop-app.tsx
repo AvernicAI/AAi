@@ -60,7 +60,19 @@ export function DesktopApp(props: { api: ElectronAPI; version: string }) {
   )
 
   const platform = createDesktopPlatform(props.api, windowState)
-  const [sidecar, { mutate: setSidecar }] = createResource(() => props.api.awaitInitialization())
+  const [sidecar, { mutate: setSidecar }] = createResource(async () => {
+    try {
+      return await props.api.awaitInitialization()
+    } catch (error) {
+      // The RPC failure tells the error screen what to say and whether Retry is useful.
+      const failure = await props.api.connectFailure().catch(() => null)
+      const cause = error instanceof Error ? error : new Error(String(error))
+
+      if (failure) Object.defineProperty(cause, "localServerFailure", { value: failure })
+
+      throw cause
+    }
+  })
 
   const [locale] = createResource(() => preloadStoredLocale(platform))
 

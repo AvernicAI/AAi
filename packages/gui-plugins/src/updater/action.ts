@@ -17,6 +17,8 @@ export function updaterAction(state: UpdaterState | undefined) {
       return { label: "action.installing" as const }
     case "disabled":
       return { label: "action.checkNow" as const }
+    case "error":
+      return { label: "action.retry" as const, run: "check" as const }
     default:
       return { label: "action.checkNow" as const, run: "check" as const }
   }

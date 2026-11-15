@@ -14,7 +14,20 @@ const integration = (value: Partial<IntegrationInfo> & Pick<IntegrationInfo, "id
 })
 
 describe("integrationOptions", () => {
-  test("keeps popular integrations first and sorts the rest alphabetically", () => {
+  test("keeps free access, temporary offers, paid, and unverified distinct", () => {
+    expect(integrationOptions([
+      integration({ id: "unknown", name: "Unknown" }),
+      integration({ id: "mistral", name: "Mistral" }),
+      integration({ id: "cerebras", name: "Cerebras" }),
+      integration({ id: "simplellm", name: "SimpleLLM" }),
+      integration({ id: "aai-compatible-free-openrouter", name: "Router preset" }),
+      integration({ id: "sambanova", name: "SambaNova" }),
+    ]).map((item) => item.id)).toEqual([
+      "aai-compatible-free-openrouter", "simplellm", "cerebras", "mistral", "sambanova", "unknown",
+    ])
+  })
+
+  test("orders pricing groups before priority and name", () => {
     expect(
       integrationOptions([
         integration({ id: "mistral", name: "Mistral" }),
@@ -24,7 +37,7 @@ describe("integrationOptions", () => {
         integration({ id: "opencode", name: "OpenCode Zen" }),
         integration({ id: "opencode-go", name: "OpenCode Go" }),
       ]).map((item) => item.id),
-    ).toEqual(["opencode", "opencode-go", "openai", "anthropic", "mistral", "custom-z"])
+    ).toEqual(["openai", "anthropic", "mistral", "opencode", "opencode-go", "custom-z"])
   })
 
   test("keeps MCP integrations above popular integrations without relying on their IDs", () => {
@@ -36,7 +49,7 @@ describe("integrationOptions", () => {
         integration({ id: "opencode", name: "OpenCode Zen" }),
         integration({ id: "opencode-go", name: "OpenCode Go" }),
       ]).map((item) => item.id),
-    ).toEqual(["github", "linear", "opencode", "opencode-go", "openai"])
+    ).toEqual(["github", "linear", "openai", "opencode", "opencode-go"])
   })
 })
 

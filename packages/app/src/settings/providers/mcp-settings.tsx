@@ -43,8 +43,6 @@ export function McpSettings(props: {
     busy: boolean
     error: string
     paste: boolean
-    convio: boolean
-    convioKey: string
     selectedTools?: readonly string[]
     json: string
     importName: string
@@ -67,8 +65,6 @@ export function McpSettings(props: {
     busy: false,
     error: "",
     paste: false,
-    convio: false,
-    convioKey: "",
     json: "",
     importName: "",
   })
@@ -77,20 +73,24 @@ export function McpSettings(props: {
     () => sdk.scope,
     async (scope) => ({ scope, entries: await sdk.api.config.get() }),
   )
-  const [convioTools] = createResource(
+
+  const [serverTools] = createResource(
     () => {
-      if (!store.open || store.original !== "convio") return false
+      if (!store.open || !store.original || store.type !== "remote") return false
       const location = props.directory ? { directory: props.directory } : data.location.default()
+
       const connected = data.location.mcp.server
         .list(location)
-        ?.some((server) => server.name === "convio" && server.status.status === "connected")
-      return connected && { scope: sdk.scope, location }
+        ?.some((server) => server.name === store.original && server.status.status === "connected")
+
+      return connected && { scope: sdk.scope, location, server: store.original }
     },
     async (source) => {
       const result = await sdk.api.experimental.mcp.toolCatalog({
-        server: "convio",
+        server: source.server,
         location: source.location,
       })
+
       return result.data
     },
   )
@@ -119,18 +119,12 @@ export function McpSettings(props: {
     ])
   }
 
-  const close = () => setStore({ open: false, convio: false, convioKey: "", imports: undefined, json: "", error: "" })
-  const isConvioPreset = () => {
-    const server = servers().get(store.original)
-    return store.original === "convio" && server?.type === "remote" && server.url === "https://mcp.convio.dev"
-  }
+  const close = () => setStore({ open: false, imports: undefined, json: "", error: "" })
 
   const edit = (name = "") => {
     const server = servers().get(name)
     setStore({
       open: true,
-      convio: false,
-      convioKey: "",
       selectedTools: server?.type === "remote" ? server.tools : undefined,
       original: name,
       name,
@@ -165,6 +159,7 @@ export function McpSettings(props: {
       if (lifetime.signal.aborted || sdk.scope !== scope) return
       close()
       await refresh()
+
       if (editAfterSave && !lifetime.signal.aborted && sdk.scope === scope) edit(editAfterSave)
     } catch {
       if (!lifetime.signal.aborted && sdk.scope === scope) setStore("error", language.t("settings.mcp.failed"))
@@ -182,9 +177,6 @@ export function McpSettings(props: {
     if (!store.original && (servers().has(name) || props.names.includes(name)))
       return setStore("error", language.t("settings.mcp.conflict"))
     const previous = servers().get(store.original)
-    const convio = isConvioPreset()
-    const key = store.convioKey.trim()
-    if (convio && key && /[^!-~]/.test(key)) return setStore("error", language.t("settings.mcp.invalid"))
 
     try {
       const shared = {
@@ -208,13 +200,7 @@ export function McpSettings(props: {
               ...shared,
               type: "remote",
               url: store.url.trim(),
-              headers: convio
-                ? key
-                  ? { authorization: `Bearer ${key}` }
-                  : previous?.type === "remote"
-                    ? previous.headers
-                    : undefined
-                : Object.fromEntries(new Headers(parsePairs(store.headers))),
+              headers: Object.fromEntries(new Headers(parsePairs(store.headers))),
               tools: store.selectedTools,
               oauth: store.oauth
                 ? previous?.type === "remote" && previous.oauth !== false
@@ -297,13 +283,6 @@ export function McpSettings(props: {
         </Button>
         <Button
           variant="neutral"
-          disabled={store.busy || config.state !== "ready" || servers().has("convio") || props.names.includes("convio")}
-          onClick={() => setStore({ open: false, convio: true, error: "" })}
-        >
-          {language.t("settings.mcp.convio.connect")}
-        </Button>
-        <Button
-          variant="neutral"
           disabled={store.busy}
           onClick={() => void refresh().catch(() => setStore("error", language.t("settings.mcp.failed")))}
         >
@@ -313,51 +292,6 @@ export function McpSettings(props: {
       <p class="text-sm text-v2-text-text-muted">{language.t("settings.mcp.description")}</p>
       <Show when={store.error}>
         <p role="alert">{store.error}</p>
-      </Show>
-      <Show when={store.convio}>
-        <form
-          class="flex flex-col gap-4 rounded-md border border-v2-border-border-base p-4"
-          onSubmit={(event) => {
-            event.preventDefault()
-            if (servers().has("convio") || props.names.includes("convio"))
-              return setStore("error", language.t("settings.mcp.conflict"))
-            const key = store.convioKey.trim()
-
-            if (!key || /[^!-~]/.test(key)) return setStore("error", language.t("settings.mcp.invalid"))
-            void persist(
-              {
-                convio: {
-                  type: "remote",
-                  url: "https://mcp.convio.dev",
-                  headers: { authorization: `Bearer ${key}` },
-                  oauth: false,
-                  tools: [],
-                },
-              },
-              "convio",
-            )
-          }}
-        >
-          <label class="flex flex-col gap-2">
-            {language.t("settings.mcp.convio.key")}
-            <TextInput
-              type="password"
-              autocomplete="off"
-              required
-              disabled={store.busy}
-              value={store.convioKey}
-              onInput={(event) => setStore("convioKey", event.currentTarget.value)}
-            />
-          </label>
-          <div class="flex gap-2">
-            <Button type="submit" disabled={store.busy}>
-              {language.t("settings.mcp.convio.connect")}
-            </Button>
-            <Button type="button" variant="neutral" disabled={store.busy} onClick={close}>
-              {language.t("common.cancel")}
-            </Button>
-          </div>
-        </form>
       </Show>
       <Show when={store.open}>
         <div class="rounded-md border border-v2-border-border-base p-4">
@@ -388,12 +322,12 @@ export function McpSettings(props: {
                   <Show when={store.name === "blender" && store.type === "local"}>
                     <p class="text-sm text-v2-text-text-muted">{language.t("settings.mcp.blender.setup")}</p>
                   </Show>
-                  <Show when={store.original === "convio" && store.type === "remote"}>
+                  <Show when={!!store.original && store.type === "remote"}>
                     <fieldset class="flex flex-col gap-2">
-                      <legend>{language.t("settings.mcp.convio.tools")}</legend>
+                      <legend>{language.t("settings.mcp.tools")}</legend>
                       <Show
-                        when={convioTools.state === "ready" && convioTools()?.length}
-                        fallback={<p>{language.t("settings.mcp.convio.toolsUnavailable")}</p>}
+                        when={serverTools.state === "ready" && serverTools()?.length}
+                        fallback={<p>{language.t("settings.mcp.toolsUnavailable")}</p>}
                       >
                         <label class="flex items-center gap-2">
                           <input
@@ -403,16 +337,16 @@ export function McpSettings(props: {
                               setStore("selectedTools", event.currentTarget.checked ? undefined : [])
                             }
                           />
-                          {language.t("settings.mcp.convio.allTools")}
+                          {language.t("settings.mcp.allTools")}
                         </label>
-                        <For each={convioTools()}>
+                        <For each={serverTools()}>
                           {(tool) => (
                             <label class="flex items-center gap-2" title={tool.description}>
                               <input
                                 type="checkbox"
                                 checked={store.selectedTools?.includes(tool.name) ?? true}
                                 onChange={(event) => {
-                                  const selected = store.selectedTools ?? convioTools()?.map((item) => item.name) ?? []
+                                  const selected = store.selectedTools ?? serverTools()?.map((item) => item.name) ?? []
                                   setStore(
                                     "selectedTools",
                                     event.currentTarget.checked
@@ -442,7 +376,6 @@ export function McpSettings(props: {
                     {language.t("settings.mcp.type")}
                     <select
                       class="rounded border bg-v2-background-bg-base p-2"
-                      disabled={isConvioPreset()}
                       aria-label={language.t("settings.mcp.type")}
                       value={store.type}
                       onChange={(event) =>
@@ -462,40 +395,22 @@ export function McpSettings(props: {
                           <TextInput
                             type="url"
                             required
-                            readOnly={isConvioPreset()}
                             aria-label={language.t("settings.mcp.url")}
                             value={store.url}
                             onInput={(event) => setStore("url", event.currentTarget.value)}
                           />
                         </label>
-                        <Show
-                          when={isConvioPreset()}
-                          fallback={
-                            <label class="flex flex-col gap-2">
-                              {language.t("settings.mcp.headers")}
-                              <textarea
-                                class="rounded border bg-v2-background-bg-base p-3 font-mono"
-                                rows={3}
-                                aria-label={language.t("settings.mcp.headers")}
-                                value={store.headers}
-                                onInput={(event) => setStore("headers", event.currentTarget.value)}
-                              />
-                              <span class="text-xs text-v2-text-text-muted">
-                                {language.t("settings.mcp.pairsHelp")}
-                              </span>
-                            </label>
-                          }
-                        >
-                          <label class="flex flex-col gap-2">
-                            {language.t("settings.mcp.convio.key")}
-                            <TextInput
-                              type="password"
-                              autocomplete="off"
-                              value={store.convioKey}
-                              onInput={(event) => setStore("convioKey", event.currentTarget.value)}
-                            />
-                          </label>
-                        </Show>
+                        <label class="flex flex-col gap-2">
+                          {language.t("settings.mcp.headers")}
+                          <textarea
+                            class="rounded border bg-v2-background-bg-base p-3 font-mono"
+                            rows={3}
+                            aria-label={language.t("settings.mcp.headers")}
+                            value={store.headers}
+                            onInput={(event) => setStore("headers", event.currentTarget.value)}
+                          />
+                          <span class="text-xs text-v2-text-text-muted">{language.t("settings.mcp.pairsHelp")}</span>
+                        </label>
                         <label class="flex items-center gap-2">
                           <input
                             type="checkbox"

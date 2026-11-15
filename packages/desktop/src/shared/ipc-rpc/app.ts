@@ -1,5 +1,6 @@
 import { Schema } from "effect"
 import { Rpc, RpcGroup } from "effect/rpc"
+import { ConnectFailureSchema } from "./connect"
 
 const ServerReadyData = Schema.Struct({
   url: Schema.String,
@@ -8,6 +9,10 @@ const ServerReadyData = Schema.Struct({
 export const AppAwaitInitialization = Rpc.make("AppAwaitInitialization", { success: ServerReadyData })
 
 export const AppReconnectService = Rpc.make("AppReconnectService", { success: ServerReadyData })
+
+export const AppConnectFailure = Rpc.make("AppConnectFailure", {
+  success: Schema.NullOr(ConnectFailureSchema),
+})
 
 export const AppConsumeInitialDeepLinks = Rpc.make("AppConsumeInitialDeepLinks", {
   success: Schema.Array(Schema.String),
@@ -63,6 +68,7 @@ export const AppRelaunch = Rpc.make("AppRelaunch")
 export const AppRpcs = RpcGroup.make(
   AppAwaitInitialization,
   AppReconnectService,
+  AppConnectFailure,
   AppConsumeInitialDeepLinks,
   AppIsFirstLaunchOnboardingPending,
   AppFinishFirstLaunchOnboarding,

@@ -50,7 +50,7 @@ export const communityFreeAPIs: readonly FreeAPI[] = [
     tier: "allowance",
     docs: "https://bazaarlink.ai",
     keyURL: "https://bazaarlink.ai",
-    base: "https://bazaarlink.ai/api/v1",
+    base: "https://api.bazaarlink.ai/v1",
     catalog: "https://freellmapi.co/models",
     models: [
       {

@@ -18,6 +18,7 @@ import { terminalTab, type LocalPTY } from "./state"
 import { terminalTabLabel } from "./title"
 import { TerminalTabLabel } from "./label"
 import quoteStyles from "./quote.css?inline"
+import { AgentTerminal } from "./contract"
 import { onIdle, BuiltinCommand, BuiltinSlot } from "@opencode/plugin/gui/builtin"
 
 const setup: Plugin.Setup<typeof Terminal> = (ctx) => {
@@ -27,6 +28,30 @@ const setup: Plugin.Setup<typeof Terminal> = (ctx) => {
   const key = (id: string) => `${ctx.id}:${id}`
 
   onCleanup(model.dispose)
+  const AgentCommands = lazy(() => import("./agent"))
+  ctx.provide(AgentTerminal, { open: (session) => ctx.layout.open("terminal:agent", session, { tab: "select" }) })
+  ctx.add(Panel, {
+    id: "agent",
+    region: "side",
+    list: (input) =>
+      input.open.includes("agent") ? [{ id: "agent", group: "workspace", title: ctx.t("agent.title") }] : [],
+    render: (props) => (
+      <Suspense>
+        <AgentCommands session={props.session} />
+      </Suspense>
+    ),
+  })
+  ctx.add(Command, {
+    id: "agent",
+    get title() {
+      return ctx.t("agent.title")
+    },
+    run: () => {
+      const session = sessions.current()
+
+      if (session) ctx.layout.open("terminal:agent", session, { tab: "select" })
+    },
+  })
   ctx.add(Style, quoteStyles)
   // The host withdraws the listener with the plugin.
   ctx.workspaces.on("remove", model.remove)

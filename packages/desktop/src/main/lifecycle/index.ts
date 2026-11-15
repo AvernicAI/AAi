@@ -6,6 +6,7 @@ import { Context, Effect, Layer } from "effect"
 import { DeepLinksOpened } from "../../shared/ipc-rpc/events"
 import { emitIpcEvent } from "../ipc-events"
 import { DesktopLogging, scoped } from "../native/logging"
+import { readDesktopPreferences } from "../native/preferences"
 import { DesktopStorage } from "../storage"
 import { safeWebContentsURL } from "../windows/state"
 import { getLastFocusedWindow, getWindowByID, mainWindows, setAppQuitting, setRelaunchHandler } from "../windows"
@@ -20,6 +21,8 @@ export interface Interface {
   readonly consumeInitialDeepLinks: () => string[]
   readonly createWindow: () => BrowserWindow
   readonly restoreWindows: () => BrowserWindow[]
+  /** Shows and focuses the last window, or opens one when none exists. */
+  readonly focusOrRestore: () => void
 }
 
 export class Service extends Context.Service<Service, Interface>()("opencode/desktop/ApplicationLifecycle") {}
@@ -51,6 +54,20 @@ const runtime = Layer.effect(
       if (win.isMinimized()) win.restore()
       win.show()
       win.focus()
+    }
+
+    const focusOrRestore = () => {
+      if (quitRequested) return
+
+      const win = getLastFocusedWindow()
+
+      if (win) {
+        focusWindow(win)
+
+        return
+      }
+
+      restoreWindows()
     }
 
     const emitDeepLinks = (urls: string[]) => {
@@ -140,14 +157,21 @@ const runtime = Layer.effect(
 
     // Electron emits this instead of will-quit when it lost track of a quit, so finish the one we asked for.
     const windowAllClosed = () => {
-      if (quitRequested || process.platform !== "darwin") app.quit()
+      if (quitRequested) {
+        app.quit()
+
+        return
+      }
+
+      // Keep-running does not quit on the last close; the tray or the app menu quits instead.
+      if (process.platform === "darwin") return
+
+      if (readDesktopPreferences().closeBehavior === "background") return
+      app.quit()
     }
 
-    const activate = () => {
-      if (quitRequested) return
-
-      if (BrowserWindow.getAllWindows().length === 0) restoreWindows()
-    }
+    // Dock and taskbar activation shows a hidden keep-running window before opening a new one.
+    const activate = () => focusOrRestore()
 
     const resetRelaunchHandler = setRelaunchHandler(relaunch)
     let windowsWired = false
@@ -181,6 +205,7 @@ const runtime = Layer.effect(
       prepareToRestart,
       consumeInitialDeepLinks: () => pendingDeepLinks.splice(0),
       createWindow,
+      focusOrRestore,
       restoreWindows: () => {
         if (!windowsWired) {
           windowsWired = true

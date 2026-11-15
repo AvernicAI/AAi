@@ -3,6 +3,8 @@ import type { BrowserWindow } from "electron"
 import { Effect } from "effect"
 import { DesktopLogging, scoped } from "../native/logging"
 import { nativeT } from "../native/translations"
+import { getStore } from "../storage/store"
+import { crashTimestampsKey, nextCrashState, parseCrashTimestamps } from "./crash-loop"
 import { safeWindowURL } from "./state"
 import { unresponsiveSampler } from "./unresponsive"
 
@@ -15,6 +17,7 @@ export const windowRecovery = Effect.gen(function* () {
 
   function wireWindowRecovery(win: BrowserWindow, name: string, relaunch: () => void) {
     let showing = false
+    let cleanTimer: ReturnType<typeof setTimeout> | undefined
     const sampler = createUnresponsiveSampler(win, name)
 
     type RecoveryAction = "relaunch" | "export-logs" | "keep-waiting" | "quit"
@@ -46,29 +49,35 @@ export const windowRecovery = Effect.gen(function* () {
       return false
     }
 
-    const show = async (message: string, detail: string, wait: boolean) => {
+    const show = async (message: string, detail: string, wait: boolean, loop = false) => {
       if (showing || win.isDestroyed()) return
       showing = true
 
       try {
         while (!win.isDestroyed()) {
-          const actions: { id: RecoveryAction; label: string }[] = wait
+          // A crash loop offers no Keep Waiting: another reload would crash again.
+          const actions: { id: RecoveryAction; label: string }[] = loop
             ? [
                 { id: "relaunch", label: nativeT("desktop.recovery.action.relaunch") },
                 { id: "export-logs", label: nativeT("desktop.recovery.action.exportLogs") },
-                { id: "keep-waiting", label: nativeT("desktop.recovery.action.keepWaiting") },
               ]
-            : [
-                { id: "relaunch", label: nativeT("desktop.recovery.action.relaunch") },
-                { id: "export-logs", label: nativeT("desktop.recovery.action.exportLogs") },
-                { id: "quit", label: nativeT("desktop.recovery.action.quit") },
-              ]
+            : wait
+              ? [
+                  { id: "relaunch", label: nativeT("desktop.recovery.action.relaunch") },
+                  { id: "export-logs", label: nativeT("desktop.recovery.action.exportLogs") },
+                  { id: "keep-waiting", label: nativeT("desktop.recovery.action.keepWaiting") },
+                ]
+              : [
+                  { id: "relaunch", label: nativeT("desktop.recovery.action.relaunch") },
+                  { id: "export-logs", label: nativeT("desktop.recovery.action.exportLogs") },
+                  { id: "quit", label: nativeT("desktop.recovery.action.quit") },
+                ]
 
           const result = await dialog.showMessageBox(win, {
             type: "warning",
             buttons: actions.map((action) => action.label),
             defaultId: 0,
-            cancelId: 2,
+            cancelId: loop ? undefined : actions.length - 1,
             message,
             detail,
           })
@@ -125,21 +134,44 @@ export const windowRecovery = Effect.gen(function* () {
     })
     win.webContents.on("render-process-gone", (_event, details) => {
       sampler.stopAndFlush()
+
+      if (cleanTimer) {
+        clearTimeout(cleanTimer)
+        cleanTimer = undefined
+      }
+
+      // Persist across a relaunch loop, not just this process: three crashes in a minute stop the
+      // endless dialog-and-reload cycle and ask for logs instead.
+      const store = getStore()
+      const key = crashTimestampsKey(name)
+      const { crashes, loop } = nextCrashState(parseCrashTimestamps(store.get(key)), Date.now())
+      store.set(key, crashes)
+
       runFork(
-        scoped(
-          "window",
-          Effect.logError("renderer process gone", { window: name, currentURL: safeWindowURL(win), details }),
-        ),
+        scoped("window", Effect.logError("renderer process gone", { window: name, currentURL: safeWindowURL(win), details, loop })),
       )
       void show(
-        nativeT("desktop.recovery.terminated"),
-        nativeT("desktop.recovery.terminated.detail", {
+        nativeT(loop ? "desktop.recovery.crashLoop" : "desktop.recovery.terminated"),
+        nativeT(loop ? "desktop.recovery.crashLoop.detail" : "desktop.recovery.terminated.detail", {
           window: name,
           reason: details.reason,
           code: details.exitCode ?? nativeT("desktop.recovery.unknown"),
+          crashes: crashes.length,
         }),
         false,
+        loop,
       )
+    })
+    // Only a load that survives half a minute clears the history; one that crashes first does not.
+    win.webContents.on("did-finish-load", () => {
+      if (cleanTimer) clearTimeout(cleanTimer)
+      cleanTimer = setTimeout(() => {
+        cleanTimer = undefined
+        getStore().delete(crashTimestampsKey(name))
+      }, 30_000)
+    })
+    win.on("closed", () => {
+      if (cleanTimer) clearTimeout(cleanTimer)
     })
     win.on("unresponsive", () => {
       runFork(

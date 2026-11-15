@@ -13,3 +13,9 @@ export const COLOR_SCHEME_KEY = "colorScheme"
 export const WINDOW_IDS_KEY = "windowIds"
 
 export const BUNDLED_CLI_VERSION_KEY = "bundledCliVersion"
+
+export const LAUNCH_AT_LOGIN_KEY = "launchAtLogin"
+
+export const CLOSE_BEHAVIOR_KEY = "closeBehavior"
+
+export const SUMMON_SHORTCUT_KEY = "summonShortcut"

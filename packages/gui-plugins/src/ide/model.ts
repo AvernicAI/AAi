@@ -4,13 +4,14 @@ import type { editor } from "monaco-editor"
 import type { IpcClient, SetupContext } from "@opencode/plugin/gui"
 import { artifactKind } from "@opencode/util/artifact"
 import type definition from "./index"
-import type { Diagnostic, Entry, Ide } from "./contract"
+import type { Diagnostic, Entry, Ide, TaskUpdate } from "./contract"
 
 export type WorkspaceClient = IpcClient<Ide["spec"]>
 
 type OpenDocument = { kind: "text"; path: string; text: string; saved: string; version: string; language: string }
 
 type OpenImage = { kind: "image"; path: string; src: string }
+
 type OpenFile = OpenDocument | OpenImage
 
 type IdeState = {
@@ -23,6 +24,9 @@ type IdeState = {
   error: string
   output: string
   diagnostics: { path: string; items: readonly (typeof Diagnostic.Type)[] }[]
+  markers: { path: string; items: readonly (typeof Diagnostic.Type)[] }[]
+  task?: typeof TaskUpdate.Type
+  restoring: boolean
   languages: string[]
   cursor: { line: number; column: number }
   breakpoints: { path: string; lines: number[] }[]
@@ -49,19 +53,37 @@ export function createIdeModel(input: {
     error: "",
     output: "",
     diagnostics: [],
+    markers: [],
+    restoring: true,
     languages: [],
     cursor: { line: 1, column: 1 },
     breakpoints: [],
   })
 
   const alive = () => !controller.signal.aborted
+
+  const remember = () => {
+    if (!alive() || state.restoring) return
+    void input.ctx.stores.workspaces.update((items) => {
+      const previous = items.findIndex((item) => item.root === input.root)
+      const value = { root: input.root, paths: state.files.map((file) => file.path), active: state.active }
+
+      if (previous < 0) items.push(value)
+
+      if (previous >= 0) items[previous] = value
+    })
+  }
+
   const options = { signal: controller.signal }
   const documents = () => state.files.filter((item) => item.kind === "text")
   const activeFile = () => state.files.find((item) => item.path === state.active)
+
   const current = () => {
     const file = activeFile()
+
     return file?.kind === "text" ? file : undefined
   }
+
   let openRequest = 0
 
   const report = (error: Error) => {
@@ -116,6 +138,7 @@ export function createIdeModel(input: {
   const update = (path: string, text: string) => {
     const index = state.files.findIndex((item) => item.path === path)
     const document = state.files[index]
+
     if (document?.kind !== "text") return
     const updated = { ...document, text }
     setState("files", index, updated)
@@ -124,13 +147,17 @@ export function createIdeModel(input: {
 
   const readImage = async (path: string): Promise<OpenImage> => {
     const value = await input.client.readImage({ binding: input.binding, path }, options)
+
     return { kind: "image", path: value.path, src: `data:${value.mime};base64,${value.base64}` }
   }
 
   const open = async (path: string, line?: number, column?: number) => {
     const request = ++openRequest
+
     if (state.files.some((item) => item.path === path)) {
       setState({ active: path, loading: false, error: "" })
+      remember()
+
       return { line, column }
     }
 
@@ -143,6 +170,7 @@ export function createIdeModel(input: {
             const recovered = input.ctx.stores.drafts.value.find(
               (item) => item.root === input.root && item.path === value.path,
             )
+
             return {
               ...value,
               kind: "text",
@@ -156,8 +184,10 @@ export function createIdeModel(input: {
     return read.then(
       (value) => {
         if (!alive() || request !== openRequest) return
+
         if (!state.files.some((item) => item.path === value.path)) setState("files", (items) => [...items, value])
         setState({ active: value.path, loading: false })
+        remember()
 
         return { line, column }
       },
@@ -165,6 +195,7 @@ export function createIdeModel(input: {
         if (!alive() || request !== openRequest) return
         setState("loading", false)
         report(error)
+
         return undefined
       },
     )
@@ -182,6 +213,7 @@ export function createIdeModel(input: {
         if (!alive()) return
         const index = state.files.findIndex((item) => item.path === path)
         const current = state.files[index]
+
         if (current?.kind !== "text") return
         const saved = { ...current, saved: value.text, version: value.version }
         setState("files", index, saved)
@@ -216,22 +248,34 @@ export function createIdeModel(input: {
     setState("entries", (items) => [...items.filter((item) => !item.path.startsWith(path + "/")), ...entries])
   }
 
-  const reload = async () => {
+  const reload = async (preserveDraft = false) => {
     const file = activeFile()
+
     if (!file) return
     const path = file.path
+
     if (file.kind === "image") {
       const value = await readImage(path)
+
       if (!alive()) return
       const index = state.files.findIndex((item) => item === file)
+
       if (index >= 0) setState("files", index, value)
+
       return
     }
 
+    const before = { text: file.text, version: file.version }
     const value = await input.client.read({ binding: input.binding, path }, options)
+
     if (!alive()) return
     const index = state.files.findIndex((item) => item === file)
+
     if (index < 0) return
+
+    // An automatic agent refresh must not overwrite typing or a save that finished during the IPC read.
+    if (preserveDraft && (file.text !== before.text || file.version !== before.version || file.text !== file.saved))
+      return
     const reloaded = { ...file, text: value.text, saved: value.text, version: value.version }
     setState("files", index, reloaded)
     models.get(path)?.setValue(value.text)
@@ -248,11 +292,37 @@ export function createIdeModel(input: {
   input.client.on("status", (event) => {
     if (event.binding === input.binding) append(`[${event.service}] ${event.message}`)
   })
+  input.client.on("task", (event) => {
+    if (event.binding !== input.binding || !alive()) return
+    setState("task", {
+      id: event.id,
+      command: event.command,
+      status: event.status,
+      code: event.code,
+      text: ((state.task?.id === event.id ? state.task.text : "") + event.text).slice(-200000),
+    })
+  })
   onCleanup(() => {
     models.forEach((model) => model.dispose())
     models.clear()
   })
   void run(refresh)
+  void run(async () => {
+    const saved = input.ctx.stores.workspaces.value.find((item) => item.root === input.root)
+    const paths = [...(saved?.paths ?? [])]
+    const active = saved?.active
+
+    for (const path of paths) {
+      if (!alive()) return
+      await open(path)
+    }
+
+    if (active && paths.includes(active) && alive()) await open(active)
+  }).finally(() => {
+    if (!alive()) return
+    setState("restoring", false)
+    remember()
+  })
 
   return {
     state,
@@ -284,6 +354,7 @@ export function createIdeModel(input: {
       setState("files", next)
 
       if (state.active === path) setState("active", next.at(-1)?.path ?? "")
+      remember()
     },
     async saveAll() {
       for (const item of documents()) await save(item.path)

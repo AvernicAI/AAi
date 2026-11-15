@@ -26,11 +26,19 @@ const initialChunk: Plugin = {
   name: "opencode-desktop:initial-chunk",
   renderStart() {
     const entries = [...this.getModuleIds()].filter((id) => this.getModuleInfo(id)?.isEntry)
+    const main = entries.find((id) => id.endsWith("/index.html")) ?? entries[0]
     initialGraph.clear()
-    entries.forEach((id) => initialGraph.add(id))
+
+    if (!main) return
+    initialGraph.add(main)
 
     // A Set's iterator also visits members added while iterating, so this reaches every static import.
     for (const id of initialGraph) this.getModuleInfo(id)?.importedIds.forEach((imported) => initialGraph.add(imported))
+    // Utility entries must not import the main window's boot code through the startup chunk.
+    const secondary = new Set(entries.filter((id) => id !== main))
+
+    for (const id of secondary) this.getModuleInfo(id)?.importedIds.forEach((child) => secondary.add(child))
+    secondary.forEach((id) => initialGraph.delete(id))
   },
 }
 
@@ -100,7 +108,7 @@ export default defineConfig(async ({ command }) => {
       build: {
         minify: command === "build",
         rolldownOptions: {
-          input: { index: "src/preload/index.ts" },
+          input: { index: "src/preload/index.ts", alphie: "src/preload/alphie.ts" },
           output: {
             format: "cjs",
             // The package is "type": "module". Under --no-sandbox Electron loads the preload
@@ -133,6 +141,7 @@ export default defineConfig(async ({ command }) => {
         rolldownOptions: {
           input: {
             main: "src/renderer/index.html",
+            alphie: "src/renderer/alphie.html",
           },
           output: {
             codeSplitting: {

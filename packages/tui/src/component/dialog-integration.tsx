@@ -13,6 +13,7 @@ import type {
   LocationRef,
 } from "@opencode/client"
 import { openUrl } from "@opencode/util/open"
+import { providerPricing } from "@opencode/util/provider-pricing"
 import { createEffect, createMemo, createSignal, For, onCleanup, onMount, Show } from "solid-js"
 import { createStore } from "solid-js/store"
 import { useNewDesigns } from "../config"
@@ -67,9 +68,18 @@ const SUBMIT = Symbol("submit")
 const OAUTH_CODE = /[A-Z0-9]{4}-[A-Z0-9]{4,5}/
 
 export function integrationOptions(list: IntegrationInfo[]) {
+  const rank = (item: IntegrationInfo) => {
+    if (item.metadata?.source === "mcp") return 0
+    const pricing = providerPricing(item.id)
+    if (pricing === "free-access") return 1
+    if (pricing === "trial") return 2
+    if (pricing === "paid") return 3
+    return 4
+  }
   return list.toSorted(
     (a, b) =>
-      Number(b.metadata?.source === "mcp") - Number(a.metadata?.source === "mcp") ||
+      rank(a) - rank(b) ||
+      Number(b.connections.length > 0) - Number(a.connections.length > 0) ||
       (INTEGRATION_PRIORITY[a.id] ?? 99) - (INTEGRATION_PRIORITY[b.id] ?? 99) ||
       a.name.localeCompare(b.name) ||
       a.id.localeCompare(b.id),
@@ -127,9 +137,16 @@ export function DialogIntegration(
     return integrations().map((integration) => {
       const methods = connectMethods(integration)
       const credentials = credentialConnections(integration)
-      let category = "Services"
-      if (integration.id in INTEGRATION_PRIORITY) category = "Popular"
-      if (integration.metadata?.source === "mcp") category = "MCP"
+      const pricing = providerPricing(integration.id)
+      const category = integration.metadata?.source === "mcp"
+        ? "MCP"
+        : pricing === "free-access"
+          ? "Free access available (paid options may apply)"
+          : pricing === "trial"
+            ? "Trials and temporary access"
+            : pricing === "paid"
+              ? "Paid APIs"
+              : "Other / pricing unverified"
       const status = integration.connections[0]?.status
       return {
         title: integration.name,
@@ -154,6 +171,7 @@ export function DialogIntegration(
   return (
     <DialogSelect
       title="Connect an integration"
+      description="Free access depends on model and account; check pricing before use."
       options={options()}
       emptyView={
         <box paddingLeft={DIALOG_LIST_INSET} paddingRight={DIALOG_LIST_INSET}>

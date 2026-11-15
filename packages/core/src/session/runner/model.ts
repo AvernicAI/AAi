@@ -4,9 +4,10 @@ import { makeLocationNode } from "@opencode/util/effect/app-node"
 import { LanguageModel } from "@opencode/ai/effect"
 import { Model } from "@opencode/schema/model"
 import { Provider } from "@opencode/schema/provider"
-import { Context, Effect, Layer, Schema } from "effect"
+import { Clock, Context, Effect, Layer, Schema } from "effect"
 import { Agent } from "../../agent.js"
 import { ModelResolver } from "../../model-resolver.js"
+import { ProviderRouter } from "../../provider-router.js"
 import { SessionSchema } from "../schema.js"
 
 export class ModelNotSelectedError extends Schema.TaggedError<ModelNotSelectedError>()(
@@ -39,6 +40,12 @@ export interface Interface {
     session: SessionSchema.Info,
     available: () => Effect.Effect<ReadonlyArray<Model.Info>>,
   ) => Effect.Effect<Resolved, Error>
+  /** Cools a route that ran out of usage and reports whether a same-model route remains. */
+  readonly exhaust?: (
+    ref: Model.Ref,
+    available: () => Effect.Effect<ReadonlyArray<Model.Info>>,
+    cooldown: number,
+  ) => Effect.Effect<boolean>
 }
 
 export class Service extends Context.Service<Service, Interface>()("@opencode/SessionRunnerModel") {}
@@ -73,21 +80,24 @@ const layer = Layer.effect(
   Effect.gen(function* () {
     const resolver = yield* ModelResolver.Service
     const agents = yield* Agent.Service
+    const cooldowns: ProviderRouter.Cooldowns = new Map()
     return Service.of({
       resolve: Effect.fn("SessionRunnerModel.resolve")(function* (session, available) {
         // Location plugins populate and filter the catalog asynchronously during layer startup.
         if (!session.model) {
           const agent = (yield* agents.select(session.agent)).info?.model
-          const preferred =
-            agent &&
-            (yield* available()).find((model) => model.providerID === agent.providerID && model.id === agent.id)
-          const resolved = preferred
-            ? yield* resolver.resolveModel(preferred, agent.variant)
+          const all = yield* available()
+          const preferred = agent && all.find((model) => model.providerID === agent.providerID && model.id === agent.id)
+          const now = yield* Clock.currentTimeMillis
+          const selected = preferred && ProviderRouter.pick(preferred, all, cooldowns, now)
+          const resolved = selected
+            ? yield* resolver.resolveModel(selected, selected === preferred ? agent?.variant : undefined)
             : yield* resolver.resolve()
           if (resolved) return resolved
           return yield* new ModelNotSelectedError({ sessionID: session.id })
         }
-        const selected = (yield* available()).find(
+        const all = yield* available()
+        const selected = all.find(
           (model) => model.providerID === session.model?.providerID && model.id === session.model.id,
         )
         if (!selected)
@@ -95,7 +105,20 @@ const layer = Layer.effect(
             providerID: session.model.providerID,
             modelID: session.model.id,
           })
-        return yield* resolver.resolveModel(selected, session.model.variant)
+        const now = yield* Clock.currentTimeMillis
+        const routed = ProviderRouter.pick(selected, all, cooldowns, now)
+        return yield* resolver.resolveModel(
+          routed,
+          routed.providerID === selected.providerID && routed.id === selected.id ? session.model.variant : undefined,
+        )
+      }),
+      exhaust: Effect.fn("SessionRunnerModel.exhaust")(function* (ref, available, cooldown) {
+        const now = yield* Clock.currentTimeMillis
+        const all = yield* available()
+        const selected = all.find((model) => model.providerID === ref.providerID && model.id === ref.id)
+        if (!selected) return false
+        ProviderRouter.mark(cooldowns, selected, now + cooldown)
+        return ProviderRouter.candidates(selected, all, cooldowns, now).length > 0
       }),
     })
   }),

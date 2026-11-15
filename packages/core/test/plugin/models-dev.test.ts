@@ -10,7 +10,7 @@ import { Bus } from "@opencode/core/bus"
 import { Location } from "@opencode/core/location"
 import { Model } from "@opencode/core/model"
 import { ModelsDev } from "@opencode/core/models-dev"
-import { ModelsDevPlugin } from "@opencode/core/plugin/models-dev"
+import { CompatibleCatalogPlugin, ModelsDevPlugin } from "@opencode/core/plugin/models-dev"
 import { Plugin } from "@opencode/core/plugin"
 import { PluginHost } from "@opencode/core/plugin/host"
 import { ProviderPlugins } from "@opencode/core/plugin/provider"
@@ -122,6 +122,79 @@ const richSnapshot = (name = "Acme") => {
   ] satisfies readonly ModelsDev.Snapshot[]
   return { providerID, modelID, snapshot }
 }
+
+describe("CompatibleCatalogPlugin", () => {
+  isolated.effect("adds documented chat providers and defers to models.dev on refresh", () =>
+    Effect.gen(function* () {
+      const location = yield* owner
+      const mixlayerID = Provider.ID.make("mixlayer")
+      const mixlayer: ModelsDev.Snapshot = {
+        info: { id: mixlayerID, name: "Mixlayer", activation: "auto", package: "@opencode/ai/providers/openai-compatible" },
+        environment: ["MIXLAYER_API_KEY"],
+        models: [Model.Info.default(mixlayerID, Model.ID.make("paid-model"))],
+      }
+      const current: { snapshot: readonly ModelsDev.Snapshot[] } = { snapshot: [mixlayer] }
+      const source = ModelsDev.Service.of({ get: () => Effect.sync(() => current.snapshot), refresh: () => Effect.void })
+      for (const plugin of [ModelsDevPlugin, CompatibleCatalogPlugin])
+        yield* plugin.effect(location.host).pipe(
+          Effect.provideService(ModelsDev.Service, source),
+          Effect.provideContext(location.context),
+        )
+
+      const initialMixlayer = required((yield* location.providers.snapshot()).records.get(mixlayerID))
+      expect([...initialMixlayer.models.keys()]).toEqual([Model.ID.make("paid-model"), Model.ID.make("qwen/qwen3.5-4b-free")])
+      expect(required(initialMixlayer.models.get(Model.ID.make("qwen/qwen3.5-4b-free"))).settings?.baseURL).toBe("https://mixlayer.ai/v1")
+
+      const providerID = Provider.ID.make("simplellm")
+      const integrationID = Integration.ID.make("simplellm")
+      const fallback = required((yield* location.providers.snapshot()).records.get(providerID))
+      expect(fallback.provider.settings?.baseURL).toBe("https://api.simplellm.eu/v1")
+      expect([...fallback.models.keys()]).toEqual([Model.ID.make("free-gemma-4-E4B")])
+      expect(required(fallback.models.get(Model.ID.make("free-gemma-4-E4B"))).cost).toEqual([])
+      expect(required(yield* location.integration.get(integrationID)).methods).toEqual([
+        { type: "key" },
+        { type: "env", names: ["SIMPLELLM_API_KEY"] },
+      ])
+
+      // Keyless providers are registered without an integration, so they never ask for a credential.
+      const pollinationsID = Provider.ID.make("pollinations")
+      const pollinations = required((yield* location.providers.snapshot()).records.get(pollinationsID))
+      expect(pollinations.provider.settings?.aaiNoAuth).toBe(true)
+      expect(pollinations.provider.integrationID).toBeUndefined()
+      expect(yield* location.integration.get(Integration.ID.make("pollinations"))).toBeUndefined()
+
+      // Provider headers and per-token prices survive the snapshot conversion.
+      const publicai = required((yield* location.providers.snapshot()).records.get(Provider.ID.make("publicai")))
+      expect(publicai.provider.headers).toEqual({ "User-Agent": "AlphaAi" })
+      expect(required(publicai.models.get(Model.ID.make("swiss-ai/apertus-v1.5-8b"))).cost[0]).toMatchObject({
+        input: Money.USDPerMillionTokens.make(0.1),
+        output: Money.USDPerMillionTokens.make(0.2),
+      })
+
+      current.snapshot = [{
+        info: { ...fallback.provider, name: "Catalog SimpleLLM", settings: { baseURL: "https://catalog.example/v1" } },
+        environment: ["CATALOG_KEY"],
+        models: [Model.Info.default(providerID, Model.ID.make("catalog-model"))],
+      }, {
+        ...mixlayer,
+        models: [...mixlayer.models, { ...Model.Info.default(mixlayerID, Model.ID.make("qwen/qwen3.5-4b-free")), name: "Catalog free model" }],
+      }]
+      yield* location.bus.publish(ModelsDev.Event.Refreshed, {})
+      yield* TestClock.adjust("500 millis")
+      yield* TestClock.adjust("500 millis")
+      yield* TestClock.adjust("500 millis")
+      const refreshed = required((yield* location.providers.snapshot()).records.get(providerID))
+      expect(refreshed.provider.name).toBe("Catalog SimpleLLM")
+      expect(refreshed.provider.settings?.baseURL).toBe("https://catalog.example/v1")
+      expect([...refreshed.models.keys()]).toEqual([Model.ID.make("catalog-model")])
+      expect(required(required((yield* location.providers.snapshot()).records.get(mixlayerID)).models.get(Model.ID.make("qwen/qwen3.5-4b-free"))).name).toBe("Catalog free model")
+      expect(required(yield* location.integration.get(integrationID)).methods).toEqual([
+        { type: "key" },
+        { type: "env", names: ["CATALOG_KEY"] },
+      ])
+    }),
+  )
+})
 
 describe("ModelsDevPlugin", () => {
   isolated.effect("shares definitions between Locations while provider and model edits own their copies", () =>

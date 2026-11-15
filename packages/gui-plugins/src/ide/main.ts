@@ -5,6 +5,7 @@ import { Ide } from "./contract"
 import { openWorkspace, type Workspace } from "./workspace"
 import { startLanguage, type Language } from "./language"
 import { startAdapter, type Adapter } from "./dap"
+import { startTask, type Task } from "./task"
 
 type Binding = {
   window: number
@@ -13,6 +14,7 @@ type Binding = {
   languages: Map<string, Language>
   paths: Map<string, string>
   adapter?: Adapter
+  task?: Task
 }
 
 const setup: Plugin.MainSetup = (ctx) => {
@@ -31,6 +33,7 @@ const setup: Plugin.MainSetup = (ctx) => {
 
     if (!binding) return
     bindings.delete(id)
+    await binding.task?.stop()
     await binding.adapter?.stop()
     binding.controller.abort()
     await Promise.all([...binding.languages.values()].map((language) => language.close()))
@@ -75,6 +78,7 @@ const setup: Plugin.MainSetup = (ctx) => {
       return close(input.binding)
     },
     list: (input, caller) => get(input.binding, caller.window).workspace.list(input.path),
+    files: (input, caller) => get(input.binding, caller.window).workspace.files(caller.signal),
     read: (input, caller) => get(input.binding, caller.window).workspace.read(input.path),
     readImage: (input, caller) => get(input.binding, caller.window).workspace.readImage(input.path, caller.signal),
     save: (input, caller) => get(input.binding, caller.window).workspace.save(input.path, input.text, input.version),
@@ -91,6 +95,22 @@ const setup: Plugin.MainSetup = (ctx) => {
       get(input.binding, caller.window).workspace.search(input.query, input.caseSensitive, caller.signal),
     git: (input, caller) => get(input.binding, caller.window).workspace.status(caller.signal),
     diff: (input, caller) => get(input.binding, caller.window).workspace.diff(input.path, caller.signal),
+    compare: (input, caller) =>
+      get(input.binding, caller.window).workspace.compare(input.path, input.staged, caller.signal),
+    tasks: (input, caller) => get(input.binding, caller.window).workspace.tasks(),
+    taskRun: (input, caller) => {
+      const binding = get(input.binding, caller.window)
+
+      if (binding.task?.running()) throw new Error("ide.task.running")
+      binding.task = startTask({
+        command: input.command,
+        directory: binding.workspace.root,
+        emit: (value) => provider.emit("task", { binding: input.binding, ...value }, caller.window),
+      })
+
+      return binding.task.id
+    },
+    taskStop: (input, caller) => get(input.binding, caller.window).task?.stop(),
     stage: async (input, caller) => {
       const workspace = get(input.binding, caller.window).workspace
       await workspace.stage(input.path, input.staged, caller.signal)

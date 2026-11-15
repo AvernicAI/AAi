@@ -14,6 +14,20 @@ describe("error description", () => {
       expect(errorDescriptionKey(error)).toBe("error.page.description")
     },
   )
+
+  test.each([
+    ["cli-missing", "error.page.description.localServerStartup.cliMissing"],
+    ["spawn-failed", "error.page.description.localServerStartup.spawnFailed"],
+    ["port-conflict", "error.page.description.localServerStartup.portConflict"],
+    ["auth-mismatch", "error.page.description.localServerStartup.authMismatch"],
+    ["version-mismatch", "error.page.description.localServerStartup.versionMismatch"],
+    ["timeout", "error.page.description.localServerStartup.timeout"],
+    ["unknown", "error.page.description.localServerStartup"],
+  ] as const)("describes a %s startup failure", (failure, key) => {
+    expect(
+      errorDescriptionKey(Object.assign(new Error("startup"), { localServerStartup: true, localServerFailure: failure })),
+    ).toBe(key)
+  })
 })
 
 describe("error status", () => {

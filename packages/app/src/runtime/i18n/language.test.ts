@@ -17,12 +17,21 @@ describe("rich translations", () => {
 })
 
 describe("dictionaries", () => {
+  test("native menu identities and CLI placeholders survive additions to the English catalog", async () => {
+    const modules = await Promise.all([import("./hr"), import("./hu"), import("./is"), import("./lt")])
+
+    for (const module of modules) {
+      expect(module.dict["desktop.menu.app"]).toBe("AAi")
+      expect(module.dict["desktop.cli.installed.message"]).toContain("{{path}}")
+      expect(module.dict["desktop.cli.failed.message"]).toContain("{{error}}")
+      expect(module.dict["desktop.recovery.loadFailed.detail"]).toContain("{{url}}")
+      expect(module.dict["desktop.recovery.terminated.detail"]).toContain("{{reason}}")
+    }
+  })
+
   test("are flat string maps in every locale", async () => {
     const modules = await Promise.all(
-      DESKTOP_NATIVE_LOCALES.flatMap((locale) => [
-        import(`./${locale}`),
-        import(`../../../../ui/src/i18n/${locale}`),
-      ]),
+      DESKTOP_NATIVE_LOCALES.flatMap((locale) => [import(`./${locale}`), import(`../../../../ui/src/i18n/${locale}`)]),
     )
 
     const nested = modules.flatMap((module) =>

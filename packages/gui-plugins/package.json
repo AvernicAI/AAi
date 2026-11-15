@@ -6,6 +6,9 @@
   "type": "module",
   "license": "MIT",
   "exports": {
+    "./alphie/mate": "./src/alphie/AlphieMate.tsx",
+    "./alphie/contract": "./src/alphie/contract.ts",
+    "./alphie/styles": "./src/alphie/styles.css",
     "./renderer": "./src/renderer.ts",
     "./main": "./src/main.ts",
     "./terminal": "./src/terminal/index.ts",

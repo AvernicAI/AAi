@@ -1,4 +1,5 @@
 import { communityFreeAPIs } from "./free-api-community-data"
+import { expandedFreeAPIs } from "./free-api-expanded-data"
 
 export type FreeAPIModel = {
   id: string
@@ -13,14 +14,19 @@ export type FreeAPIModel = {
   reference?: "embeddings" | "retirement"
 }
 
+export type FreeAPIKind = "chat" | "media" | "platform" | "agent"
+
 export type FreeAPI = {
   id: string
   name: string
   auth: "key" | "anonymous" | "optional" | "account"
-  tier: "routes" | "allowance" | "trial" | "paid" | "experimental" | "credit" | "promotional" | "gateway"
+  tier: "routes" | "allowance" | "trial" | "paid" | "experimental" | "credit" | "promotional" | "gateway" | "unverified"
   docs: string
   keyURL: string
   base: string
+  kind?: FreeAPIKind
+  /** The provider needs custom auth or request headers that the preset installer cannot express. */
+  manual?: boolean
   headers?: Readonly<Record<string, string>>
   body?: Readonly<Record<string, string | number | boolean>>
   configurableEndpoint?: boolean
@@ -29,6 +35,75 @@ export type FreeAPI = {
 }
 
 export const freeAPIs: readonly FreeAPI[] = [
+  {
+    id: "opentyphoon",
+    name: "OpenTyphoon",
+    auth: "key",
+    tier: "experimental",
+    docs: "https://docs.opentyphoon.ai/en/faq/",
+    keyURL: "https://playground.opentyphoon.ai/api-key",
+    base: "https://api.opentyphoon.ai/v1",
+    catalog: "https://docs.opentyphoon.ai/en/models/",
+    models: [
+      { id: "typhoon-v2.5-30b-a3b-instruct", name: "Typhoon 2.5 30B A3B", modality: "Text", tools: true, context: 128000, output: null, quota: "Research API; usage limits apply" },
+      { id: "typhoon-v2.1-12b-instruct", name: "Typhoon 2.1 12B", modality: "Text", tools: true, context: 56000, output: null, quota: "Research API; usage limits apply" },
+    ],
+  },
+  {
+    id: "mixlayer",
+    name: "Mixlayer",
+    auth: "key",
+    tier: "routes",
+    docs: "https://docs.mixlayer.com/pricing",
+    keyURL: "https://console.mixlayer.com/app/api-keys",
+    base: "https://mixlayer.ai/v1",
+    catalog: "https://docs.mixlayer.com/qwen-3-5",
+    models: [
+      { id: "qwen/qwen3.5-4b-free", name: "Qwen 3.5 4B (free)", modality: "Text", tools: true, context: 131000, output: null, quota: "Free model route; check current limits and hosted-tool charges" },
+    ],
+  },
+  {
+    id: "sambanova",
+    name: "SambaNova Cloud",
+    auth: "key",
+    tier: "unverified",
+    docs: "https://docs.sambanova.ai/docs/en/models/rate-limits",
+    keyURL: "https://cloud.sambanova.ai/",
+    base: "https://api.sambanova.ai/v1",
+    catalog: "https://docs.sambanova.ai/docs/en/models/sambacloud-models",
+    models: [
+      { id: "Meta-Llama-3.3-70B-Instruct", name: "Llama 3.3 70B", modality: "Text", tools: true, context: 128000, output: 3072, quota: "Rate-limit and plan pages conflict; check account pricing before use" },
+      { id: "DeepSeek-V3.1", name: "DeepSeek V3.1", modality: "Text (reasoning)", tools: true, context: 128000, output: 7168, quota: "Rate-limit and plan pages conflict; check account pricing before use" },
+      { id: "gpt-oss-120b", name: "GPT-OSS 120B", modality: "Text (reasoning)", tools: true, context: 128000, output: null, quota: "Rate-limit and plan pages conflict; check account pricing before use" },
+    ],
+  },
+  {
+    id: "aihubmix",
+    name: "AIHubMix",
+    auth: "key",
+    tier: "routes",
+    docs: "https://docs.aihubmix.com/en/blogs/free-ai-models",
+    keyURL: "https://aihubmix.com/token",
+    base: "https://aihubmix.com/v1",
+    catalog: "https://aihubmix.com/models",
+    models: [
+      { id: "glm-4.7-flash-free", name: "GLM 4.7 Flash (free)", modality: "Text (reasoning)", tools: true, context: 128000, output: null, quota: "Free route; account eligibility and model quotas apply" },
+      { id: "coding-glm-5.1-free", name: "GLM 5.1 Coding (free)", modality: "Text + Code", tools: true, context: null, output: null, quota: "Free route; account eligibility and model quotas apply" },
+    ],
+  },
+  {
+    id: "cerebras",
+    name: "Cerebras",
+    auth: "key",
+    tier: "trial",
+    docs: "https://inference-docs.cerebras.ai/support/rate-limits",
+    keyURL: "https://cloud.cerebras.ai/",
+    base: "https://api.cerebras.ai/v1",
+    catalog: "https://inference-docs.cerebras.ai/models/overview",
+    models: [
+      { id: "gpt-oss-120b", name: "GPT-OSS 120B", modality: "Text (reasoning)", tools: true, context: 65000, output: 32000, quota: "New-account trial requires a payment method; credits expire and paid usage requires purchase" },
+    ],
+  },
   {
     id: "hetzner",
     name: "Hetzner Inference",
@@ -79,15 +154,13 @@ export const freeAPIs: readonly FreeAPI[] = [
     "id": "aion",
     "name": "Aion Labs",
     "auth": "key",
-    "tier": "allowance",
-    "docs": "https://www.aionlabs.ai/docs/rate-limits/",
+    "tier": "unverified",
+    "docs": "https://www.aionlabs.ai/pricing/",
     "keyURL": "https://www.aionlabs.ai/app/api-keys/",
     "base": "https://api.aionlabs.ai/v1",
     "models": [
-      {"id": "aion-labs/aion-2.0", "name": "aion-labs/aion-2.0", "modality": "Text (reasoning)", "tools": true, "context": 128000, "output": 32000, "quota": "15 RPM, 20K TPD"},
-      {"id": "aion-labs/aion-rp-llama-3.1-8b", "name": "aion-labs/aion-rp-llama-3.1-8b", "modality": "Text", "tools": false, "context": 32000, "output": 32000, "quota": "15 RPM, 20K TPD"},
-      {"id": "aion-labs/aion-3.0", "name": "aion-labs/aion-3.0", "modality": "Text (reasoning)", "tools": true, "context": 128000, "output": 32000, "quota": "15 RPM, 20K TPD"},
-      {"id": "aion-labs/aion-3.0-mini", "name": "aion-labs/aion-3.0-mini", "modality": "Text (reasoning)", "tools": true, "context": 128000, "output": 32000, "quota": "15 RPM, 20K TPD"}
+      {"id": "aion-labs/aion-3.5", "name": "Aion 3.5", "modality": "Text (reasoning)", "tools": true, "context": 262144, "output": 32768, "quota": "Per-token pricing; no published free allowance"},
+      {"id": "aion-labs/aion-3.5-mini", "name": "Aion 3.5 Mini", "modality": "Text (reasoning)", "tools": true, "context": 262144, "output": 32768, "quota": "Per-token pricing; no published free allowance"}
     ]
   },
   {
@@ -151,7 +224,7 @@ export const freeAPIs: readonly FreeAPI[] = [
   },
   {
     "id": "zhipu",
-    "name": "Z AI (Zhipu AI)",
+    "name": "BigModel (Z AI)",
     "auth": "key",
     "tier": "routes",
     "docs": "https://open.bigmodel.cn/pricing",
@@ -309,7 +382,7 @@ export const freeAPIs: readonly FreeAPI[] = [
       {"id": "gpt-oss-120b", "name": "gpt-oss-120b", "modality": "Text", "tools": false, "context": 131000, "output": 32000, "quota": "2 RPM (anonymous)"},
       {"id": "gpt-oss-20b", "name": "gpt-oss-20b", "modality": "Text", "tools": false, "context": 131000, "output": 8000, "quota": "2 RPM (anonymous)"},
       {"id": "Meta-Llama-3_3-70B-Instruct", "name": "Meta-Llama-3_3-70B-Instruct", "modality": "Text", "tools": false, "context": 131000, "output": 4000, "quota": "2 RPM (anonymous)"},
-      {"id": "Qwen3.8-27B", "name": "Qwen3.8-27B", "modality": "Text + Vision", "tools": false, "context": 262000, "output": null, "quota": "2 RPM (anonymous)"},
+      {"id": "Qwen3.8-27B", "name": "Qwen3.8-27B", "modality": "Text + Vision", "tools": false, "context": 128000, "output": null, "quota": "2 RPM (anonymous)"},
       {"id": "Qwen3.6-27B", "name": "Qwen3.6-27B", "modality": "Text + Vision", "tools": false, "context": 262000, "output": 32000, "quota": "2 RPM (anonymous)"},
       {"id": "Qwen3.5-9B", "name": "Qwen3.5-9B", "modality": "Text + Vision", "tools": false, "context": 262000, "output": 8000, "quota": "2 RPM (anonymous)"},
       {"id": "Qwen2.5-VL-72B-Instruct", "name": "Qwen2.5-VL-72B-Instruct", "modality": "Text + Vision", "tools": false, "context": 32000, "output": 8000, "quota": "2 RPM (anonymous)"},
@@ -329,5 +402,6 @@ export const freeAPIs: readonly FreeAPI[] = [
       {"id": "XingChenAGI/Xing4.0-29B", "name": "XingChenAGI/Xing4.0-29B", "modality": "Text", "tools": false, "context": null, "output": null, "quota": null}
     ]
   },
+  ...expandedFreeAPIs,
   ...communityFreeAPIs,
 ]

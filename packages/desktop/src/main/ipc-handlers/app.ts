@@ -28,8 +28,10 @@ export const appHandlers = AppRpcs.toLayer(
     const runFork = Effect.runForkWith(yield* Effect.context())
 
     return AppRpcs.of({
-      AppAwaitInitialization: () => background.connection.pipe(Effect.map(SidecarCredentials.ready)),
-      AppReconnectService: () => background.reconnect.pipe(Effect.map(SidecarCredentials.ready)),
+      AppAwaitInitialization: () =>
+        background.connection.pipe(Effect.map(SidecarCredentials.ready), Effect.orDie),
+      AppReconnectService: () => background.reconnect.pipe(Effect.map(SidecarCredentials.ready), Effect.orDie),
+      AppConnectFailure: () => background.failure.pipe(Effect.map((failure) => failure ?? null)),
       AppConsumeInitialDeepLinks: () => Effect.sync(lifecycle.consumeInitialDeepLinks),
       AppIsFirstLaunchOnboardingPending: isFirstLaunchOnboardingPending,
       AppFinishFirstLaunchOnboarding: ({ createDefaultProject }) =>

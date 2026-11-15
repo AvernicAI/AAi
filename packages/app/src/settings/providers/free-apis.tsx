@@ -4,6 +4,9 @@ import { Button } from "@opencode/ui/button"
 import {
   freeAPIs,
   freeAPIInput,
+  freeAPICategory,
+  freeAPIInstallable,
+  freeAPIKind,
   freeAPISource,
   freeAPITier,
   freeAPIUse,
@@ -13,6 +16,11 @@ import { useLanguage } from "@/runtime/i18n/language"
 import { ExternalLink } from "@/runtime/platform/external-link"
 
 const notes = [
+  ["opentyphoon", "settings.freeAPI.note.opentyphoon"],
+  ["mixlayer", "settings.freeAPI.note.mixlayer"],
+  ["sambanova", "settings.freeAPI.note.sambanova"],
+  ["aihubmix", "settings.freeAPI.note.aihubmix"],
+  ["cerebras", "settings.freeAPI.note.cerebras"],
   ["hetzner", "settings.freeAPI.note.hetzner"],
   ["pollinations", "settings.freeAPI.note.pollinations"],
   ["publicai", "settings.freeAPI.note.publicai"],
@@ -59,13 +67,14 @@ export function FreeAPICatalog(props: {
   setup: (profile: FreeAPI) => void
 }) {
   const language = useLanguage()
-  const [selected, select] = createSignal(freeAPIs[0].id)
+  const [selected, select] = createSignal(freeAPIs.find((entry) => freeAPICategory(entry) === "free")!.id)
   const profile = () => freeAPIs.find((entry) => entry.id === selected())
 
   return (
     <section class="mb-5 flex flex-col gap-3" aria-label={language.t("settings.freeAPI.title")}>
       <h3 class="settings-section-title">{language.t("settings.freeAPI.title")}</h3>
       <p class="text-sm text-v2-text-text-muted">{language.t("settings.freeAPI.description")}</p>
+      <p class="text-sm text-v2-text-text-muted">{language.t("settings.freeAPI.pricingWarning")}</p>
       <div class="flex flex-wrap items-center gap-3">
         <select
           class="min-w-0 rounded border border-v2-border-border-base bg-v2-background-bg-base p-2"
@@ -73,13 +82,44 @@ export function FreeAPICatalog(props: {
           value={selected()}
           onChange={(event) => select(event.currentTarget.value)}
         >
-          <For each={freeAPIs}>{(entry) => <option value={entry.id}>{entry.name}</option>}</For>
+          <optgroup label={language.t("settings.freeAPI.group.free")}>
+            <For each={freeAPIs.filter((entry) => freeAPICategory(entry) === "free")}>
+              {(entry) => <option value={entry.id}>{entry.name}</option>}
+            </For>
+          </optgroup>
+          <optgroup label={language.t("settings.freeAPI.group.limited")}>
+            <For each={freeAPIs.filter((entry) => freeAPICategory(entry) === "limited")}>
+              {(entry) => <option value={entry.id}>{entry.name}</option>}
+            </For>
+          </optgroup>
+          <optgroup label={language.t("settings.freeAPI.group.paid")}>
+            <For each={freeAPIs.filter((entry) => freeAPICategory(entry) === "paid")}>
+              {(entry) => <option value={entry.id}>{entry.name}</option>}
+            </For>
+          </optgroup>
+          <optgroup label={language.t("settings.freeAPI.group.unverified")}>
+            <For each={freeAPIs.filter((entry) => freeAPICategory(entry) === "unverified")}>
+              {(entry) => <option value={entry.id}>{entry.name}</option>}
+            </For>
+          </optgroup>
+          <optgroup label={language.t("settings.freeAPI.group.gateway")}>
+            <For each={freeAPIs.filter((entry) => freeAPICategory(entry) === "gateway")}>
+              {(entry) => <option value={entry.id}>{entry.name}</option>}
+            </For>
+          </optgroup>
         </select>
         <Show when={profile()}>
           {(entry) => (
-            <Button disabled={props.disabled} onClick={() => props.setup(entry())}>
-              {language.t(props.installed(entry()) ? "settings.freeAPI.configure" : "settings.freeAPI.connect")}
-            </Button>
+            <>
+              <Button disabled={props.disabled || !freeAPIInstallable(entry())} onClick={() => props.setup(entry())}>
+                {language.t(props.installed(entry()) ? "settings.freeAPI.configure" : "settings.freeAPI.connect")}
+              </Button>
+              <Show when={!freeAPIInstallable(entry())}>
+                <p class="text-sm text-v2-text-text-muted">
+                  {language.t(entry().manual ? "settings.freeAPI.manualOnly" : "settings.freeAPI.directoryOnly")}
+                </p>
+              </Show>
+            </>
           )}
         </Show>
       </div>
@@ -109,6 +149,9 @@ export function FreeAPIGuide(props: { profile: FreeAPI }) {
         <strong>{props.profile.name}</strong>
         <Badge>{language.t(freeAPITier(props.profile))}</Badge>
         <Badge>{language.t(auth())}</Badge>
+        <Show when={(props.profile.kind ?? "chat") !== "chat"}>
+          <Badge>{language.t(freeAPIKind(props.profile))}</Badge>
+        </Show>
       </div>
       <Show when={noteByID.get(props.profile.id)}>
         {(key) => <p class="text-sm text-v2-text-text-muted">{language.t(key())}</p>}

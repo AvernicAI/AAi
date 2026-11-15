@@ -6,16 +6,42 @@ import { Ipc } from "./ipc"
 import { DesktopInitialization } from "./lifecycle/desktop-initialization"
 import { installContextMenu } from "./lifecycle/environment"
 import { ApplicationLifecycle } from "./lifecycle"
+import { startDesktopIntegration } from "./native/desktop-preferences"
 import { DesktopLogging } from "./native/logging"
+import { sendMenuCommand } from "./native/menu"
 import { BackgroundService } from "./service/background-service"
 import { DesktopCli } from "./service/desktop-cli"
 import { marks } from "./lifecycle/marks"
+import { getLastFocusedWindow, getMainWindows, setAppQuitting } from "./windows"
 
 // Everything above has been loaded and evaluated by now; the layers start below.
 marks.bundle = Date.now()
 
 const runIpc = Effect.fn("Desktop.runIpc")(function* () {
   const lifecycle = yield* ApplicationLifecycle.Service
+  startDesktopIntegration({
+    focusOrRestore: lifecycle.focusOrRestore,
+    hideWindows: () => getMainWindows().forEach((win) => win.hide()),
+    createWindow: () => {
+      lifecycle.createWindow()
+    },
+    openSettings: () => {
+      const win = getLastFocusedWindow()
+
+      if (!win) {
+        lifecycle.createWindow()
+
+        return
+      }
+
+      win.show()
+      sendMenuCommand(win, "settings.open")
+    },
+    quit: () => {
+      setAppQuitting()
+      app.quit()
+    },
+  })
   const plugins = yield* Plugins.Service
   marks.layers = Date.now()
   yield* Effect.logInfo("layers ready", { marks })

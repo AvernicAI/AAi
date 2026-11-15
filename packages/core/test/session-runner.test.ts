@@ -331,6 +331,8 @@ const layer = Layer.unwrap(
     )
     const echoNode = makeLocationNode({ name: "test/session-runner-tools", layer: echo, deps: [Tool.node] })
     const models = Layer.mock(SessionRunnerModel.Service)({
+      // This harness has one route; usage limits must exercise the normal retry/failure policy.
+      exhaust: () => Effect.succeed(false),
       resolve: (session) =>
         state.modelResolveHook.pipe(
           Effect.map(() => {

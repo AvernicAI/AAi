@@ -4,12 +4,15 @@ import { Toast } from "@opencode/ui/toast"
 import {
   Panel,
   type Appearance,
+  type Commands,
   type App,
   type Keybinds,
   type MountedSession,
   type Router,
   type Servers,
   type SessionScreen,
+  type Sessions,
+  type Screen,
   type Ipc,
   type IpcClient,
   type IpcSpec,
@@ -18,7 +21,7 @@ import {
   type StoreOptions,
   type Workspaces,
 } from "@opencode/plugin/gui"
-import type { BuiltinLayout, BuiltinLocale } from "@opencode/plugin/gui/builtin"
+import type { BuiltinDesktop, BuiltinLayout, BuiltinLocale } from "@opencode/plugin/gui/builtin"
 import {
   createComponent,
   createMemo,
@@ -230,6 +233,12 @@ export function mountPlugins(input: {
   plugins?: readonly PluginInfo[]
   /** The client of an Ipc while main provides it, as a desktop window's bridge reports it. Omitted: the web. */
   ipc?: (token: Ipc) => IpcClient<IpcSpec> | undefined
+  /** Native desktop boundary for a plugin that opens local workspace tools. */
+  desktop?: BuiltinDesktop
+  /** Published commands at the app boundary, for testing cross-plugin actions. */
+  commands?: Commands
+  sessions?: Sessions
+  screen?: Screen
 }) {
   const held = Promise.withResolvers<void>()
   const saved = { ...input.stored }
@@ -295,7 +304,13 @@ export function mountPlugins(input: {
       <PluginHostProvider
         definitions={definitions}
         disabled={disabledState}
-        apis={fakeApis(storage)}
+        apis={{
+          ...fakeApis(storage),
+          desktop: () => input.desktop,
+          commands: () => input.commands ?? { run: () => false },
+          sessions: () => input.sessions ?? { list: () => [], current: () => undefined },
+          screen: () => input.screen ?? { current: () => undefined },
+        }}
         whenMounted={mounted}
         ipc={input.ipc}
       >

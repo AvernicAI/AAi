@@ -1,4 +1,9 @@
 export default {
+  "agent.title": "Alphie commands",
+  "agent.interactive": "Interactive terminal",
+  "agent.empty": "Agent commands will appear here as they run.",
+  "agent.running": "Running",
+  "agent.stop": "Stop command",
   "command.category": "Terminal",
   "command.toggle": "Toggle terminal",
   "command.new": "New terminal",

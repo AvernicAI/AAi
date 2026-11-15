@@ -23,6 +23,7 @@ const seeded = window.electron.storageSnapshot.then((snapshot) => new Map(Object
 export const api: ElectronAPI = {
   awaitInitialization: () => invoke("AppAwaitInitialization"),
   reconnectService: () => invoke("AppReconnectService"),
+  connectFailure: () => invoke("AppConnectFailure"),
   consumeInitialDeepLinks: () => invoke("AppConsumeInitialDeepLinks").then(mutable),
   isFirstLaunchOnboardingPending: () => invoke("AppIsFirstLaunchOnboardingPending"),
   finishFirstLaunchOnboarding: (createDefaultProject) =>
@@ -96,4 +97,8 @@ export const api: ElectronAPI = {
   setForceFocus: (enabled) => invoke("AppSetForceFocus", { enabled }),
   recordFatalRendererError: (error) => invoke("AppRecordFatalRendererError", { error }),
   setNativeTranslations: (bundle) => invoke("AppSetNativeTranslations", { value: bundle }),
+  getDesktopPreferences: () => invoke("DesktopPreferencesGet").then(mutable),
+  setDesktopPreferences: (patch) => invoke("DesktopPreferencesSet", patch).then(mutable),
+  onDesktopPreferencesChanged: (cb) =>
+    listen("DesktopPreferencesChanged", (event) => cb(mutable(event.preferences))),
 }

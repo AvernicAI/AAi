@@ -10,7 +10,7 @@ export class Info extends Schema.Class<Info>("ConfigExperimental.Info")({
     description: "Deprecated: the built-in shell permission scanner is now always enabled.",
   }),
   todo: Schema.Boolean.pipe(optional).annotate({
-    description: "Enable the experimental todowrite tool. Defaults to false.",
+    description: "Enable the experimental todowrite tool. Defaults to true; set false to disable task checklists.",
   }),
   background_compaction: Schema.Boolean.pipe(optional).annotate({
     description:

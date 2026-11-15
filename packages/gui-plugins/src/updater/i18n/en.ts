@@ -1,6 +1,7 @@
 export default {
   "status.label": "Update",
   "action.checkNow": "Check now",
+  "action.retry": "Retry",
   "action.checking": "Checking…",
   "action.downloading": "Downloading…",
   "action.installRestart": "Install and restart",
