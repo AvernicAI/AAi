@@ -1,95 +1,86 @@
 import { app, dialog } from "electron"
 import type { BrowserWindow } from "electron"
 import { Effect } from "effect"
+import type { DesktopNativeKey } from "@opencode/app/i18n/desktop-native"
 import { DesktopLogging, scoped } from "../native/logging"
 import { nativeT } from "../native/translations"
+import {
+  createRecoveryDriver,
+  formatUnresponsiveSamples,
+  type RecoveryAction,
+  type RecoveryErrorKind,
+  type RecoveryIncident,
+} from "./recovery-machine"
 import { getStore } from "../storage/store"
 import { crashTimestampsKey, nextCrashState, parseCrashTimestamps } from "./crash-loop"
 import { safeWindowURL } from "./state"
-import { unresponsiveSampler } from "./unresponsive"
+
+const ACTION_LABELS = {
+  relaunch: "desktop.recovery.action.relaunch",
+  "export-logs": "desktop.recovery.action.exportLogs",
+  "keep-waiting": "desktop.recovery.action.keepWaiting",
+  quit: "desktop.recovery.action.quit",
+} satisfies Record<RecoveryAction, DesktopNativeKey>
+
+const ERROR_MESSAGES = {
+  dialog: "failed to show recovery dialog",
+  export: "failed to export debug logs",
+  "export-timeout": "debug log export timed out",
+  sample: "failed to collect unresponsive sample",
+  command: "recovery command failed",
+} satisfies Record<RecoveryErrorKind, string>
 
 export const windowRecovery = Effect.gen(function* () {
   const context = yield* Effect.context()
   const runFork = Effect.runForkWith(context)
   const runPromise = Effect.runPromiseWith(context)
   const logging = yield* DesktopLogging.Service
-  const createUnresponsiveSampler = yield* unresponsiveSampler
 
-  function wireWindowRecovery(win: BrowserWindow, name: string, relaunch: () => void) {
-    let showing = false
-    let cleanTimer: ReturnType<typeof setTimeout> | undefined
-    const sampler = createUnresponsiveSampler(win, name)
+  function wireWindowRecovery(
+    win: BrowserWindow,
+    name: string,
+    options: {
+      readonly relaunch: () => void
+      /** Shows a window that is still hidden; the dialog is modal to it. */
+      readonly reveal: () => void
+    },
+  ) {
+    const isDevToolsOpen = () => !win.isDestroyed() && win.webContents.isDevToolsOpened()
 
-    type RecoveryAction = "relaunch" | "export-logs" | "keep-waiting" | "quit"
+    const recovery = createRecoveryDriver({
+      reveal: options.reveal,
+      showDialog: (view, signal) => {
+        const text = dialogText(view.incident, name)
 
-    const handle = async (action: RecoveryAction | undefined, wait: boolean) => {
-      if (action === "export-logs") {
-        const sampling = sampler.stopAndFlush()
-        await runPromise(logging.exportDebug).catch((error) =>
-          runFork(Effect.logError("failed to export debug logs", { error })),
-        )
-
-        if (wait && sampling) sampler.start()
-
-        return true
-      }
-
-      if (action === "relaunch") {
-        sampler.stopAndFlush()
-        relaunch()
-
-        return false
-      }
-
-      if (action === "quit") {
-        sampler.stopAndFlush()
-        app.quit()
-      }
-
-      return false
-    }
-
-    const show = async (message: string, detail: string, wait: boolean, loop = false) => {
-      if (showing || win.isDestroyed()) return
-      showing = true
-
-      try {
-        while (!win.isDestroyed()) {
-          // A crash loop offers no Keep Waiting: another reload would crash again.
-          const actions: { id: RecoveryAction; label: string }[] = loop
-            ? [
-                { id: "relaunch", label: nativeT("desktop.recovery.action.relaunch") },
-                { id: "export-logs", label: nativeT("desktop.recovery.action.exportLogs") },
-              ]
-            : wait
-              ? [
-                  { id: "relaunch", label: nativeT("desktop.recovery.action.relaunch") },
-                  { id: "export-logs", label: nativeT("desktop.recovery.action.exportLogs") },
-                  { id: "keep-waiting", label: nativeT("desktop.recovery.action.keepWaiting") },
-                ]
-              : [
-                  { id: "relaunch", label: nativeT("desktop.recovery.action.relaunch") },
-                  { id: "export-logs", label: nativeT("desktop.recovery.action.exportLogs") },
-                  { id: "quit", label: nativeT("desktop.recovery.action.quit") },
-                ]
-
-          const result = await dialog.showMessageBox(win, {
+        return dialog
+          .showMessageBox(win, {
             type: "warning",
-            buttons: actions.map((action) => action.label),
-            defaultId: 0,
-            cancelId: loop ? undefined : actions.length - 1,
-            message,
-            detail,
+            buttons: view.actions.map((action) => nativeT(ACTION_LABELS[action])),
+            defaultId: view.defaultId,
+            cancelId: view.cancelId,
+            message: text.message,
+            detail: text.detail,
+            signal,
           })
+          .then((result) => result.response)
+      },
+      exportLogs: () => runPromise(Effect.asVoid(logging.exportDebug)),
+      collectSample: async () => {
+        if (win.isDestroyed() || win.webContents.isDestroyed() || win.webContents.mainFrame.isDestroyed()) return
 
-          if (await handle(actions[result.response]?.id, wait)) continue
-
-          return
-        }
-      } finally {
-        showing = false
-      }
-    }
+        return (await win.webContents.mainFrame.collectJavaScriptCallStack()) || undefined
+      },
+      flushSamples: (samples) =>
+        runFork(scoped("window", Effect.logError(formatUnresponsiveSamples(name, safeWindowURL(win), samples)))),
+      logError: (failure) =>
+        runFork(
+          scoped("window", Effect.logError(ERROR_MESSAGES[failure.kind], { window: name, error: failure.error })),
+        ),
+      isDevToolsOpen,
+      isDestroyed: () => win.isDestroyed(),
+      relaunch: options.relaunch,
+      quit: () => app.quit(),
+    })
 
     const failed = (
       event: string,
@@ -112,18 +103,13 @@ export const windowRecovery = Effect.gen(function* () {
           }),
         ),
       )
-
-      if (!isMainFrame || errorCode === -3) return
-      void show(
-        nativeT("desktop.recovery.loadFailed"),
-        nativeT("desktop.recovery.loadFailed.detail", {
-          window: name,
-          url: validatedURL,
-          code: errorCode,
-          description: errorDescription,
-        }),
-        false,
-      )
+      recovery.dispatch({
+        type: "load.failed",
+        url: validatedURL,
+        code: errorCode,
+        description: errorDescription,
+        isMainFrame,
+      })
     }
 
     win.webContents.on("did-fail-load", (_event, code, description, url, mainFrame) => {
@@ -133,59 +119,36 @@ export const windowRecovery = Effect.gen(function* () {
       failed("did-fail-provisional-load", code, description, url, mainFrame)
     })
     win.webContents.on("render-process-gone", (_event, details) => {
-      sampler.stopAndFlush()
-
-      if (cleanTimer) {
-        clearTimeout(cleanTimer)
-        cleanTimer = undefined
-      }
-
-      // Persist across a relaunch loop, not just this process: three crashes in a minute stop the
-      // endless dialog-and-reload cycle and ask for logs instead.
+      runFork(
+        scoped(
+          "window",
+          Effect.logError("renderer process gone", { window: name, currentURL: safeWindowURL(win), details }),
+        ),
+      )
       const store = getStore()
       const key = crashTimestampsKey(name)
-      const { crashes, loop } = nextCrashState(parseCrashTimestamps(store.get(key)), Date.now())
-      store.set(key, crashes)
-
-      runFork(
-        scoped("window", Effect.logError("renderer process gone", { window: name, currentURL: safeWindowURL(win), details, loop })),
-      )
-      void show(
-        nativeT(loop ? "desktop.recovery.crashLoop" : "desktop.recovery.terminated"),
-        nativeT(loop ? "desktop.recovery.crashLoop.detail" : "desktop.recovery.terminated.detail", {
-          window: name,
-          reason: details.reason,
-          code: details.exitCode ?? nativeT("desktop.recovery.unknown"),
-          crashes: crashes.length,
-        }),
-        false,
-        loop,
-      )
-    })
-    // Only a load that survives half a minute clears the history; one that crashes first does not.
-    win.webContents.on("did-finish-load", () => {
-      if (cleanTimer) clearTimeout(cleanTimer)
-      cleanTimer = setTimeout(() => {
-        cleanTimer = undefined
-        getStore().delete(crashTimestampsKey(name))
-      }, 30_000)
-    })
-    win.on("closed", () => {
-      if (cleanTimer) clearTimeout(cleanTimer)
+      const state = nextCrashState(parseCrashTimestamps(store.get(key)), Date.now())
+      store.set(key, state.crashes)
+      recovery.dispatch({
+        type: "process.gone",
+        reason: details.reason,
+        exitCode: details.exitCode,
+        ...(state.loop ? { crashes: state.crashes.length } : {}),
+      })
     })
     win.on("unresponsive", () => {
       runFork(
         scoped("window", Effect.logError("renderer unresponsive", { window: name, currentURL: safeWindowURL(win) })),
       )
-      sampler.start()
-      void show(nativeT("desktop.recovery.unresponsive"), nativeT("desktop.recovery.unresponsive.detail"), true)
+      recovery.dispatch({ type: "renderer.unresponsive", devtoolsOpen: isDevToolsOpen() })
     })
     win.on("responsive", () => {
       runFork(
         scoped("window", Effect.logError("renderer responsive", { window: name, currentURL: safeWindowURL(win) })),
       )
-      sampler.stopAndFlush()
+      recovery.dispatch({ type: "renderer.responsive" })
     })
+    win.once("closed", () => recovery.dispatch({ type: "window.closed" }))
     win.webContents.on("console-message", (event) => {
       if (event.message.toLowerCase().includes("terminal") || event.sourceId.toLowerCase().includes("terminal")) {
         runFork(
@@ -209,3 +172,41 @@ export const windowRecovery = Effect.gen(function* () {
 
   return wireWindowRecovery
 })
+
+function dialogText(incident: RecoveryIncident, window: string) {
+  if (incident.kind === "unresponsive")
+    return {
+      message: nativeT("desktop.recovery.unresponsive"),
+      detail: nativeT("desktop.recovery.unresponsive.detail"),
+    }
+
+  if (incident.kind === "load-failed")
+    return {
+      message: nativeT("desktop.recovery.loadFailed"),
+      detail: nativeT("desktop.recovery.loadFailed.detail", {
+        window,
+        url: incident.url,
+        code: incident.code,
+        description: incident.description,
+      }),
+    }
+
+  if (incident.crashes !== undefined)
+    return {
+      message: nativeT("desktop.recovery.crashLoop"),
+      detail: nativeT("desktop.recovery.crashLoop.detail", {
+        window,
+        reason: incident.reason,
+        code: incident.exitCode ?? nativeT("desktop.recovery.unknown"),
+        crashes: incident.crashes,
+      }),
+    }
+  return {
+    message: nativeT("desktop.recovery.terminated"),
+    detail: nativeT("desktop.recovery.terminated.detail", {
+      window,
+      reason: incident.reason,
+      code: incident.exitCode ?? nativeT("desktop.recovery.unknown"),
+    }),
+  }
+}

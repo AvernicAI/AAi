@@ -7,7 +7,7 @@
 //   bun script/sync-upstream.ts --no-install  # never run bun install
 //   bun script/sync-upstream.ts --branch=fix-1 # merge into another local branch instead of dev
 //
-// The run refuses a dirty worktree, keeps `backup/pre-upstream-sync` at the commit it started from, and fails when
+// The run refuses a dirty worktree, keeps `pre-upstream-sync` at the commit it started from, and fails when
 // the AAi brand surface disappears. OpenCode names that upstream adds to client code are listed for review: product
 // names such as `OpenCode Go` are kept on purpose so OpenCode still works out of the box. Nothing is pushed.
 import { $ } from "bun"
@@ -17,7 +17,7 @@ const remote = "upstream"
 const upstreamBranch = "dev"
 const upstream = `${remote}/${upstreamBranch}`
 const branch = args.find((arg) => arg.startsWith("--branch="))?.slice("--branch=".length) ?? "dev"
-const backup = "backup/pre-upstream-sync"
+const backup = "pre-upstream-sync"
 const dryRun = args.includes("--dry-run")
 const check = !args.includes("--no-check") && !dryRun
 const install = !args.includes("--no-install") && !dryRun
@@ -30,6 +30,12 @@ const brand = [
   ["packages/cli/package.json", `"aai": "./bin/opencode.cjs"`, "aai command alias"],
   ["packages/core/src/plugin/provider.ts", "AvernicAIPlugin", "AvernicAi provider registration"],
   ["packages/core/src/plugin/provider/avernicai.ts", "AvernicAIPlugin", "AvernicAi provider plugin"],
+  ["packages/core/src/session/runner/llm.ts", "CapabilityDiscovery.rank", "local capability discovery"],
+  ["packages/core/src/session/runner/model.ts", "ProviderRouter.pick", "cost-aware provider routing"],
+  ["packages/core/src/mcp/index.ts", "config.tools?.includes(input.name)", "MCP per-tool restrictions"],
+  ["packages/desktop/src/main/service/background-service.ts", 'OPENCODE_DESKTOP_MCP_HOST: "1"', "desktop MCP endpoint"],
+  ["packages/gui-plugins/src/ide/renderer.tsx", "ctx.provide(IdeEditor", "IDE plugin"],
+  ["packages/core/src/plugin/internal.ts", "AlphiePlugin.Plugin", "Alphie personality"],
 ] as const
 
 // OpenCode names that must stay: they belong to the products this fork still connects to.
@@ -72,6 +78,7 @@ async function sync() {
   await merge(previous)
   await audit(previous)
   await dependencies(previous)
+  await generateClient(previous)
   if (check) await runCheck()
   await report(previous)
 }
@@ -155,6 +162,16 @@ async function dependencies(previous: string) {
   // Bun writes LF endings, which this CRLF clone reports as a modification with no content diff.
   const phantom = await $`git diff --quiet -- bun.lock`.nothrow()
   if (phantom.exitCode === 0) await $`git checkout -- bun.lock`.quiet()
+}
+
+async function generateClient(previous: string) {
+  const changed = (
+    await $`git diff --name-only ${previous} HEAD -- packages/protocol/src packages/server/src`.text()
+  ).trim()
+  if (!changed) return
+  console.log("sync: public API changed; regenerating clients")
+  const generated = await $`bun run generate`.cwd("packages/client").nothrow()
+  if (generated.exitCode !== 0) fail("sync: client generation failed; fix it before building")
 }
 
 async function runCheck() {

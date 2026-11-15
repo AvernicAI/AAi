@@ -1,24 +1,27 @@
 import { app } from "electron"
+import type { Endpoint } from "@opencode/client/service"
 import { Context, Duration, Effect, FileSystem, Layer, Option, Path, Schema } from "effect"
 import type { ConnectFailure } from "../../shared/ipc-rpc/connect"
+import { classifyConnectFailure, connectRetryDelays, retryableConnectFailure } from "./connect-retry"
+import { DesktopPaths } from "../paths"
+import { SidecarChanged } from "../../shared/ipc-rpc/events"
 import { CHANNEL } from "../constants"
-import { BackgroundServiceState } from "./background-service-state"
-import { ConnectFailed, classifyConnectFailure, connectRetryDelays, retryableConnectFailure } from "./connect-retry"
+import { emitIpcEvent } from "../ipc-events"
+import { getMainWindows } from "../windows"
+import { BackgroundServiceMachine } from "./background-service-machine"
 import { cleanStages } from "./cli-stages"
 import { keptStages, serviceVersion, shouldRetryEnsure } from "./cli-version"
 import { DesktopCli } from "./desktop-cli"
-import { DesktopPaths } from "../paths"
 import { SidecarCredentials } from "./sidecar-credentials"
-import { sidecarProbe } from "./sidecar-probe"
+import { takeSidecarProbe } from "./sidecar-probe"
 
 export * as BackgroundService from "./background-service"
 
 const RegisteredService = Schema.Struct({ version: Schema.optional(Schema.String) })
 
 export interface Interface {
-  readonly connection: Effect.Effect<SidecarCredentials.Data, ConnectFailed>
-  readonly reconnect: Effect.Effect<SidecarCredentials.Data, ConnectFailed>
-  /** Why the last connect failed, while the server is unavailable. */
+  readonly connection: Effect.Effect<SidecarCredentials.Data>
+  readonly reconnect: Effect.Effect<SidecarCredentials.Data>
   readonly failure: Effect.Effect<ConnectFailure | undefined>
 }
 
@@ -29,44 +32,96 @@ export const layer = Layer.effect(
   Effect.gen(function* () {
     const context = yield* Effect.context<FileSystem.FileSystem | Path.Path | DesktopCli.Service>()
 
-    const run = (mode: "initial" | "reconnect") =>
-      connect(mode).pipe(
-        Effect.provide(context),
-        Effect.tapError((error) =>
-          Effect.logError("background service connect failed", {
-            mode,
-            failure: classifyConnectFailure(error),
-            error,
-          }),
-        ),
-        Effect.mapError((error) => new ConnectFailed(classifyConnectFailure(error), error)),
-      )
-
-    return Service.of(
-      yield* BackgroundServiceState.make({
-        initial: run("initial"),
-        reconnect: () => run("reconnect"),
-      }),
-    )
+    const machine = yield* BackgroundServiceMachine.make({
+      probe: probe().pipe(Effect.provide(context)),
+      ensure: (mode) => ensure(mode).pipe(Effect.provide(context)),
+      publish: (data) => {
+        SidecarCredentials.set(data)
+        // Every window moves its requests and event stream to the new origin, not only the one that reconnected.
+        const event = new SidecarChanged({ url: data.url })
+        getMainWindows().forEach((win) => emitIpcEvent(win.webContents, event))
+      },
+    })
+    return Service.of({
+      ...machine,
+      failure: machine.failure.pipe(Effect.map((error) => (error ? classifyConnectFailure(error) : undefined))),
+    })
   }),
 )
 
-const connect = Effect.fn("BackgroundService.connect")(function* (mode: "initial" | "reconnect") {
+// A compatible service the entry module already found is adopted at once; the machine still verifies it with
+// `ensure("initial")` (which also completes a terminal handoff), off the renderer's path.
+const probe = Effect.fn("BackgroundService.probe")(function* () {
+  const service = yield* Effect.promise(takeSidecarProbe)
+
+  if (!service) return undefined
+  const setup = yield* prepare("initial")
+
+  return (yield* adopt(setup, service, true)).credentials
+})
+
+const ensure = Effect.fn("BackgroundService.ensure")(function* (mode: BackgroundServiceMachine.ConnectMode) {
+  const runFork = Effect.runForkWith(yield* Effect.context<FileSystem.FileSystem | Path.Path>())
+  const setup = yield* prepare(mode)
+
+  const run = (version = setup.version) =>
+    setup.client.Service.ensure({
+      file: setup.file,
+      version,
+      env: setup.env,
+      // A fixed port makes a second contender fail to bind and back off; port 0 never collides, so two
+      // services could boot against the same database.
+      command: [
+        ...setup.cli.command,
+        "serve",
+        "--service",
+        ...(setup.isolated ? ["--hostname", "0.0.0.0", "--port", String(0x0c0c)] : []),
+      ],
+      onStart: (reason, previousVersion) =>
+        runFork(Effect.logInfo("v2 CLI background service starting", { reason, previousVersion })),
+    })
+
+  const attempt = () =>
+    run().catch((error) => {
+      if (!shouldRetryEnsure(setup.version, error instanceof Error ? error.message : String(error))) throw error
+
+      return run(setup.cli.version)
+    })
+  function retry(index: number): Effect.Effect<Endpoint, unknown> {
+    return Effect.tryPromise(attempt).pipe(
+      Effect.catch((error) => {
+        if (index >= connectRetryDelays.length || !retryableConnectFailure(classifyConnectFailure(error)))
+          return Effect.fail(error)
+        return Effect.sleep(Duration.millis(connectRetryDelays[index] ?? 0)).pipe(
+          Effect.andThen(() => retry(index + 1)),
+        )
+      }),
+    )
+  }
+  const service = yield* retry(0)
+
+  const ready = yield* adopt(setup, service, false)
+
+  // Only packaged and isolated builds run a staged copy; any other binary sits in the source tree.
+  // Keep both the bundled stage and the running server's stage so its executable stays on disk. This runs only
+  // once `Service.ensure` settled which server runs, never for a probed one it may still replace.
+  if (mode === "initial" && (app.isPackaged || setup.isolated) && setup.cli.binary && ready.runningVersion)
+    runFork(
+      cleanStages(setup.cli.binary, { keep: keptStages(setup.cli.version, ready.runningVersion) }).pipe(
+        Effect.catch((error) => Effect.logError("failed to clean staged v2 CLIs", { error })),
+      ),
+    )
+
+  return ready.credentials
+})
+
+const prepare = Effect.fn("BackgroundService.prepare")(function* (mode: BackgroundServiceMachine.ConnectMode) {
   yield* Effect.logInfo("starting v2 background service")
-  const fs = yield* FileSystem.FileSystem
   const path = yield* Path.Path
   const desktopCli = yield* DesktopCli.Service
-  const runFork = Effect.runForkWith(yield* Effect.context<FileSystem.FileSystem | Path.Path>())
   const isolated = !app.isPackaged && process.env.OPENCODE_DESKTOP_ISOLATED_SERVER === "1"
   const cli = yield* desktopCli.resolve
   const version = serviceVersion({ channel: CHANNEL, isolated, mode, version: cli.version })
-
-  const paths = yield* DesktopPaths.resolve
-  const ultima3d = path.join(app.isPackaged ? process.resourcesPath : paths.developmentResourcesRoot, "ultima3d")
-  const hasUltima3d = yield* fs.exists(
-    path.join(ultima3d, process.platform === "win32" ? "ultima3d-server.exe" : "ultima3d-server"),
-  )
-  const pullstack = path.join(app.isPackaged ? process.resourcesPath : paths.developmentResourcesRoot, "pullstack", "skills")
 
   if (isolated) process.env.XDG_STATE_HOME = app.getPath("userData")
   const client = yield* Effect.promise(() => import("@opencode/client/service"))
@@ -80,70 +135,41 @@ const connect = Effect.fn("BackgroundService.connect")(function* (mode: "initial
         )
       : undefined
 
-  const ensure = (required = version) =>
-    client.Service.ensure({
-      file,
-      version: required,
-      env: {
-        OPENCODE_DESKTOP_MCP_HOST: "1",
-        OPENCODE_EXPERIMENTAL_CAPABILITY_DISCOVERY: "1",
-        OPENCODE_PULLSTACK_SKILLS: pullstack,
-        ...(hasUltima3d ? { OPENCODE_ULTIMA3D_RESOURCES: ultima3d } : {}),
-      },
-      // A fixed port makes a second contender fail to bind and back off; port 0 never collides, so two
-      // services could boot against the same database.
-      command: [
-        ...cli.command,
-        "serve",
-        "--service",
-        ...(isolated ? ["--hostname", "0.0.0.0", "--port", String(0x0c0c)] : []),
-      ],
-      onStart: (reason, previousVersion) =>
-        runFork(Effect.logInfo("v2 CLI background service starting", { reason, previousVersion })),
-    })
-
-  const runEnsure = () =>
-    ensure().catch((error) => {
-      if (!shouldRetryEnsure(version, error instanceof Error ? error.message : String(error))) throw error
-
-      return ensure(cli.version)
-    })
-
-  // Retry only failures a second attempt can fix; a missing CLI or rejected credentials cannot.
-  function ensureWithRetry(attempt: number): Effect.Effect<Awaited<ReturnType<typeof runEnsure>>, unknown> {
-    return Effect.tryPromise(runEnsure).pipe(
-      Effect.catch((error) => {
-        const failure = classifyConnectFailure(error)
-
-        if (attempt >= connectRetryDelays.length || !retryableConnectFailure(failure)) return Effect.fail(error)
-
-        return Effect.gen(function* () {
-          yield* Effect.logInfo("retrying background service start", {
-            attempt: attempt + 1,
-            failure,
-            delay: connectRetryDelays[attempt],
-          })
-          yield* Effect.sleep(Duration.millis(connectRetryDelays[attempt] ?? 0))
-
-          return yield* ensureWithRetry(attempt + 1)
-        })
-      }),
-    )
+  const fs = yield* FileSystem.FileSystem
+  const paths = yield* DesktopPaths.resolve
+  const resources = app.isPackaged ? process.resourcesPath : paths.developmentResourcesRoot
+  const ultima3d = path.join(resources, "ultima3d")
+  const hasUltima3d = yield* fs.exists(
+    path.join(ultima3d, process.platform === "win32" ? "ultima3d-server.exe" : "ultima3d-server"),
+  )
+  return {
+    cli,
+    client,
+    file,
+    isolated,
+    version,
+    env: {
+      OPENCODE_DESKTOP_MCP_HOST: "1",
+      OPENCODE_EXPERIMENTAL_CAPABILITY_DISCOVERY: "1",
+      OPENCODE_PULLSTACK_SKILLS: path.join(resources, "pullstack", "skills"),
+      ...(hasUltima3d ? { OPENCODE_ULTIMA3D_RESOURCES: ultima3d } : {}),
+    },
   }
+})
 
-  // A compatible service the entry module already found is adopted at once; ensure() still runs
-  // afterwards for its side effects (terminal handoff completion), off the renderer's path.
-  const early = mode === "initial" && !isolated ? yield* Effect.promise(sidecarProbe) : undefined
-
-  if (early) yield* Effect.sync(() => void runEnsure().catch(() => undefined))
-  const service = early ?? (yield* ensureWithRetry(0))
+const adopt = Effect.fn("BackgroundService.adopt")(function* (
+  setup: Effect.Success<ReturnType<typeof prepare>>,
+  service: Endpoint,
+  probed: boolean,
+) {
+  const fs = yield* FileSystem.FileSystem
 
   if (service.auth?.type !== "basic") throw new Error("V2 CLI background service did not provide authentication")
   const url = new URL(service.url)
 
   if (url.hostname === "0.0.0.0") url.hostname = "127.0.0.1"
 
-  const runningVersion = yield* fs.readFileString(file ?? client.fallback()).pipe(
+  const runningVersion = yield* fs.readFileString(setup.file ?? setup.client.fallback()).pipe(
     Effect.map(
       (text) =>
         Option.getOrUndefined(Schema.decodeUnknownOption(Schema.fromJsonString(RegisteredService))(text))?.version,
@@ -152,25 +178,16 @@ const connect = Effect.fn("BackgroundService.connect")(function* (mode: "initial
   )
 
   yield* Effect.logInfo("v2 CLI background service ready", {
-    version,
+    version: setup.version,
     runningVersion,
-    probed: !!early,
+    probed,
     ...endpoint(url.origin),
   })
 
-  // Only packaged and isolated builds run a staged copy; any other binary sits in the source tree.
-  // Keep both the bundled stage and any adopted server's stage so its executable stays on disk.
-  if (mode === "initial" && (app.isPackaged || isolated) && cli.binary && runningVersion)
-    runFork(
-      cleanStages(cli.binary, { keep: keptStages(cli.version, runningVersion) }).pipe(
-        Effect.catch((error) => Effect.logError("failed to clean staged v2 CLIs", { error })),
-      ),
-    )
-
-  const ready = { url: url.origin, password: service.auth.password } satisfies SidecarCredentials.Data
-  SidecarCredentials.set(ready)
-
-  return ready
+  return {
+    credentials: { url: url.origin, password: service.auth.password } satisfies SidecarCredentials.Data,
+    runningVersion,
+  }
 })
 
 function endpoint(url: string | undefined) {

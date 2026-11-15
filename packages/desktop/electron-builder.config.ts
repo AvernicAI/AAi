@@ -1,4 +1,4 @@
-import { readdir, stat } from "node:fs/promises"
+import { copyFile, readdir, stat } from "node:fs/promises"
 import path from "node:path"
 import { fileURLToPath } from "node:url"
 
@@ -134,7 +134,12 @@ const getBase = (appId: string): Configuration => {
         arch,
       )
       const worker = path.join(ultima3d, "blender", "worker.py")
-      if ((await stat(worker)).size === 0) throw new Error(`Bundled Ultima3D worker must be a non-empty file: ${worker}`)
+      if ((await stat(worker)).size === 0)
+        throw new Error(`Bundled Ultima3D worker must be a non-empty file: ${worker}`)
+      // With an Icon Composer mac.icon, electron-builder bundles the ICNS that actool generates as the pre-macOS 26
+      // fallback. That one tops out at 256px and draws a light ring around the squircle, so ship ours instead.
+      if (context.electronPlatformName === "darwin")
+        await copyFile(path.join(packageDir, "resources/icons/icon.icns"), path.join(resources, "icon.icns"))
 
       if (context.electronPlatformName !== "win32") return
 
@@ -166,6 +171,13 @@ const getBase = (appId: string): Configuration => {
       icon: `resources/icons/icon.icns`,
       extendInfo: {
         NSMicrophoneUsageDescription: DESKTOP_NATIVE_ENGLISH["desktop.microphoneUsage"],
+        // The CLI server and its terminals run as children of the app, so macOS asks for their access to
+        // these protected locations in the app's name. The prompt shows the description (#56479).
+        NSDocumentsFolderUsageDescription: DESKTOP_NATIVE_ENGLISH["desktop.documentsFolderUsage"],
+        NSDesktopFolderUsageDescription: DESKTOP_NATIVE_ENGLISH["desktop.desktopFolderUsage"],
+        NSDownloadsFolderUsageDescription: DESKTOP_NATIVE_ENGLISH["desktop.downloadsFolderUsage"],
+        NSNetworkVolumesUsageDescription: DESKTOP_NATIVE_ENGLISH["desktop.networkVolumesUsage"],
+        NSRemovableVolumesUsageDescription: DESKTOP_NATIVE_ENGLISH["desktop.removableVolumesUsage"],
         NSAutoFillRequiresTextContentTypeForOneTimeCodeOnMac: true,
       },
       target: ["dmg", "zip"],
@@ -259,6 +271,8 @@ export function getConfig() {
           releaseType: "release",
           channel: "latest",
         },
+        mac: { ...base.mac, icon: "resources/icons/icon.icon" },
+        dmg: { ...base.dmg, icon: "resources/icons/icon.icns" },
         deb: { fpm: [metainfoFpm(appId), legacyDesktopEntryFpm] },
         rpm: { packageName: "opencode", fpm: [rpmNoBuildIdLinksFpm, metainfoFpm(appId), legacyDesktopEntryFpm] },
       }

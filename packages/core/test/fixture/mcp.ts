@@ -17,6 +17,7 @@ export const emptyMcp = Mcp.Service.of({
   attach: () => Effect.die("unused mcp.attach"),
   tools: () => Effect.succeed([]),
   toolCatalog: () => Effect.succeed([]),
+  awaitStartup: () => Effect.void,
   callTool: () => Effect.die("unused mcp.callTool"),
   instructions: () => Effect.succeed([]),
   prompts: () => Effect.succeed([]),
@@ -24,6 +25,10 @@ export const emptyMcp = Mcp.Service.of({
   resourceCatalog: () => Effect.succeed(Mcp.ResourceCatalog.make({ resources: [], templates: [] })),
   resources: () => Effect.succeed(Mcp.ResourceCatalog.make({ resources: [], templates: [] })),
   readResource: () => Effect.undefined,
+  events: () => Effect.undefined,
+  subscribe: () => Effect.die("unused Mcp.subscribe"),
+  unsubscribe: () => Effect.void,
+  subscriptions: () => Effect.succeed([]),
 })
 
 export const emptyMcpLayer = Layer.succeed(Mcp.Service, emptyMcp)

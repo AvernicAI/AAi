@@ -15,16 +15,16 @@ const integration = (value: Partial<IntegrationInfo> & Pick<IntegrationInfo, "id
 
 describe("integrationOptions", () => {
   test("keeps free access, temporary offers, paid, and unverified distinct", () => {
-    expect(integrationOptions([
-      integration({ id: "unknown", name: "Unknown" }),
-      integration({ id: "mistral", name: "Mistral" }),
-      integration({ id: "cerebras", name: "Cerebras" }),
-      integration({ id: "simplellm", name: "SimpleLLM" }),
-      integration({ id: "aai-compatible-free-openrouter", name: "Router preset" }),
-      integration({ id: "sambanova", name: "SambaNova" }),
-    ]).map((item) => item.id)).toEqual([
-      "aai-compatible-free-openrouter", "simplellm", "cerebras", "mistral", "sambanova", "unknown",
-    ])
+    expect(
+      integrationOptions([
+        integration({ id: "unknown", name: "Unknown" }),
+        integration({ id: "mistral", name: "Mistral" }),
+        integration({ id: "cerebras", name: "Cerebras" }),
+        integration({ id: "simplellm", name: "SimpleLLM" }),
+        integration({ id: "aai-compatible-free-openrouter", name: "Router preset" }),
+        integration({ id: "sambanova", name: "SambaNova" }),
+      ]).map((item) => item.id),
+    ).toEqual(["aai-compatible-free-openrouter", "simplellm", "cerebras", "mistral", "sambanova", "unknown"])
   })
 
   test("orders pricing groups before priority and name", () => {

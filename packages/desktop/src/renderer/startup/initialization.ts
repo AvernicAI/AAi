@@ -1,12 +1,13 @@
-import { connectFailures, type ConnectFailure } from "../../shared/ipc-rpc/connect"
 import type { ElectronAPI } from "../api-types"
 
 type SidecarData = Awaited<ReturnType<ElectronAPI["awaitInitialization"]>>
 
-export function initializationData<A>(state: (() => A | undefined) & { error: unknown }) {
-  if (state.error !== undefined) throw markLocalServerStartup(state.error)
+/** Marks a startup failure so the error page describes it as the local server failing to start. */
+export function localServerStartupError(cause: unknown) {
+  const failure = cause instanceof Error ? cause : new Error(String(cause))
+  Object.defineProperty(failure, "localServerStartup", { value: true })
 
-  return state()
+  return failure
 }
 
 // The main process adds Authorization to sidecar requests (`wireRendererHeaders`); the renderer never
@@ -22,7 +23,8 @@ export function createSidecarResolver(input: {
 }) {
   return async (signal: AbortSignal) => {
     if (signal.aborted) throw signal.reason
-    const next = await input.api.reconnectService()
+    // Aborting interrupts this window's wait in main; the reconnect keeps running for other windows.
+    const next = await input.api.reconnectService(signal)
 
     if (signal.aborted) throw signal.reason
 
@@ -34,25 +36,4 @@ export function createSidecarResolver(input: {
 
 function sameSidecar(current: SidecarData | undefined, next: SidecarData) {
   return current?.url === next.url
-}
-
-/** The typed reason main attached to a failed local-server start, when it sent one. */
-export function localServerFailure(error: unknown): ConnectFailure | undefined {
-  if (!(error instanceof Error) || !Object.hasOwn(error, "localServerFailure")) return undefined
-
-  // SAFETY: the property was checked present; matching against the closed union rejects anything else.
-  const value = (error as Error & { localServerFailure?: unknown }).localServerFailure
-
-  return connectFailures.find((failure) => failure === value)
-}
-
-function markLocalServerStartup(error: unknown) {
-  const failure = error instanceof Error ? error : new Error(String(error))
-  const reason = localServerFailure(error)
-
-  Object.defineProperty(failure, "localServerStartup", { value: true })
-
-  if (reason) Object.defineProperty(failure, "localServerFailure", { value: reason })
-
-  return failure
 }

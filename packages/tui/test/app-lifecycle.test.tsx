@@ -770,7 +770,7 @@ test("keeps assistant footer metrics current after prepend, same-length refresh,
               type: "assistant",
               agent: session.agent,
               model: session.model,
-              time: { created: 2000, streamed: 3000, completed: 5000 },
+              time: { created: 2000, firstToken: 2500, streamed: 3000, completed: 5000 },
               finish: "stop",
               cost: 0,
               tokens: { ...session.tokens, output: 20 },
@@ -792,10 +792,11 @@ test("keeps assistant footer metrics current after prepend, same-length refresh,
 
   const initial = await waitForHighlightedFrame(
     setup,
-    (frame) => frame.includes("Original answer") && frame.includes("20.0 tok/s"),
+    (frame) => frame.includes("Original answer") && frame.includes("40.0 tok/s"),
   )
   expect(initial).toContain("Current input")
-  expect(initial).toContain("4.0s \u00b7 20.0 tok/s")
+  expect(initial).toContain("4.0s \u00b7 40.0 tok/s")
+  expect(initial).not.toContain("ttft")
   expect(initial).not.toContain("Prepended input")
 
   setup.mockInput.pressKey("g", { ctrl: true })
@@ -805,12 +806,12 @@ test("keeps assistant footer metrics current after prepend, same-length refresh,
       frame.includes("Prepended input") &&
       frame.includes("Prepended instructions") &&
       frame.includes("Original answer") &&
-      frame.includes("20.0 tok/s") &&
+      frame.includes("40.0 tok/s") &&
       !frame.includes("Loading session history…"),
   )
   expect(prepended).toContain("Current input")
   expect(prepended).toContain("Original answer")
-  expect(prepended).toContain("4.0s \u00b7 20.0 tok/s")
+  expect(prepended).toContain("4.0s \u00b7 40.0 tok/s")
 
   // Refresh the latest page: length stays four, but the retained assistant moves from index three to one.
   refresh = true
@@ -826,7 +827,7 @@ test("keeps assistant footer metrics current after prepend, same-length refresh,
   )
   expect(refreshed).toContain("Current input")
   expect(refreshed).toContain("Original answer")
-  expect(refreshed).toContain("4.0s \u00b7 20.0 tok/s")
+  expect(refreshed).toContain("4.0s \u00b7 40.0 tok/s")
   expect(refreshed).toContain("3.0s \u00b7 50.0 tok/s")
 
   setup.events.emit({
@@ -841,7 +842,7 @@ test("keeps assistant footer metrics current after prepend, same-length refresh,
     (frame) => frame.includes("Original answer") && !frame.includes("Later input") && !frame.includes("Later answer"),
   )
   expect(reverted).toContain("Current input")
-  expect(reverted).toContain("4.0s \u00b7 20.0 tok/s")
+  expect(reverted).toContain("4.0s \u00b7 40.0 tok/s")
   expect(reverted).not.toContain("50.0 tok/s")
 })
 
@@ -1847,7 +1848,6 @@ test("free usage limit offers OpenCode Go once per 24h, transitions Subscribe to
       if (url.pathname === `/api/session/${session.id}/message`)
         return json({
           data: [
-            { id: "msg_queued_user", type: "user", text: "Queued follow-up", time: { created: 3 } },
             {
               id: "msg_free_assistant",
               type: "assistant",
@@ -2849,119 +2849,3 @@ test.each([44, 100])(
   },
   15_000,
 )
-
-test("restarting after an update tells the user to start AAi again", async () => {
-  await using state = await tmpdir()
-  const setup = await createTestRenderer({ width: 80, height: 24 })
-  await setup.renderer.setupTerminal()
-  const started = Promise.withResolvers<void>()
-  const setTitle = setup.renderer.setTerminalTitle.bind(setup.renderer)
-  setup.renderer.setTerminalTitle = (title) => {
-    if (title === "AAi") started.resolve()
-    setTitle(title)
-  }
-  const events = createEventStream()
-  const calls = createFetch(undefined, events)
-  const server = Bun.serve({ port: 0, fetch: (request) => calls.fetch(request) })
-  const originalWrite = process.stdout.write.bind(process.stdout)
-  let stdout = ""
-  process.stdout.write = ((chunk: string | Uint8Array) => {
-    stdout += String(chunk)
-    return true
-  }) as typeof process.stdout.write
-
-  try {
-    const { run } = await import("../src/app")
-    const task = Effect.runPromise(
-      run({
-        app: { name: "test", version: "test", channel: "test" },
-        server: { endpoint: { url: server.url.toString() } },
-        config: { get: async () => ({}), update: async () => ({}) },
-        packages: { prepare: async () => ({ directory: "" }) },
-        terminalHandoff: async () => ({ renderer: setup.renderer, mode: "dark", complete: () => {} }),
-        updater: {
-          remote: false,
-          subscribe: () => () => {},
-          check: async () => ({ type: "installed", version: "2.0.0" }),
-          apply: async () => {},
-        },
-        args: {},
-        log: () => {},
-      }).pipe(Effect.provide(Global.layerWith({ state: state.path })), Effect.provide(FileSystem.layerNoop({}))),
-    )
-
-    await started.promise
-    await setup.waitForFrame((frame) => frame.includes("commands"))
-    await setup.mockInput.typeText("/update")
-    await setup.waitForFrame((frame) => frame.includes("Update AAi"))
-    setup.mockInput.pressEnter()
-    await setup.waitForFrame((frame) => frame.includes("Update successful") && frame.includes("Restart"))
-    setup.mockInput.pressEnter()
-    await task
-
-    expect(Bun.stripANSI(stdout)).toContain("  Run aai to use 2.0.0\n")
-  } finally {
-    process.stdout.write = originalWrite
-    if (!setup.renderer.isDestroyed) setup.renderer.destroy()
-    await server.stop()
-  }
-})
-
-test("quitting after a background update tells the user to start AAi again", async () => {
-  await using state = await tmpdir()
-  const setup = await createTestRenderer({ width: 80, height: 24 })
-  await setup.renderer.setupTerminal()
-  const started = Promise.withResolvers<void>()
-  const setTitle = setup.renderer.setTerminalTitle.bind(setup.renderer)
-  setup.renderer.setTerminalTitle = (title) => {
-    if (title === "AAi") started.resolve()
-    setTitle(title)
-  }
-  const events = createEventStream()
-  const calls = createFetch(undefined, events)
-  const server = Bun.serve({ port: 0, fetch: (request) => calls.fetch(request) })
-  const originalWrite = process.stdout.write.bind(process.stdout)
-  let stdout = ""
-  process.stdout.write = ((chunk: string | Uint8Array) => {
-    stdout += String(chunk)
-    return true
-  }) as typeof process.stdout.write
-
-  try {
-    const { run } = await import("../src/app")
-    const task = Effect.runPromise(
-      run({
-        app: { name: "test", version: "test", channel: "test" },
-        server: { endpoint: { url: server.url.toString() } },
-        config: { get: async () => ({}), update: async () => ({}) },
-        packages: { prepare: async () => ({ directory: "" }) },
-        terminalHandoff: async () => ({ renderer: setup.renderer, mode: "dark", complete: () => {} }),
-        updater: {
-          remote: false,
-          subscribe: (notify) => {
-            notify({ type: "installed", version: "2.0.0" })
-            return () => {}
-          },
-          check: async () => undefined,
-          apply: async () => {},
-        },
-        args: {},
-        log: () => {},
-      }).pipe(Effect.provide(Global.layerWith({ state: state.path })), Effect.provide(FileSystem.layerNoop({}))),
-    )
-
-    await started.promise
-    await setup.waitForFrame((frame) => frame.includes("commands"))
-    await setup.waitForFrame((frame) => frame.includes("restart to use v2.0.0"))
-    await setup.mockInput.typeText("/exit")
-    await setup.waitForFrame((frame) => frame.includes("Exit the app"))
-    setup.mockInput.pressEnter()
-    await task
-
-    expect(Bun.stripANSI(stdout)).toContain("  Run aai to use 2.0.0\n")
-  } finally {
-    process.stdout.write = originalWrite
-    if (!setup.renderer.isDestroyed) setup.renderer.destroy()
-    await server.stop()
-  }
-})

@@ -1,3 +1,4 @@
+import { uuid } from "@opencode/util/uuid"
 import { For, Show, onCleanup } from "solid-js"
 import { createStore, reconcile } from "solid-js/store"
 import { Button } from "@opencode/ui/button"
@@ -37,14 +38,14 @@ export function ThemeEditor() {
     setStore({ error: "", busy: true })
 
     try {
-      const source = await theme.loadTheme(theme.themeId())
+      const source = (await theme.loadThemes())[theme.themeId()]
 
       if (lifetime.signal.aborted) return
 
       if (!source) throw new Error("Missing theme")
 
       const draft = parsePaletteTheme({
-        id: source.id.startsWith("aai-custom-") ? source.id : `aai-custom-${crypto.randomUUID()}`,
+        id: source.id.startsWith("aai-custom-") ? source.id : `aai-custom-${uuid()}`,
         name: source.id.startsWith("aai-custom-")
           ? source.name
           : language.t("settings.themeEditor.copyName", { name: source.name }),
@@ -67,7 +68,7 @@ export function ThemeEditor() {
     try {
       const draft = parsePaletteTheme({
         ...store.draft,
-        id: copy ? `aai-custom-${crypto.randomUUID()}` : store.draft.id,
+        id: copy ? `aai-custom-${uuid()}` : store.draft.id,
       })
 
       theme.saveTheme(draft)
@@ -100,7 +101,7 @@ export function ThemeEditor() {
       const input: unknown = JSON.parse(await file.text())
 
       if (lifetime.signal.aborted) return
-      const draft = { ...parsePaletteTheme(input), id: `aai-custom-${crypto.randomUUID()}` }
+      const draft = { ...parsePaletteTheme(input), id: `aai-custom-${uuid()}` }
       setStore({ draft, error: "" })
       preview(draft)
     } catch {

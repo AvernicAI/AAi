@@ -9,7 +9,7 @@ export function inventory(snapshot: Tool.Snapshot, skills: ReadonlyArray<Skill.I
     ...snapshot.definitions.map((tool) => ({ name: tool.name, description: tool.description, kind: "tool" })),
     ...(snapshot.codeModeCatalog ? CodeModeCatalog.flatten(snapshot.codeModeCatalog.tools).tools : []).map((tool) => ({
       name: tool.path,
-      description: tool.description,
+      description: tool.tool.description,
       kind: "Code Mode tool",
     })),
     ...skills.map((skill) => ({ name: skill.id, description: skill.description, kind: "skill" })),

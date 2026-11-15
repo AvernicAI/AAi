@@ -12,7 +12,7 @@ import { sendMenuCommand } from "./native/menu"
 import { BackgroundService } from "./service/background-service"
 import { DesktopCli } from "./service/desktop-cli"
 import { marks } from "./lifecycle/marks"
-import { getLastFocusedWindow, getMainWindows, setAppQuitting } from "./windows"
+import { getLastFocusedWindow, getMainWindows } from "./windows"
 
 // Everything above has been loaded and evaluated by now; the layers start below.
 marks.bundle = Date.now()
@@ -38,7 +38,6 @@ const runIpc = Effect.fn("Desktop.runIpc")(function* () {
       sendMenuCommand(win, "settings.open")
     },
     quit: () => {
-      setAppQuitting()
       app.quit()
     },
   })

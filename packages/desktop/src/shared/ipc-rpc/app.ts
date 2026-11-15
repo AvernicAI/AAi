@@ -14,8 +14,11 @@ export const AppConnectFailure = Rpc.make("AppConnectFailure", {
   success: Schema.NullOr(ConnectFailureSchema),
 })
 
-export const AppConsumeInitialDeepLinks = Rpc.make("AppConsumeInitialDeepLinks", {
-  success: Schema.Array(Schema.String),
+// The renderer listens for DeepLinksOpened before it reports ready, and acknowledges each delivery once handled.
+export const AppReadyDeepLinks = Rpc.make("AppReadyDeepLinks")
+
+export const AppAcknowledgeDeepLinks = Rpc.make("AppAcknowledgeDeepLinks", {
+  payload: { attempt: Schema.Number },
 })
 
 export const AppIsFirstLaunchOnboardingPending = Rpc.make("AppIsFirstLaunchOnboardingPending", {
@@ -59,6 +62,12 @@ export const AppRecordFatalRendererError = Rpc.make("AppRecordFatalRendererError
   },
 })
 
+export const AppGetSpellcheckEnabled = Rpc.make("AppGetSpellcheckEnabled", { success: Schema.Boolean })
+
+export const AppSetSpellcheckEnabled = Rpc.make("AppSetSpellcheckEnabled", {
+  payload: { enabled: Schema.Boolean },
+})
+
 export const AppSetNativeTranslations = Rpc.make("AppSetNativeTranslations", {
   payload: { value: Schema.Unknown },
 })
@@ -69,7 +78,8 @@ export const AppRpcs = RpcGroup.make(
   AppAwaitInitialization,
   AppReconnectService,
   AppConnectFailure,
-  AppConsumeInitialDeepLinks,
+  AppReadyDeepLinks,
+  AppAcknowledgeDeepLinks,
   AppIsFirstLaunchOnboardingPending,
   AppFinishFirstLaunchOnboarding,
   AppCheckAppExists,
@@ -77,6 +87,8 @@ export const AppRpcs = RpcGroup.make(
   AppSetBackgroundColor,
   AppExportDebugLogs,
   AppSetForceFocus,
+  AppGetSpellcheckEnabled,
+  AppSetSpellcheckEnabled,
   AppRecordFatalRendererError,
   AppSetNativeTranslations,
   AppRelaunch,

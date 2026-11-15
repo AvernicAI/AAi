@@ -40,7 +40,7 @@ const fixture = Effect.gen(function* () {
     }),
   )
   const plugin = yield* Plugin.Service
-  const host = yield* PluginHost.make(plugin)
+  const host = yield* PluginHost.make(plugin, "test")
   yield* FreebuffPlugin.effect(host).pipe(Effect.provideService(HttpClient.HttpClient, http))
   const integrations = yield* Integration.Service
   const credentials = yield* Credential.Service

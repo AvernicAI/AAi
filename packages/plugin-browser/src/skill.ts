@@ -12,7 +12,7 @@ export const info = Skill.Info.make({
   name: Skill.Name.make("Browser"),
   description:
     "Use whenever a task needs web research, current information, website interaction or testing, forms, browser games, screenshots, console/network diagnostics or profiling. Available to any tool-capable model while the desktop browser is attached; no special model or slash command is required. Load it before your first browser tool call.",
-  path: AbsolutePath.make("/builtin/browser.md"),
+  path: AbsolutePath.make("skill://browser/SKILL.md"),
   content: [
     "# In-app browser",
     "",

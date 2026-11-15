@@ -19,7 +19,7 @@ it.effect("Alphie appends personality without replacing the agent system, tools,
   Effect.gen(function* () {
     const hooks = yield* PluginHooks.Service
     const plugins = yield* Plugin.Service
-    const host = yield* PluginHost.make(plugins)
+    const host = yield* PluginHost.make(plugins, "test")
     yield* AlphiePlugin.Plugin.effect(host)
     const input: SessionHooks["context"] = {
       sessionID: Session.ID.make("ses_alphie"),

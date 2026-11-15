@@ -41,6 +41,7 @@ describe("SkillPlugin.Plugin", () => {
         expect.objectContaining({
           id: "opencode",
           name: "OpenCode",
+          path: "skill://opencode/SKILL.md",
           description: expect.stringContaining("any question about OpenCode itself"),
         }),
       )
@@ -48,6 +49,7 @@ describe("SkillPlugin.Plugin", () => {
         expect.objectContaining({
           id: "report",
           name: "Report",
+          path: "skill://report/SKILL.md",
           description: expect.stringContaining("opencode issue"),
         }),
       )

@@ -39,6 +39,7 @@ export default {
   "error.installDistro": "Failed to install distro: {{distro}}",
   "error.installOpencode": "AAi installation failed",
   "error.alreadyAdded": "{{distro}} is already added",
+  "error.busy": "{{distro}} is busy with another task. Try again when it finishes.",
   "error.opencodeMissing": "AAi is not installed in this distro",
   "error.opencodeCannotRun": "AAi is installed but could not run",
   "error.opencodeNotInstalled": "AAi is not installed in {{distro}}",

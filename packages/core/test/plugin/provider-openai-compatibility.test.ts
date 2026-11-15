@@ -20,7 +20,7 @@ for (const row of [
   it.live(`compatible endpoint auth for ${row.id}`, () =>
     Effect.gen(function* () {
       const plugin = yield* Plugin.Service
-      const host = yield* PluginHost.make(plugin)
+      const host = yield* PluginHost.make(plugin, "test")
       const providerID = Provider.ID.make(row.id)
       yield* host.provider.transform((editor) =>
         editor.add({
