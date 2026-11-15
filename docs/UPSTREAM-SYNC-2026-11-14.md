@@ -27,6 +27,8 @@ Convio remains retired according to the fork's provider cleanup; it is not silen
 - Desktop lifecycle, packaging, IPC, startup and recovery tests.
 - Composer submission and crash-page retry regressions.
 
+The current Turbo parser warns about Bun's version-scoped override format. The scoped security overrides are retained; the canonical check completes all 35 package checks.
+
 Windows artifacts are built from this source. macOS and Linux source compatibility is checked, but their native packages require their corresponding build hosts. Windows Server 2016 remains below the bundled runtime's supported API requirements; use a supported Windows desktop/Server release.
 
 ## Future updates
