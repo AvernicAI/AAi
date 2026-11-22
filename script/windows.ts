@@ -102,6 +102,8 @@ async function main() {
   if (!(await Bun.file(desktop).exists())) throw new Error(`Packaged desktop executable missing: ${desktop}`)
   const installer = path.join(directory, `dist/opencode-desktop-win-${arch}.exe`)
   if (!(await Bun.file(installer).exists())) throw new Error(`Windows installer missing: ${installer}`)
+  const releaseName = channel === "dev" ? "AAi-Dev" : channel === "beta" ? "AAi-Beta" : "AAi"
+  await Bun.write(path.join(root, `artifacts/${releaseName}-${pkg.version}-Setup-${arch}.exe`), Bun.file(installer))
   await Bun.write(path.join(root, `artifacts/AAi-Setup-${arch}.exe`), Bun.file(installer))
   console.log(`[AAi] Desktop ready: ${desktop}`)
   console.log(`[AAi] Installer ready: ${path.join(root, `artifacts/AAi-Setup-${arch}.exe`)}`)

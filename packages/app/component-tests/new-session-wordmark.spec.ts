@@ -46,13 +46,17 @@ story("shows a static pin board with reduced motion", async ({ mount, page }) =>
   expect(await requestedFrames(page)).toBe(0)
 })
 
-story("the lodger pops the pin board out and packs it back into the e", async ({ mount, page }) => {
+story("the lodger pops the pin board out and packs it back into the i", async ({ mount, page }) => {
+  const errors: string[] = []
+  page.on("pageerror", (error) => errors.push(error.message))
   await page.emulateMedia({ reducedMotion: "no-preference" })
   await mount("app-new-session-wordmark--flat")
   const grip = page.locator('[data-slot="wordmark-lodger-grip"]')
   const flat = page.locator('[data-slot="wordmark-flat"]')
   const board = page.locator("canvas")
   await expect(board).toHaveCount(0)
+  await expect(grip).toBeVisible()
+  expect(errors).toEqual([])
 
   // Pulling the lodger well past its slip distance pops every pin out into the board.
   const hole = (await grip.boundingBox())!
@@ -76,6 +80,7 @@ story("the lodger pops the pin board out and packs it back into the e", async ({
   await expect(flat).toBeVisible()
   await expect.poll(() => requestedFrames(page)).toBe(0)
   await expect(grip).toBeVisible()
+  expect(errors).toEqual([])
 })
 
 // Reads the on-screen pixel at a grid cell. The board may be drawn with WebGL, whose canvas cannot be read

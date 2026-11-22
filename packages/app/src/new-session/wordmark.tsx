@@ -18,6 +18,7 @@ import {
 import "./wordmark.css"
 
 const LETTERS = AaiLetters
+const LAST_LETTER = LETTERS.length - 1
 
 // Lodger geometry, in the logo's 234×42 viewBox units. The lodger is drawn from its bottom centre.
 const W = 234
@@ -192,7 +193,7 @@ function WordmarkLodger(props: {
                   <path d={item.weak} fill="var(--icon-weak-base)" />
                   <path d={item.stem} fill={item.fill} />
                 </g>
-                <Show when={i() === 7}>
+                <Show when={i() === LAST_LETTER}>
                   <rect
                     ref={notch}
                     x="224.6"
@@ -463,10 +464,10 @@ function mountLodger(
     c.pinY = lerp(PIN_SLOT.y, c.y - 11, clamp01(out / 7))
     c.pinRot = (c.x - REST.x) * 2.5
     c.pinScale = 1 + stress * 0.35
-    poses[7].x = (c.x - REST.x) * 0.12
-    poses[7].y = (c.y - REST.y) * 0.12
-    poses[7].sx = 1 + stress * 0.05
-    poses[7].sy = 1 + stress * 0.05
+    poses[LAST_LETTER].x = (c.x - REST.x) * 0.12
+    poses[LAST_LETTER].y = (c.y - REST.y) * 0.12
+    poses[LAST_LETTER].sx = 1 + stress * 0.05
+    poses[LAST_LETTER].sy = 1 + stress * 0.05
   }
 
   const snapIn = (dt: number) => {
@@ -569,7 +570,7 @@ function mountLodger(
     c.pinOpacity = t < 1.35 ? 1 : 0
 
     poses.forEach((p, i) => {
-      const start = (7 - i) * 0.08
+      const start = ((LAST_LETTER - i) / LAST_LETTER) * 0.56
       const u = seg(t, start, start + 0.28)
       p.opacity = 1 - u
       p.x = 0
@@ -776,7 +777,7 @@ function mountLodger(
     }
 
     poses.forEach((p, i) => {
-      const start = 0.32 + (i / 7) * 0.48
+      const start = 0.32 + (i / LAST_LETTER) * 0.48
       const u = seg(t, start, start + 0.32)
       p.opacity = u
       p.x = 0

@@ -34,3 +34,18 @@ Windows artifacts are built from this source. macOS and Linux source compatibili
 ## Future updates
 
 Run `bun run sync:upstream` on a clean `dev` branch. It keeps a `pre-upstream-sync` reference, merges upstream, checks AAi extension points, installs changed dependencies, regenerates public clients when needed, and runs the canonical check. Review conflicts before shipping. It does not push or publish.
+
+
+## Corrected AAi Dev installer identity
+
+The Windows download targets **AAi Dev**, retaining the existing `ai.opencode.desktop.dev` profile and upgrade GUID `b82a3793-6cb8-5d2a-9ed8-4e6f2297ac4b`. Both desktop and bundled CLI are built for the `dev` channel. The installer checks the previous application's display name before invoking an uninstaller, rejects OpenCode executable folders, and preserves resources of unknown ownership in legacy shared directories.
+
+AAi production and beta use `com.avernic.aai` and `com.avernic.aai.beta`, with distinct package names. AAi registers `aai://` rather than taking ownership of `opencode://`. The corrected download is named `AAi-Dev-2.3.0-Setup-x64.exe`; the previous generic download paths are refreshed with this Dev build.
+
+Validation: all 19 targeted desktop packaging, compiled NSIS and deep-link tests pass, and `bun run check` completes all 35 package checks. The rebuilt Dev CLI's isolated free-routing smoke test records zero paid-provider requests. Packaged-app verification checks the `aai-dev` manifest, version, bundled CLI checksum and full Blender runtime before promoting the installer.
+
+## AAi 2.3.1 wordmark compatibility
+
+The new-session animation now derives its final-letter anchor and animation timing from AAi's three glyphs. The inherited eight-letter index prevented the notch from mounting and crashed the first render; it also referenced a nonexistent pose while dragging. The existing browser keeper now checks for page errors on mount and after dragging the lodger out and returning it. Desktop and CLI builds use version `2.3.1` so an installed `2.3.0` CLI cache cannot retain the broken renderer. The AAi Dev upgrade identity remains unchanged.
+
+The production-story comparison reproduces the exact undefined-`style` exception using the original source. The fixed story mounts without page errors at 640px and 1440px, and the browser drag-and-return keeper passes. All 35 package checks pass for `2.3.1`.

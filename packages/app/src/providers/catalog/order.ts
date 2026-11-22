@@ -1,6 +1,10 @@
 export const popularProviders = [
   "freebuff",
   "vyce-code",
+  "claude-agent",
+  "antigravity",
+  "devin",
+  "fireworks-ai",
   "opencode-go",
   "opencode",
   "anthropic",

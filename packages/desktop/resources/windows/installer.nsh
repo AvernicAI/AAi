@@ -7,7 +7,68 @@
   Var /GLOBAL sharedInstallDir
 !endif
 
+; Run after electron-builder loads its languages. English is the fallback until
+; this installer message has reviewed translations, as with builder's own messages.
+!macro aaiInstallLanguage LANGUAGE
+  !ifdef LANG_${LANGUAGE}
+    LangString aaiForeignInstall ${LANG_${LANGUAGE}} "This installer cannot replace an installation owned by another application."
+  !endif
+!macroend
+
+!macro customHeader
+  !insertmacro aaiInstallLanguage English
+  !insertmacro aaiInstallLanguage German
+  !insertmacro aaiInstallLanguage French
+  !insertmacro aaiInstallLanguage SpanishInternational
+  !insertmacro aaiInstallLanguage SimpChinese
+  !insertmacro aaiInstallLanguage TradChinese
+  !insertmacro aaiInstallLanguage Japanese
+  !insertmacro aaiInstallLanguage Korean
+  !insertmacro aaiInstallLanguage Italian
+  !insertmacro aaiInstallLanguage Dutch
+  !insertmacro aaiInstallLanguage Danish
+  !insertmacro aaiInstallLanguage Swedish
+  !insertmacro aaiInstallLanguage Norwegian
+  !insertmacro aaiInstallLanguage Finnish
+  !insertmacro aaiInstallLanguage Russian
+  !insertmacro aaiInstallLanguage Portuguese
+  !insertmacro aaiInstallLanguage PortugueseBR
+  !insertmacro aaiInstallLanguage Polish
+  !insertmacro aaiInstallLanguage Ukrainian
+  !insertmacro aaiInstallLanguage Czech
+  !insertmacro aaiInstallLanguage Slovak
+  !insertmacro aaiInstallLanguage Hungarian
+  !insertmacro aaiInstallLanguage Arabic
+  !insertmacro aaiInstallLanguage Turkish
+  !insertmacro aaiInstallLanguage Thai
+  !insertmacro aaiInstallLanguage Vietnamese
+!macroend
+
+!macro aaiRejectForeignInstall
+  SetErrorLevel 2
+  MessageBox MB_OK|MB_ICONSTOP "$(aaiForeignInstall)" /SD IDOK
+  Quit
+!macroend
+
+!macro aaiCheckInstallOwner ROOT KEY
+  ReadRegStr $R1 ${ROOT} "${KEY}" DisplayName
+  ${If} $R1 != ""
+    StrLen $R3 "${PRODUCT_NAME} "
+    StrCpy $R2 "$R1 " $R3
+    ${If} $R2 != "${PRODUCT_NAME} "
+      !insertmacro aaiRejectForeignInstall
+    ${EndIf}
+  ${EndIf}
+!macroend
+
 !macro customInit
+  ; Check ownership before the stock installer can run an existing uninstaller.
+  !insertmacro aaiCheckInstallOwner HKCU "${UNINSTALL_REGISTRY_KEY}"
+  !insertmacro aaiCheckInstallOwner HKLM "${UNINSTALL_REGISTRY_KEY}"
+  !ifdef UNINSTALL_REGISTRY_KEY_2
+    !insertmacro aaiCheckInstallOwner HKCU "${UNINSTALL_REGISTRY_KEY_2}"
+    !insertmacro aaiCheckInstallOwner HKLM "${UNINSTALL_REGISTRY_KEY_2}"
+  !endif
   StrCpy $sharedInstallDir ""
   ${StdUtils.GetParentPath} $R0 $INSTDIR
   ${If} $INSTDIR == "$R0\${APP_FILENAME}"
@@ -16,12 +77,20 @@
       ; The old uninstaller would delete every channel's files from the shared directory, so the
       ; install skips it and removes only this channel's files afterwards. The install writes the
       ; uninstall entry again for the new directory.
-      DeleteRegValue SHELL_CONTEXT "${UNINSTALL_REGISTRY_KEY}" UninstallString
-      !ifdef UNINSTALL_REGISTRY_KEY_2
-        DeleteRegValue SHELL_CONTEXT "${UNINSTALL_REGISTRY_KEY_2}" UninstallString
-      !endif
     ${EndIf}
     StrCpy $INSTDIR "$R0\${APP_ID}"
+  ${EndIf}
+  ; An explicit /D must not point AAi's shared resources at an OpenCode installation.
+  ${If} ${FileExists} "$INSTDIR\OpenCode.exe"
+  ${OrIf} ${FileExists} "$INSTDIR\OpenCode Dev.exe"
+  ${OrIf} ${FileExists} "$INSTDIR\OpenCode Beta.exe"
+    !insertmacro aaiRejectForeignInstall
+  ${EndIf}
+  ${If} $sharedInstallDir != ""
+    DeleteRegValue SHELL_CONTEXT "${UNINSTALL_REGISTRY_KEY}" UninstallString
+    !ifdef UNINSTALL_REGISTRY_KEY_2
+      DeleteRegValue SHELL_CONTEXT "${UNINSTALL_REGISTRY_KEY_2}" UninstallString
+    !endif
   ${EndIf}
 !macroend
 
@@ -33,19 +102,14 @@
   !insertmacro leaveSharedInstall
 !macroend
 
-; Removes this channel's files from the shared directory, and the directory with the files every
-; channel shared once no other channel's uninstaller is left in it. A taskbar pin still starts the
-; old executable, so it is pointed at the new one.
+; Removes only this channel's executables from a legacy shared directory. A taskbar pin still
+; starts the old executable, so it is pointed at the new one. Shared resources remain untouched.
 !macro leaveSharedInstall
   ${If} $sharedInstallDir != ""
     Delete "$sharedInstallDir\${APP_EXECUTABLE_FILENAME}"
     Delete "$sharedInstallDir\${UNINSTALL_FILENAME}"
-    !insertmacro removeStagedUpdates $sharedInstallDir
-    FindFirst $R0 $R1 "$sharedInstallDir\Uninstall *.exe"
-    FindClose $R0
-    ${If} $R1 == ""
-      RMDir /r $sharedInstallDir
-    ${EndIf}
+    ; Shared resources and staged payloads may belong to another app. Remove only an empty directory.
+    RMDir "$sharedInstallDir"
     ${If} ${FileExists} "$QUICKLAUNCH\User Pinned\TaskBar\${SHORTCUT_NAME}.lnk"
       CreateShortCut "$QUICKLAUNCH\User Pinned\TaskBar\${SHORTCUT_NAME}.lnk" "$INSTDIR\${APP_EXECUTABLE_FILENAME}" "" "$INSTDIR\${APP_EXECUTABLE_FILENAME}" 0
       WinShell::SetLnkAUMI "$QUICKLAUNCH\User Pinned\TaskBar\${SHORTCUT_NAME}.lnk" "${APP_ID}"

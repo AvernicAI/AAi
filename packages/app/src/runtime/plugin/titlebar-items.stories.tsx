@@ -95,3 +95,22 @@ export const ReadyToInstall = { args: { locale: "en", action: "install", layout:
 export const Installing = { args: { locale: "en", action: "installing" } }
 
 export const Pressed = { args: { locale: "en", layout: "vertical", action: "toggle on", label: "Terminal" } }
+
+export const Workspaces = {
+  render: () => {
+    const [selected, setSelected] = createSignal("")
+    const group = { id: "workspaces", label: "AI workspaces" }
+    const items: TitlebarItem[] = [
+      { id: "gemini", label: "Gemini", group, run: () => setSelected("Gemini") },
+      { id: "devin", label: "Devin", group, run: () => setSelected("Devin") },
+      { id: "update", label: "Update available" },
+    ]
+
+    return (
+      <div class="p-4">
+        <TitlebarItems items={{ ids: () => items.map((item) => item.id), item: (id) => items.find((item) => item.id === id) }} vertical />
+        <output>{selected()}</output>
+      </div>
+    )
+  },
+}

@@ -35,7 +35,7 @@ const runIpc = Effect.fn("Desktop.runIpc")(function* () {
       }
 
       win.show()
-      sendMenuCommand(win, "settings.open")
+      sendMenuCommand(win, "settings.open", false)
     },
     quit: () => {
       app.quit()

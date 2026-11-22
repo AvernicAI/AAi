@@ -1,3 +1,5 @@
+import { DevinPlugin } from "./provider/devin.js"
+import { AntigravityPlugin } from "./provider/antigravity/index.js"
 import { AmazonBedrockPlugin } from "./provider/amazon-bedrock.js"
 import { AvernicAIPlugin } from "./provider/avernicai.js"
 import { VyceCodePlugin } from "./provider/vyce-code.js"
@@ -9,6 +11,7 @@ import { CloudflareAIGatewayPlugin } from "./provider/cloudflare-ai-gateway.js"
 import { CloudflareWorkersAIPlugin } from "./provider/cloudflare-workers-ai.js"
 import { DatabricksPlugin } from "./provider/databricks.js"
 import { DigitalOceanPlugin } from "./provider/digitalocean.js"
+import { FireworksPlugin } from "./provider/fireworks.js"
 import { FreebuffPlugin } from "./provider/freebuff.js"
 import { GithubCopilotPlugin } from "./provider/github-copilot.js"
 import { GitLabPlugin } from "./provider/gitlab.js"
@@ -35,6 +38,8 @@ import { ZenmuxPlugin } from "./provider/zenmux.js"
 import type { PluginInternal } from "./internal.js"
 
 export const ProviderPlugins: PluginInternal.InternalPlugin[] = [
+  AntigravityPlugin,
+  DevinPlugin,
   AmazonBedrockPlugin,
   AvernicAIPlugin,
   VyceCodePlugin,
@@ -46,6 +51,7 @@ export const ProviderPlugins: PluginInternal.InternalPlugin[] = [
   DatabricksPlugin,
   DigitalOceanPlugin,
   FreebuffPlugin,
+  FireworksPlugin,
   GithubCopilotPlugin,
   GitLabPlugin,
   GoogleVertexPlugin,

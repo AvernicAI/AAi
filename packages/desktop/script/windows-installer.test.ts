@@ -50,20 +50,22 @@ OutFile "${exe}"
 !include LogicLib.nsh
 !include StdUtils.nsh
 ${flags.build()}
-LoadLanguageFile "\${NSISDIR}\\Contrib\\Language files\\English.nlf"
-LangString appRunning \${LANG_ENGLISH} "running"
-LangString appClosing \${LANG_ENGLISH} "closing"
-LangString appCannotBeClosed \${LANG_ENGLISH} "cannot close"
-!define APP_EXECUTABLE_FILENAME "OpenCode.exe"
-!define APP_ID "ai.opencode.desktop"
+!define APP_EXECUTABLE_FILENAME "AAi Dev.exe"
+!define PRODUCT_NAME "AAi Dev"
+!define APP_ID "ai.opencode.desktop.dev"
 !define APP_FILENAME "@opencodedesktop"
-!define UNINSTALL_FILENAME "Uninstall OpenCode.exe"
+!define UNINSTALL_FILENAME "Uninstall AAi Dev.exe"
 !define UNINSTALL_REGISTRY_KEY "${uninstallKey}"
 !define SHORTCUT_NAME "OpenCode Installer Test"
 !define APP_64 "${path.join(dir, "app.7z")}"
 !define APP_64_HASH "${payloadHash}"
 !define APP_64_UNPACKED_SIZE 1
 !include "${config.nsis?.include}"
+LoadLanguageFile "\${NSISDIR}\\Contrib\\Language files\\English.nlf"
+LangString appRunning \${LANG_ENGLISH} "running"
+LangString appClosing \${LANG_ENGLISH} "closing"
+LangString appCannotBeClosed \${LANG_ENGLISH} "cannot close"
+!insertmacro customHeader
 Section
 ${section}
 SectionEnd
@@ -71,6 +73,7 @@ SectionEnd
     )
     const result = await run([compiler.path, script])
     expect(result.code, `${result.stdout}\n${result.stderr}`).toBe(0)
+    expect(result.stdout + result.stderr).not.toContain("warning 7025:")
 
     return exe
   }
@@ -133,28 +136,28 @@ const stagedCases = [
   {
     name: "moves the staged app into the emptied install directory",
     installed: [],
-    staged: { [`update-${payloadHash.slice(0, 16)}`]: ["OpenCode.exe", "resources/app.asar"] },
+    staged: { [`update-${payloadHash.slice(0, 16)}`]: ["AAi Dev.exe", "resources/app.asar"] },
     moved: true,
-    expected: ["OpenCode.exe", "resources/app.asar"],
+    expected: ["AAi Dev.exe", "resources/app.asar"],
   },
   {
     name: "keeps an install directory that still holds files",
     installed: ["locked.dll"],
-    staged: { [`update-${payloadHash.slice(0, 16)}`]: ["OpenCode.exe"] },
+    staged: { [`update-${payloadHash.slice(0, 16)}`]: ["AAi Dev.exe"] },
     moved: false,
     expected: ["locked.dll"],
   },
   {
     name: "discards an update staged from another payload",
     installed: [],
-    staged: { "update-FEDCBA9876543210": ["OpenCode.exe"] },
+    staged: { "update-FEDCBA9876543210": ["AAi Dev.exe"] },
     moved: false,
     expected: [],
   },
   {
     name: "discards staging that never finished",
     installed: [],
-    staged: { staging: ["OpenCode.exe"] },
+    staged: { staging: ["AAi Dev.exe"] },
     moved: false,
     expected: [],
   },
@@ -216,7 +219,7 @@ const directoryCases = [
     name: "a first install uses the app ID",
     from: "@opencodedesktop",
     shared: [],
-    expected: "ai.opencode.desktop",
+    expected: "ai.opencode.desktop.dev",
     left: undefined,
     uninstallKept: true,
   },
@@ -224,30 +227,30 @@ const directoryCases = [
     name: "leaving the shared directory keeps the other channels",
     from: "@opencodedesktop",
     shared: [
-      "OpenCode.exe",
-      "Uninstall OpenCode.exe",
+      "AAi Dev.exe",
+      "Uninstall AAi Dev.exe",
       "OpenCode Beta.exe",
       "Uninstall OpenCode Beta.exe",
       "resources/app.asar",
     ],
-    expected: "ai.opencode.desktop",
+    expected: "ai.opencode.desktop.dev",
     left: ["OpenCode Beta.exe", "Uninstall OpenCode Beta.exe", "resources/app.asar"],
     uninstallKept: false,
   },
   {
-    name: "the last channel removes the shared directory",
+    name: "the last channel preserves resources of unknown ownership",
     from: "@opencodedesktop",
-    shared: ["OpenCode.exe", "Uninstall OpenCode.exe", "resources/app.asar"],
-    expected: "ai.opencode.desktop",
-    left: undefined,
+    shared: ["AAi Dev.exe", "Uninstall AAi Dev.exe", "resources/app.asar"],
+    expected: "ai.opencode.desktop.dev",
+    left: ["resources/app.asar"],
     uninstallKept: false,
   },
   {
     name: "an install elsewhere stays where it is",
     from: "custom",
-    shared: ["OpenCode.exe", "Uninstall OpenCode.exe"],
+    shared: ["AAi Dev.exe", "Uninstall AAi Dev.exe"],
     expected: "custom",
-    left: ["OpenCode.exe", "Uninstall OpenCode.exe"],
+    left: ["AAi Dev.exe", "Uninstall AAi Dev.exe"],
     uninstallKept: true,
   },
 ]
@@ -342,3 +345,31 @@ windows(
   },
   120_000,
 )
+
+windows("rejects foreign uninstall entries and install folders before changing their contents", async () => {
+  const installer = await harness()
+  const key = `HKCU\\${uninstallKey}`
+  try {
+    const exe = await installer.compile("ownership", "  !insertmacro customInit")
+    for (const row of [
+      { name: "AAi Dev 2.2.14", file: "AAi Dev.exe", code: 0 },
+      { name: "OpenCode 2.3.0", file: "OpenCode.exe", code: 2 },
+      { name: "OpenCode Dev 2.3.0", file: "OpenCode Dev.exe", code: 2 },
+      { name: "AAi Dev 2.2.14", file: "OpenCode.exe", code: 2 },
+      { name: "", file: "OpenCode Beta.exe", code: 2 },
+    ]) {
+      const dir = path.join(installer.dir, (row.name + row.file).replaceAll(" ", "-"))
+      await mkdir(dir, { recursive: true })
+      await Bun.write(path.join(dir, row.file), "existing application")
+      await installer.run(["reg.exe", "add", key, "/v", "DisplayName", "/d", row.name, "/f"])
+      await installer.run(["reg.exe", "add", key, "/v", "UninstallString", "/d", "existing-uninstaller", "/f"])
+      expect((await installer.run([exe, `/D=${dir}`])).code, row.name + row.file).toBe(row.code)
+      expect(await Bun.file(path.join(dir, row.file)).text()).toBe("existing application")
+      const entry = await installer.run(["reg.exe", "query", key, "/v", "UninstallString"])
+      expect(entry.stdout).toContain("existing-uninstaller")
+    }
+  } finally {
+    await installer.run(["reg.exe", "delete", key, "/f"])
+    await installer.cleanup()
+  }
+})

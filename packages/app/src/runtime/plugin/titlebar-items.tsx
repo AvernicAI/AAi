@@ -1,5 +1,6 @@
 import { createMemo, For, Show } from "solid-js"
 import { syncSpinPhase } from "@opencode/ui/hooks"
+import { Menu } from "@opencode/ui/menu"
 import { Icon } from "@opencode/ui/icon"
 import { TitlebarItem } from "@opencode/plugin/gui"
 import { usePluginHost } from "./host"
@@ -23,14 +24,65 @@ export function useTitlebarItems() {
 }
 
 export function TitlebarItems(props: { items: ReturnType<typeof useTitlebarItems>; vertical?: boolean }) {
+  const groups = createMemo(() => {
+    const grouped = new Map<string, TitlebarItem[]>()
+    props.items.ids().forEach((id) => {
+      const item = props.items.item(id)
+      if (!item?.group) return
+      const existing = grouped.get(item.group.id)
+      if (existing) existing.push(item)
+      else grouped.set(item.group.id, [item])
+    })
+    return grouped
+  })
+
   return (
-    <For each={props.items.ids()}>
-      {(id) => (
-        <Show when={props.items.item(id)}>
-          {(item) => <TitlebarItemButton item={item()} vertical={props.vertical} />}
-        </Show>
-      )}
-    </For>
+    <>
+      <For each={[...groups().keys()]}>
+        {(id) => {
+          const items = () => groups().get(id) ?? []
+          return (
+            <Show when={items()[0]?.group}>
+              {(group) => (
+                <Menu
+                  appearance="standard"
+                  gutter={6}
+                  modal={false}
+                  placement={props.vertical ? "right-start" : "bottom-end"}
+                >
+                  <Menu.Trigger
+                    class="flex shrink-0 items-center justify-center rounded-full bg-v2-background-bg-deep text-v2-icon-icon-accent focus-visible:-outline-offset-2 [app-region:no-drag]"
+                    classList={{ "size-7 self-start": props.vertical, "me-3 size-5": !props.vertical }}
+                    aria-label={group().label}
+                    title={group().label}
+                  >
+                    <Icon name={group().icon ?? "outline-globe"} />
+                  </Menu.Trigger>
+                  <Menu.Portal>
+                    <Menu.Content>
+                      <For each={items()}>
+                        {(item) => (
+                          <Menu.Item disabled={item.busy || !item.run} onSelect={() => item.run?.()}>
+                            {item.label}
+                          </Menu.Item>
+                        )}
+                      </For>
+                    </Menu.Content>
+                  </Menu.Portal>
+                </Menu>
+              )}
+            </Show>
+          )
+        }}
+      </For>
+      <For each={props.items.ids()}>
+        {(id) => (
+          <Show when={props.items.item(id)?.group ? undefined : props.items.item(id)}>
+            {(item) => <TitlebarItemButton item={item()} vertical={props.vertical} />}
+          </Show>
+        )}
+      </For>
+    </>
   )
 }
 
@@ -60,7 +112,7 @@ function TitlebarItemButton(props: { item: TitlebarItem; vertical?: boolean }) {
     >
       <button
         type="button"
-        class="relative z-10 flex h-full w-full items-center overflow-hidden rounded-full text-v2-icon-icon-accent transition-[background-color] duration-150 ease-out focus-visible:outline-none disabled:opacity-60 motion-reduce:transition-none [app-region:no-drag]"
+        class="relative z-10 flex h-full w-full items-center overflow-hidden rounded-full text-v2-icon-icon-accent transition-[background-color] duration-150 ease-out focus-visible:-outline-offset-2 disabled:opacity-60 motion-reduce:transition-none [app-region:no-drag]"
         classList={{ "justify-start": props.vertical, "justify-end": !props.vertical }}
         onClick={() => props.item.run?.()}
         disabled={!!props.item.busy}
@@ -85,7 +137,7 @@ function TitlebarItemButton(props: { item: TitlebarItem; vertical?: boolean }) {
                 </svg>
               }
             >
-              {(icon) => <Icon name={icon()} size="small" />}
+              {(icon) => <Icon name={icon()} />}
             </Show>
           </Show>
         </span>

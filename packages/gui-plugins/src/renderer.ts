@@ -37,6 +37,26 @@ import skills from "./skills"
 import skillsRenderer from "./skills/renderer"
 import merlin from "./merlin"
 import merlinRenderer from "./merlin/renderer"
+import orlon from "./orlon"
+import orlonRenderer from "./orlon/renderer"
+import metaAI from "./meta-ai"
+import fireworks from "./fireworks"
+import deepai from "./deepai"
+import gemini from "./gemini"
+import devin from "./devin"
+import antigravity from "./antigravity"
+import googleAIStudio from "./google-ai-studio"
+import ace from "./ace-ai"
+import chatBox from "./chat-box"
+import metaAIRenderer from "./meta-ai/renderer"
+import fireworksRenderer from "./fireworks/renderer"
+import deepaiRenderer from "./deepai/renderer"
+import geminiRenderer from "./gemini/renderer"
+import devinRenderer from "./devin/renderer"
+import antigravityRenderer from "./antigravity/renderer"
+import googleAIStudioRenderer from "./google-ai-studio/renderer"
+import aceRenderer from "./ace-ai/renderer"
+import chatBoxRenderer from "./chat-box/renderer"
 import alphie from "./alphie"
 import alphieRenderer from "./alphie/renderer"
 
@@ -49,6 +69,16 @@ const eager = (setup: Awaited<ReturnType<NonNullable<Entry["windowEntry"]>>>["de
 export const builtins = compose({
   alphie: { ...alphie, windowEntry: eager(alphieRenderer) },
   merlin: { ...merlin, windowEntry: eager(merlinRenderer) },
+  orlon: { ...orlon, windowEntry: eager(orlonRenderer) },
+  "meta-ai": { ...metaAI, windowEntry: eager(metaAIRenderer) },
+  fireworks: { ...fireworks, windowEntry: eager(fireworksRenderer) },
+  deepai: { ...deepai, windowEntry: eager(deepaiRenderer) },
+  gemini: { ...gemini, windowEntry: eager(geminiRenderer) },
+  devin: { ...devin, windowEntry: eager(devinRenderer) },
+  antigravity: { ...antigravity, windowEntry: eager(antigravityRenderer) },
+  "google-ai-studio": { ...googleAIStudio, windowEntry: eager(googleAIStudioRenderer) },
+  "ace-ai": { ...ace, windowEntry: eager(aceRenderer) },
+  "chat-box": { ...chatBox, windowEntry: eager(chatBoxRenderer) },
   ide: { ...ide, windowEntry: eager(ideRenderer) },
   backgrounds: { ...backgrounds, windowEntry: eager(backgroundsRenderer) },
   skills: { ...skills, windowEntry: eager(skillsRenderer) },
@@ -64,7 +94,10 @@ export const builtins = compose({
   updater: { ...updater, windowEntry: eager(updaterRenderer) },
   ssh: { ...ssh, windowEntry: eager(sshRenderer) },
   wsl: { ...wsl, windowEntry: eager(wslRenderer) },
-  "microsoft-office": { ...microsoftOffice, windowEntry: eager(microsoftOfficeRenderer) },
+  "microsoft-office": {
+    ...microsoftOffice,
+    windowEntry: eager(microsoftOfficeRenderer),
+  },
   sources: { ...sources, windowEntry: eager(sourcesRenderer) },
   goal: { ...goal, windowEntry: eager(goalRenderer) },
 })

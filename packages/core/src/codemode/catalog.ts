@@ -48,7 +48,8 @@ export type Options = {
   readonly budget?: number
 }
 
-const DESCRIPTION_LIMIT = 120
+const DESCRIPTION_LIMIT = 2_000
+const NAMESPACE_DESCRIPTION_LIMIT = 120
 const CHARACTERS_PER_TOKEN = 4
 const INLINE_BUDGET = 2_000
 
@@ -66,7 +67,7 @@ export function summarize(inventory: Inventory, options: Options = {}): Summary 
     .map(([name, namespaceEntries]) => {
       const source = flattened.namespaces.get(name)?.description?.split("\n", 1)[0]?.trim()
       const description =
-        source && source.length > DESCRIPTION_LIMIT ? source.slice(0, DESCRIPTION_LIMIT - 3) + "..." : source
+        source && source.length > NAMESPACE_DESCRIPTION_LIMIT ? source.slice(0, NAMESPACE_DESCRIPTION_LIMIT - 3) + "..." : source
       const sorted = namespaceEntries.toSorted((left, right) => {
         if (left.path < right.path) return -1
         if (left.path > right.path) return 1
@@ -133,6 +134,12 @@ export function lookup(inventory: Inventory) {
 }
 
 function listing(entry: { readonly path: string; readonly tool: Tool }) {
+  if (entry.tool.pinned) {
+    const [first = "", ...rest] = entry.tool.description.trim().split("\n")
+    const suffix = first.length === 0 ? "" : ` // ${first.trimEnd()}`
+    const continuation = rest.map((line) => `    // ${line}`.trimEnd())
+    return { path: entry.path, line: [`  - ${entry.tool.signature}${suffix}`, ...continuation].join("\n") }
+  }
   const firstLine = entry.tool.description.split("\n", 1)[0]?.trim() ?? ""
   const description =
     firstLine.length > DESCRIPTION_LIMIT ? firstLine.slice(0, DESCRIPTION_LIMIT - 3) + "..." : firstLine

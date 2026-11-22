@@ -123,6 +123,7 @@ export function createIdeFixture() {
 
   const desktop: BuiltinDesktop = {
     os: "windows",
+          dragOut: () => false,
     zoom: () => 1,
     forceFocus: async () => {},
     launch: unavailable,

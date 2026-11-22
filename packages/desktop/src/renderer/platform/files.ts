@@ -13,10 +13,12 @@ type DesktopFileAPI = Pick<
   | "saveFile"
   | "openExternal"
   | "openBrowser"
+  | "launchClaudeLogin"
   | "openLocalFile"
   | "resolveAppPath"
   | "openPath"
   | "revealPath"
+  | "startFileDrag"
   | "readClipboardImage"
   | "writeClipboardText"
 >
@@ -77,6 +79,7 @@ export function createDesktopFiles(api: DesktopFileAPI, os: DesktopOS) {
       api.saveFile({ title: options.title, defaultPath: options.defaultPath }, content),
     openExternal: (url: string) => api.openExternal(url),
     openBrowser: (url: string) => api.openBrowser(url),
+    launchClaudeLogin: () => api.launchClaudeLogin(),
     openLocalFile: (url: string) => api.openLocalFile(url),
     async openPath(path: string, app?: string) {
       if (os !== "windows") {
@@ -91,6 +94,8 @@ export function createDesktopFiles(api: DesktopFileAPI, os: DesktopOS) {
     async revealPath(path: string) {
       return api.revealPath(path)
     },
+    // Only Windows hands a file row's drag to the system, so macOS and Linux keep the page's own drag.
+    startFileDrag: os === "windows" ? (path: string) => api.startFileDrag(path) : undefined,
     async readClipboardImage() {
       const image = await api.readClipboardImage().catch(() => null)
 

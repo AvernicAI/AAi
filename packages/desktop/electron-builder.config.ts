@@ -6,15 +6,11 @@ import { Arch, type Configuration } from "electron-builder"
 import { NativeArch } from "../../script/native-arch"
 import { DESKTOP_NATIVE_ENGLISH } from "@opencode/app/i18n/desktop-native"
 import { CLI_BINARIES, getCurrentCli, nodePtyPackage } from "./script/utils"
+import { previewBinding, verifyPreviewBinding } from "./script/preview-binding"
+
+import { APP_IDS, AAI_DEV_UPGRADE_GUID, APP_PROTOCOL } from "./src/shared/app-identity"
 
 const packageDir = path.dirname(fileURLToPath(import.meta.url))
-
-// The Electron 42 packaging update briefly installed Linux launchers/icons under
-// "opencode-desktop". Keep that hidden desktop entry around so existing GNOME/KDE
-// pins still resolve after the canonical app id changes back to ai.opencode.desktop.
-const legacyDesktopEntry = path.join(packageDir, "resources", "linux", "opencode-desktop.desktop")
-
-const legacyDesktopEntryFpm = `${legacyDesktopEntry}=/usr/share/applications/opencode-desktop.desktop`
 
 // rpmbuild adds /usr/lib/.build-id links for every ELF file. The bundled Electron
 // binaries are byte-identical across apps on the same Electron version, so those
@@ -40,12 +36,6 @@ function resolveChannel() {
   return "dev"
 }
 
-const APP_IDS = {
-  dev: "ai.opencode.desktop.dev",
-  beta: "ai.opencode.desktop.beta",
-  prod: "ai.opencode.desktop",
-} as const
-
 // libappimage (used by AppImageLauncher) resolves the .desktop entry inside an
 // AppImage by globbing `*.desktop` at the squashfs root. If the main
 // executable itself ends in `.desktop` (prod appId `ai.opencode.desktop`), the
@@ -61,7 +51,9 @@ function linuxExecutableName(appId: string): string {
 
 const getBase = (appId: string): Configuration => {
   const target = getCurrentCli()
+  const binding = previewBinding(target.os, target.cpu)
   const desktopName = `${appId}.desktop`
+  const packageName = appId === APP_IDS.dev ? "aai-dev" : appId === APP_IDS.beta ? "aai-beta" : "aai"
 
   return {
     artifactName: "opencode-desktop-${os}-${arch}.${ext}",
@@ -76,14 +68,15 @@ const getBase = (appId: string): Configuration => {
     // https://www.electron.build/docs/linux/
     // Release builds take their version from OPENCODE_VERSION instead of rewriting package.json.
     extraMetadata: process.env.OPENCODE_VERSION
-      ? { desktopName, version: process.env.OPENCODE_VERSION }
-      : { desktopName },
+      ? { name: packageName, desktopName, version: process.env.OPENCODE_VERSION }
+      : { name: packageName, desktopName },
     files: [
       "out/**/*",
       "resources/**/*",
       "!resources/opencode-cli*",
       "!resources/ultima3d{,/**/*}",
       "!resources/pullstack{,/**/*}",
+      `!**/node_modules/@yuuang/ffi-rs-!(${binding}){,/**/*}`,
       // Keep only the target platform's node-pty prebuild when cross-packaging with --cpu=*.
       ...CLI_BINARIES.filter((item) => item.os !== target.os || item.cpu !== target.cpu).map(
         (item) => `!**/node_modules/@lydell/node-pty-${item.os}-${item.cpu}{,/**/*}`,
@@ -103,6 +96,7 @@ const getBase = (appId: string): Configuration => {
       "!**/node_modules/js-yaml/dist/{js-yaml.js,js-yaml.min.js,*.map}",
       "!**/node_modules/js-yaml/bin{,/**/*}",
     ],
+    asarUnpack: ["**/node_modules/ffi-rs/**/*", `**/node_modules/@yuuang/ffi-rs-${binding}/**/*`],
     extraResources: [
       {
         from: "resources/",
@@ -110,6 +104,23 @@ const getBase = (appId: string): Configuration => {
         filter: ["opencode-cli", "opencode-cli.exe", "opencode-cli.version", "ultima3d/**/*", "pullstack/**/*"],
       },
     ],
+    // Electron stores cookies in plain text by default. The browser pane keeps sign-ins, so encrypt them with the OS
+    // key store (Keychain, DPAPI, libsecret or kwallet). This is one-way: turning it off again loses every cookie.
+    // https://www.electronjs.org/docs/latest/tutorial/fuses#cookieencryption
+    // Flipping a fuse breaks the macOS signature. A build without a signing identity is not signed again, so re-sign it
+    // ad hoc or Apple Silicon refuses to launch it. A signed build is signed again after the fuses anyway.
+    electronFuses: {
+      enableCookieEncryption: true,
+      // Started as plain Node (ELECTRON_RUN_AS_NODE) or with an inspector, the signed binary would run any code under
+      // the app's identity, which macOS lets read the app's Keychain key and so every cookie. Nothing runs the app as
+      // Node: the CLI is its own executable. Beta keeps --inspect, as it keeps its on-request debugging port, for the
+      // startup benchmark's Node timings (perf/startup.bench.ts).
+      runAsNode: false,
+      enableNodeCliInspectArguments: resolveChannel() === "beta",
+      // NODE_OPTIONS stays: a packaged app already ignores every option but --http-parser and --max-http-header-size,
+      // and turning the fuse off would also strip NODE_EXTRA_CA_CERTS from the environment the CLI and its terminals get.
+      resetAdHocDarwinSignature: true,
+    },
     afterPack: async (context) => {
       const arch = Arch[context.arch]
 
@@ -118,6 +129,7 @@ const getBase = (appId: string): Configuration => {
 
       if (arch !== target.cpu) throw new Error(`Packaging ${arch} Electron with the ${target.target} CLI`)
       const resources = context.packager.getResourcesDir(context.appOutDir)
+      await verifyPreviewBinding(resources, context.electronPlatformName, arch)
       const cli = path.join(resources, context.electronPlatformName === "win32" ? "opencode-cli.exe" : "opencode-cli")
 
       const file = await stat(cli)
@@ -171,6 +183,8 @@ const getBase = (appId: string): Configuration => {
       icon: `resources/icons/icon.icns`,
       extendInfo: {
         NSMicrophoneUsageDescription: DESKTOP_NATIVE_ENGLISH["desktop.microphoneUsage"],
+        // Sites in the browser pane may ask for the camera; without this key macOS ends the app when it asks.
+        NSCameraUsageDescription: DESKTOP_NATIVE_ENGLISH["desktop.cameraUsage"],
         // The CLI server and its terminals run as children of the app, so macOS asks for their access to
         // these protected locations in the app's name. The prompt shows the description (#56479).
         NSDocumentsFolderUsageDescription: DESKTOP_NATIVE_ENGLISH["desktop.documentsFolderUsage"],
@@ -184,7 +198,7 @@ const getBase = (appId: string): Configuration => {
     },
     protocols: {
       name: "AAi",
-      schemes: ["opencode"],
+      schemes: [APP_PROTOCOL],
     },
     win: {
       icon: `resources/icons/icon.ico`,
@@ -229,9 +243,10 @@ export function getConfig() {
         ...base,
         appId,
         productName: "AAi Dev",
+        nsis: { ...base.nsis, guid: AAI_DEV_UPGRADE_GUID },
         deb: { fpm: [...previewCompressionFpm("deb"), metainfoFpm(appId)] },
         rpm: {
-          packageName: "opencode-dev",
+          packageName: "aai-dev",
           fpm: [rpmNoBuildIdLinksFpm, ...previewCompressionFpm("rpm"), metainfoFpm(appId)],
         },
       }
@@ -242,7 +257,7 @@ export function getConfig() {
         ...base,
         appId,
         productName: "AAi Beta",
-        protocols: { name: "AAi Beta", schemes: ["opencode"] },
+        protocols: { name: "AAi Beta", schemes: [APP_PROTOCOL] },
         publish: {
           provider: "github",
           owner: "AvernicAI",
@@ -252,7 +267,7 @@ export function getConfig() {
         },
         deb: { fpm: [...previewCompressionFpm("deb"), metainfoFpm(appId)] },
         rpm: {
-          packageName: "opencode-beta",
+          packageName: "aai-beta",
           fpm: [rpmNoBuildIdLinksFpm, ...previewCompressionFpm("rpm"), metainfoFpm(appId)],
         },
       }
@@ -263,7 +278,7 @@ export function getConfig() {
         ...base,
         appId,
         productName: "AAi",
-        protocols: { name: "AAi", schemes: ["opencode"] },
+        protocols: { name: "AAi", schemes: [APP_PROTOCOL] },
         publish: {
           provider: "github",
           owner: "AvernicAI",
@@ -273,8 +288,8 @@ export function getConfig() {
         },
         mac: { ...base.mac, icon: "resources/icons/icon.icon" },
         dmg: { ...base.dmg, icon: "resources/icons/icon.icns" },
-        deb: { fpm: [metainfoFpm(appId), legacyDesktopEntryFpm] },
-        rpm: { packageName: "opencode", fpm: [rpmNoBuildIdLinksFpm, metainfoFpm(appId), legacyDesktopEntryFpm] },
+        deb: { fpm: [metainfoFpm(appId)] },
+        rpm: { packageName: "aai", fpm: [rpmNoBuildIdLinksFpm, metainfoFpm(appId)] },
       }
     }
   }

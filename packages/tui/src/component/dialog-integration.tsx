@@ -67,6 +67,7 @@ const SUBMIT = Symbol("submit")
 // Device-flow codes such as "R283-GOUEO"; when present they are copied instead of the URL.
 const OAUTH_CODE = /[A-Z0-9]{4}-[A-Z0-9]{4,5}/
 
+// OpenCode Go connects through OpenCode, so it's only listed for people who already saved a Go key.
 export function integrationOptions(list: IntegrationInfo[]) {
   const rank = (item: IntegrationInfo) => {
     if (item.metadata?.source === "mcp") return 0
@@ -1188,12 +1189,15 @@ function textAnswer(
               resolve(value)
             }}
             description={() => (
-              <box gap={1}>
-                <Show when={field.description}>
-                  {(description) => <text fg={theme.text.muted}>{description()}</text>}
-                </Show>
-                <Show when={error()}>{(value) => <text fg={theme.text.feedback.error.base}>{value()}</text>}</Show>
-              </box>
+              // An empty box would still take a row in the prompt's gap, so render nothing without content.
+              <Show when={field.description || error()}>
+                <box gap={1}>
+                  <Show when={field.description}>
+                    {(description) => <text fg={theme.text.muted}>{description()}</text>}
+                  </Show>
+                  <Show when={error()}>{(value) => <text fg={theme.text.feedback.error.base}>{value()}</text>}</Show>
+                </box>
+              </Show>
             )}
           />
         )

@@ -23,6 +23,7 @@ function fileApi(events: string[]): Parameters<typeof createDesktopFiles>[0] {
     saveFile: async () => false,
     openExternal: () => {},
     openBrowser: async () => true,
+    launchClaudeLogin: async () => true,
     openLocalFile: () => {},
     resolveAppPath: async () => null,
     openPath: async () => undefined,

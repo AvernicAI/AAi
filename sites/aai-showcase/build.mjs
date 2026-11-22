@@ -7,7 +7,7 @@ const root = new URL("./", import.meta.url)
 const source = new URL("public/", root)
 const output = new URL("dist/", root)
 const release = JSON.parse(await readFile(new URL("release.json", root), "utf8"))
-const installer = process.argv[2] ?? fileURLToPath(new URL(`../../artifacts/AAi-${release.version}-Setup-x64.exe`, root))
+const installer = process.argv[2] ?? fileURLToPath(new URL(`../../artifacts/AAi-Dev-${release.version}-Setup-x64.exe`, root))
 const installerSize = (await stat(installer)).size
 const hash = createHash("sha256")
 for await (const chunk of createReadStream(installer)) hash.update(chunk)

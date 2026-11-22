@@ -24,6 +24,8 @@ const install = !args.includes("--no-install") && !dryRun
 
 // The user-visible AAi surface. A merge that drops one of these has silently undone the rebrand.
 const brand = [
+  ["packages/desktop/src/shared/app-identity.ts", `prod: "com.avernic.aai"`, "AAi installation identity"],
+  ["packages/desktop/electron-builder.config.ts", "guid: AAI_DEV_UPGRADE_GUID", "existing AAi Dev upgrade identity"],
   ["packages/desktop/src/main/constants.ts", `prod: "AAi"`, "desktop app name"],
   ["packages/desktop/src/main/constants.ts", `dev: "AAi Dev"`, "desktop dev name"],
   ["packages/app/index.html", "<title data-sm>AAi</title>", "renderer title"],

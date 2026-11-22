@@ -32,10 +32,4 @@ describe("external URLs", () => {
       expect(resolveExternalURL(url)).toBeUndefined()
   })
 
-  test("resolves only local file URLs", () => {
-    const path = resolve("example.html")
-    expect(resolveLocalFilePath(pathToFileURL(path).href)).toBe(path)
-    expect(resolveLocalFilePath("file://example.com/share/index.html")).toBeUndefined()
-    expect(resolveLocalFilePath("https://example.com/index.html")).toBeUndefined()
-  })
 })

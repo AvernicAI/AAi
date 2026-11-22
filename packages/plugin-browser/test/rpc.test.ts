@@ -1,12 +1,17 @@
 import { expect, test } from "bun:test"
 import { Browser } from "../src/rpc.js"
-import { Schema } from "effect"
+import { Result, Schema } from "effect"
 
 const tabID = Browser.TabID.make(`tab_${crypto.randomUUID()}`)
 
 test("every page operation requires its own tab ID", () => {
   for (const operation of Browser.Operations) {
-    if (operation.name === "tabs.list" || operation.name === "tabs.open") continue
+    if (
+      operation.name === "accounts" ||
+      operation.name === "tabs.list" ||
+      operation.name === "tabs.open"
+    )
+      continue
     expect(Schema.decodeUnknownOption(operation.input)({})._tag).toBe("None")
   }
   expect(Schema.decodeUnknownSync(Browser.Action)({ type: "tabs.list" })).toEqual({ type: "tabs.list" })
@@ -26,6 +31,40 @@ test("browser input bounds and optional fields survive the wire", () => {
   })
   expect(() => decode({ type: "evaluate", tabID, ref: "button", script: "(element) => element.id" })).toThrow()
   expect(() => decode({ type: "network.list", tabID, resourceType: "imaginary" })).toThrow()
+})
+
+test("an unknown parameter fails with the operation's valid parameters", () => {
+  const input = (name: string) => Browser.Operations.find((operation) => operation.name === name)!.input
+  const issues = (name: string, value: unknown) =>
+    Schema.decodeUnknownResult(input(name))(value, { errors: "all" }).pipe(
+      Result.match({ onSuccess: () => "", onFailure: (issue) => String(issue) }),
+    )
+  expect(issues("console", { tabID, levels: "error" })).toContain(
+    "Not a parameter of browser.console. Valid parameters: tabID, level, limit.",
+  )
+  expect(issues("tabs.list", { tabID })).toContain("Not a parameter of browser.tabs.list. Valid parameters: none.")
+  expect(Schema.decodeUnknownSync(input("console"))({ tabID, level: "error" })).toEqual({ tabID, level: "error" })
+  // Input repair drops unknown keys of a closed object before validation; an open one keeps them for this check.
+  for (const operation of Browser.Operations)
+    expect(Schema.toJsonSchemaDocument(operation.input, { onExcessProperty: "error" }).schema).not.toHaveProperty(
+      "additionalProperties",
+      false,
+    )
+})
+
+test("optional parameters keep their descriptions in the model's JSON Schema", () => {
+  const properties = (name: string) =>
+    (
+      Schema.toJsonSchemaDocument(Browser.Operations.find((operation) => operation.name === name)!.input, {
+        onExcessProperty: "error",
+      }).schema as { readonly properties: Record<string, { readonly description?: string }> }
+    ).properties
+  expect(properties("tabs.open").focus?.description).toContain("Default true: opens the browser if it is closed and selects the new tab")
+  expect(properties("console").limit?.description).toBe("Maximum entries, 1–500. Default 100.")
+  expect(properties("evaluate").expression?.description).toBe("Same as script.")
+  expect(properties("evaluate").frameID?.description).toBe("Frame ID from browser.frames. Omit for the main frame.")
+  expect(properties("wait").timeout?.description).toBe("Same as timeoutMs.")
+  expect(properties("files.get").fileID?.description).toBe("File ID returned by this tab's capture or download tools.")
 })
 
 test("browser files are bounded bytes, not remote filesystem paths", () => {
@@ -94,9 +133,9 @@ test.each([
   "svg",
   "render",
   "source code",
-])("browser.preview is found by searching %s", (query) => {
-  const preview = Browser.Operations.find((operation) => operation.name === "preview")!
-  const description = preview.description.toLowerCase()
+])("browser.tabs.open is found by searching %s", (query) => {
+  const open = Browser.Operations.find((operation) => operation.name === "tabs.open")!
+  const description = open.description.toLowerCase()
   const terms = query
     .toLowerCase()
     .split(/[^a-z0-9]+/)
@@ -133,4 +172,25 @@ test("browser ID patterns survive JSON Schema export for model tool definitions"
   expect(exported(Browser.TabID)).toMatchObject({ type: "string", pattern: "^tab_[a-f0-9-]{36}$" })
   expect(exported(Browser.Ref)).toMatchObject({ type: "string", pattern: "^@?e[1-9][0-9]*$" })
   expect(exported(Browser.FileID)).toMatchObject({ type: "string", pattern: "^file_[a-f0-9-]{36}$" })
+})
+
+test("account browser calls preserve profile identity without exposing a partition or credentials", () => {
+  const decode = Schema.decodeUnknownSync(Browser.Action)
+  expect(decode({ type: "accounts" })).toEqual({ type: "accounts" })
+  expect(decode({ type: "tabs.open", account: "deepai" })).toEqual({ type: "tabs.open", account: "deepai" })
+  expect(() => decode({ type: "tabs.open", account: 123 })).toThrow()
+  expect(
+    Schema.decodeUnknownSync(Browser.Tab)({
+      id: tabID,
+      account: "meta-ai",
+      url: "https://www.meta.ai/",
+      title: "Meta",
+      loading: false,
+      canGoBack: false,
+      canGoForward: false,
+      generation: 0,
+    }).account,
+  ).toBe("meta-ai")
+  expect(decode({ type: "files.save", tabID, fileID: `file_${crypto.randomUUID()}` }).type).toBe("files.save")
+  expect(() => decode({ type: "files.save", tabID })).toThrow()
 })

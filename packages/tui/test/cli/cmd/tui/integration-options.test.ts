@@ -35,7 +35,11 @@ describe("integrationOptions", () => {
         integration({ id: "custom-z", name: "Zebra" }),
         integration({ id: "anthropic", name: "Anthropic" }),
         integration({ id: "opencode", name: "OpenCode Zen" }),
-        integration({ id: "opencode-go", name: "OpenCode Go" }),
+        integration({
+          id: "opencode-go",
+          name: "OpenCode Go",
+          connections: [{ type: "credential", id: "go", label: "Go", method: "key" }],
+        }),
       ]).map((item) => item.id),
     ).toEqual(["openai", "anthropic", "mistral", "opencode", "opencode-go", "custom-z"])
   })
@@ -50,6 +54,19 @@ describe("integrationOptions", () => {
         integration({ id: "opencode-go", name: "OpenCode Go" }),
       ]).map((item) => item.id),
     ).toEqual(["github", "linear", "openai", "opencode", "opencode-go"])
+  })
+
+  test("hides OpenCode Go until a Go key is saved", () => {
+    expect(
+      integrationOptions([
+        integration({ id: "opencode", name: "OpenCode Zen" }),
+        integration({
+          id: "opencode-go",
+          name: "OpenCode Go",
+          connections: [{ type: "env", name: "OPENCODE_API_KEY" }],
+        }),
+      ]).map((item) => item.id),
+    ).toEqual(["opencode"])
   })
 })
 

@@ -1,4 +1,5 @@
 import { app } from "electron"
+import { APP_IDS } from "../shared/app-identity"
 
 type Channel = "local" | "dev" | "beta" | "prod"
 
@@ -16,13 +17,13 @@ const appNames = {
 } satisfies Record<Channel, string>
 
 const appIDs = {
-  local: "ai.opencode.desktop.dev",
-  dev: "ai.opencode.desktop.dev",
-  beta: "ai.opencode.desktop.beta",
-  prod: "ai.opencode.desktop",
+  local: APP_IDS.dev,
+  dev: APP_IDS.dev,
+  beta: APP_IDS.beta,
+  prod: APP_IDS.prod,
 } satisfies Record<Channel, string>
 
 // Local renderer/server mode keeps the dev application identity.
 export const APP_NAME = app.isPackaged ? appNames[CHANNEL] : "AAi Dev"
 
-export const APP_ID = app.isPackaged ? appIDs[CHANNEL] : "ai.opencode.desktop.dev"
+export const APP_ID = app.isPackaged ? appIDs[CHANNEL] : APP_IDS.dev

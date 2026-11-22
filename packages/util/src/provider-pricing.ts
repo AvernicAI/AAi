@@ -32,7 +32,7 @@ const trial = new Set([
   "deepinfra", "together", "scaleway", "avian", "targon", "hume", "tripo", "fal", "baseten",
   "byteplus", "hunyuan", "volcano", "alysis", "runware", "scnet",
 ])
-const paid = new Set(["openai", "anthropic", "mistral", "ollama-cloud", "featherless", "freebuff"])
+const paid = new Set(["openai", "anthropic", "mistral", "ollama-cloud", "featherless", "freebuff", "fireworks-ai"])
 
 export function providerPricing(id: string) {
   const canonical = id.startsWith("aai-compatible-free-") ? id.slice("aai-compatible-free-".length) : id

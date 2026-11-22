@@ -30,7 +30,7 @@ function mainAction(state: UpdaterState | undefined) {
     case "installing":
       return { label: "action.installing" as const }
     case "disabled":
-      return { label: "action.checkNow" as const }
+      return { label: "action.unavailable" as const, description: "check.unavailable" as const }
     case "error":
       return { label: "action.retry" as const, run: "check" as const }
     default:
