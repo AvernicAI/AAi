@@ -1,8 +1,11 @@
+import { access, unlink } from "node:fs/promises"
 import http from "node:http"
 import { getCACertificates, setDefaultCACertificates } from "node:tls"
-import { app } from "electron"
+import { app, shell } from "electron"
 import { Effect, Path } from "effect"
 import { APP_PROTOCOL } from "../../shared/app-identity"
+import { APP_USER_MODEL_ID } from "../constants"
+import { isCollidingDevShortcut } from "../identity"
 import { DesktopPaths } from "../paths"
 import { getUserShell, loadShellEnv } from "../service/shell-env"
 import { registerRendererProtocol, setDockIcon, setProtocolReporter } from "../windows"
@@ -68,6 +71,47 @@ export const prepareDesktop = Effect.gen(function* () {
   registerRendererProtocol(paths.rendererRoot)
   setDockIcon(path, paths)
   applySpellcheck()
+  yield* removeCollidingDevShortcut
+})
+
+// The old unpackaged notification shortcut can still shadow the installed AAi Dev shortcut.
+const removeCollidingDevShortcut = Effect.gen(function* () {
+  if (process.platform !== "win32" || !app.isPackaged) return
+
+  const path = yield* Path.Path
+
+  const shortcutPath = path.join(
+    app.getPath("appData"),
+    "Microsoft",
+    "Windows",
+    "Start Menu",
+    "Programs",
+    "Electron.lnk",
+  )
+
+  const exists = yield* Effect.tryPromise(() => access(shortcutPath)).pipe(
+    Effect.as(true),
+    Effect.orElseSucceed(() => false),
+  )
+
+  if (!exists) return
+
+  const shortcut = yield* Effect.try(() => shell.readShortcutLink(shortcutPath)).pipe(
+    Effect.orElseSucceed(() => undefined),
+  )
+
+  if (!shortcut || !isCollidingDevShortcut(shortcut, APP_USER_MODEL_ID, process.execPath)) return
+
+  yield* Effect.tryPromise(() => unlink(shortcutPath)).pipe(
+    Effect.andThen(
+      Effect.logInfo("removed colliding Electron Start Menu shortcut", {
+        shortcutPath,
+        target: shortcut.target,
+        appUserModelID: APP_USER_MODEL_ID,
+      }),
+    ),
+    Effect.catch((error) => Effect.logWarning("failed to remove colliding Electron Start Menu shortcut", { error })),
+  )
 })
 
 export const loadProxyEnvironment = Effect.gen(function* () {
