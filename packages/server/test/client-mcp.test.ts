@@ -5,6 +5,7 @@ import { AbsolutePath } from "@opencode/core/schema"
 import { LocationLifecycle } from "@opencode/core/location-lifecycle"
 import { LocationServiceMap } from "@opencode/core/location-service-map"
 import { Mcp } from "@opencode/core/mcp/index"
+import { Plugin } from "@opencode/core/plugin"
 import { Session } from "@opencode/core/session"
 import { Tool } from "@opencode/core/tool"
 import { McpTool } from "@opencode/core/tool/mcp"
@@ -59,7 +60,7 @@ const serve = Effect.fnUntraced(function* (mcpHost = false) {
       for (const [key, value] of Object.entries(query)) url.searchParams.set(key, value)
       return url
     },
-    inLocation: <A, E>(effect: Effect.Effect<A, E, Mcp.Service | Tool.Service | McpTool.Service>) =>
+    inLocation: <A, E>(effect: Effect.Effect<A, E, Mcp.Service | Tool.Service | McpTool.Service | Plugin.Service>) =>
       effect.pipe(Effect.provide(location), Effect.provideContext(context)),
   }
 })
@@ -95,6 +96,7 @@ it.live("hosts authenticated stateless capability discovery", () =>
     })
     const tools = yield* Effect.promise(async () => (await rpc("tools/list")).json())
     expect(tools).toMatchObject({ result: { tools: [{ name: "discover_capabilities" }] } })
+    yield* server.inLocation(Plugin.Service.use((plugins) => plugins.awaitActivation))
     const discovery = yield* Effect.promise(async () =>
       (await rpc("tools/call", { name: "discover_capabilities", arguments: { query: "read file" } })).json(),
     )
