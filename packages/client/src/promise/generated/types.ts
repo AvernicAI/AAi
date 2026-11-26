@@ -5360,7 +5360,15 @@ export type ExperimentalConfigUpdateInput = {
           readonly models?: {
             readonly [x: string]: {
               readonly modelID?: string
-              readonly type?: "chat" | "decision" | "image" | "video" | (string & {})
+              readonly type?:
+                | "chat"
+                | "decision"
+                | "image"
+                | "video"
+                | "realtime"
+                | "embedding"
+                | "transcription"
+                | (string & {})
               readonly family?: string
               readonly name?: string
               readonly releaseDate?: string
