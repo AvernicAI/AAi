@@ -681,7 +681,7 @@ export const dict = {
   "settings.about.website": "www.opencode.ai",
   "settings.about.description": "AAi, a nyílt forráskódú kódoló ügynök",
   "settings.about.trademark": "A OpenCode a Anomaly Innovations, Inc. bejegyzett védjegye.",
-  "settings.about.typeset": "Betűkészlet Inter és IBM Plex Mono nyelven",
+  "settings.about.typeset": "Betűkészlet Inter és OpenMono nyelven",
   "settings.about.tagline": "Az AI nem tud nagyszerű szoftvert készíteni nélküled",
   "settings.about.copyright": "© Anomaly Innovations, Inc.",
   "project.settings.title": "Projekt szerkesztése",

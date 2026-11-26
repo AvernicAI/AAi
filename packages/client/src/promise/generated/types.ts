@@ -178,7 +178,15 @@ export type SessionMessageToolStateRunning1 = {
   metadata: { [x: string]: JsonValue }
 }
 
-export type ModelType = "chat" | "decision" | "image" | "video" | (string & {})
+export type ModelType =
+  | "chat"
+  | "decision"
+  | "image"
+  | "video"
+  | "realtime"
+  | "embedding"
+  | "transcription"
+  | (string & {})
 
 export type ModelReasoningField = "reasoning" | "reasoning_content" | "reasoning_text" | (string & {})
 
@@ -386,9 +394,9 @@ export type PushLevel = "all" | "attention" | "none"
 
 export type PushRegistered = { publicKey: string }
 
-export type SpaceEpoch = string
-
 export type SpaceCursor = string
+
+export type SpaceEpoch = string
 
 export type ReferenceGitSource = { type: "git"; repository: string; branch?: string }
 
@@ -4207,7 +4215,11 @@ export type MessageListOutput = SessionMessagesResponse
 
 export type ModelListInput = {
   readonly location?: { readonly directory?: string | undefined } | undefined
-  readonly types?: ReadonlyArray<"chat" | "decision" | "image" | "video" | (string & {})> | undefined
+  readonly types?:
+    | ReadonlyArray<
+        "chat" | "decision" | "image" | "video" | "realtime" | "embedding" | "transcription" | (string & {})
+      >
+    | undefined
 }
 
 export type ModelListOutput = { location: LocationPublicRef; data: Array<ModelInfo> }
@@ -5094,13 +5106,12 @@ export type ExperimentalPushSettingsSetInput = { readonly paused: boolean; reado
 
 export type ExperimentalPushSettingsSetOutput = { data: PushSettings }["data"]
 
-export type ExperimentalSpaceSetInput = { readonly space: string; readonly key: string; readonly value: string }
+export type ExperimentalSpaceWriteInput = {
+  readonly space: string
+  readonly changes: ReadonlyArray<{ readonly key: string; readonly value: string | null }>
+}
 
-export type ExperimentalSpaceSetOutput = void
-
-export type ExperimentalSpaceDeleteInput = { readonly space: string; readonly key: string }
-
-export type ExperimentalSpaceDeleteOutput = void
+export type ExperimentalSpaceWriteOutput = { revision: SpaceRevision; cursor: SpaceCursor }
 
 export type ExperimentalSpaceSyncInput = { readonly space: string; readonly cursor?: string | undefined }
 
