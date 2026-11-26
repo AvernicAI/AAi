@@ -276,7 +276,7 @@ const layer = Layer.effect(
         })
         const prompt = loaded.messages.findLast((message) => message.type === "user" || message.type === "assistant")
         if (process.env.OPENCODE_EXPERIMENTAL_CAPABILITY_DISCOVERY === "1" && prompt?.type === "user") {
-          const permissions = Permission.merge(loaded.agent.info.permissions, loaded.session.permissions ?? [])
+          const permissions = Permission.Policy.fromRules(loaded.agent.info.permissions, loaded.session.permissions ?? [])
           const eligible = Skill.available(yield* skills.list(), permissions).filter(
             (skill) => skill.autoinvoke !== false,
           )
