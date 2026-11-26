@@ -12,6 +12,7 @@ import { Model } from "@opencode/core/model"
 import { bodyDigest, ModelsDev } from "@opencode/core/models-dev"
 import { Provider } from "@opencode/core/provider"
 import { AbsolutePath } from "@opencode/core/schema"
+import { SessionUsage } from "@opencode/core/session/usage"
 import { location } from "./fixture/location"
 import { it } from "./lib/effect"
 
@@ -532,6 +533,189 @@ describe("ModelsDev Service", () => {
         package: "@opencode/ai/providers/openai-compatible/images",
         settings: { baseURL: "https://api.acme.test/v1" },
       })
+    }),
+  )
+
+  it.effect("prices a speed from its tier's own prices when the tier has no multiplier", () =>
+    Effect.gen(function* () {
+      const flex = { service_tier: { equals: "flex" } }
+      const [acme] = yield* ModelsDev.decodeSnapshot(
+        JSON.stringify({
+          acme: {
+            ...fixture.acme,
+            models: {
+              "acme-1": sourceModel("acme-1", {
+                capabilities: { tools: { supported: true }, reasoning: { supported: false }, service_tier: ["flex"] },
+                cost: {
+                  text: {
+                    input: {
+                      price: 2.5,
+                      cache: { read: 0.25 },
+                      overrides: [
+                        { when: { context: { gt: 272000 } }, price: 5, cache: { read: 0.5 } },
+                        { when: flex, price: 1.25, cache: { read: 0.13 } },
+                        { when: { ...flex, context: { gt: 272000 } }, price: 2.5, cache: { read: 0.25 } },
+                      ],
+                    },
+                    output: {
+                      price: 15,
+                      overrides: [
+                        { when: { context: { gt: 272000 } }, price: 22.5 },
+                        { when: flex, price: 7.5 },
+                        { when: { ...flex, context: { gt: 272000 } }, price: 11.25 },
+                      ],
+                    },
+                  },
+                },
+              }),
+            },
+          },
+        }),
+      )
+      const price = Money.USDPerMillionTokens.make
+      const cost = acme?.models.find((item) => item.id === "acme-1-flex")?.cost ?? []
+      // Above 272k tokens the tier's long-context prices apply, not the standard tier's.
+      expect(
+        SessionUsage.calculateCost(cost, { input: 300_000, output: 1_000, reasoning: 0, cache: { read: 0, write: 0 } }),
+      ).toBe(Money.USD.make(0.76125))
+      expect(cost).toEqual([
+        { input: price(1.25), output: price(7.5), cache: { read: price(0.13), write: price(0) } },
+        {
+          tier: { type: "context" as const, size: 272000 },
+          input: price(2.5),
+          output: price(11.25),
+          cache: { read: price(0.25), write: price(0) },
+        },
+      ])
+    }),
+  )
+
+  it.effect("does not price a speed from its tier's prices when the text prices are not per token", () =>
+    Effect.gen(function* () {
+      const [acme] = yield* ModelsDev.decodeSnapshot(
+        JSON.stringify({
+          acme: {
+            ...fixture.acme,
+            models: {
+              "acme-1": sourceModel("acme-1", {
+                capabilities: { tools: { supported: true }, reasoning: { supported: false }, service_tier: ["flex"] },
+                cost: {
+                  text: {
+                    input: {
+                      unit: "character",
+                      price: 2,
+                      overrides: [{ when: { service_tier: { equals: "flex" } }, price: 5 }],
+                    },
+                    output: { unit: "character", price: 10 },
+                  },
+                },
+              }),
+            },
+          },
+        }),
+      )
+      const model = (id: string) => acme?.models.find((item) => item.id === id)
+      expect(model("acme-1")?.cost).toEqual(zeroCost)
+      expect(model("acme-1-flex")?.cost).toEqual(zeroCost)
+    }),
+  )
+
+  it.effect("lists each service tier as a model of its own, marked as a speed of the model", () =>
+    Effect.gen(function* () {
+      const api = (protocol: string, opencodeai: string) => ({
+        [protocol]: { base_url: "https://api.acme.test/v1", sdk: { opencodeai } },
+      })
+      const tiers = (input: Record<string, unknown>) => ({
+        capabilities: { tools: { supported: true }, reasoning: { supported: false }, ...input },
+      })
+      const catalog = JSON.stringify({
+        acme: {
+          ...fixture.acme,
+          models: {
+            "acme-1": sourceModel("acme-1", {
+              name: "Acme One",
+              ...tiers({ service_tier: ["ultrafast", "priority", "flex"] }),
+              cost: {
+                text: { input: { price: 2 }, output: { price: 10 } },
+                multipliers: [
+                  { when: { service_tier: { equals: "priority" } }, factor: 2 },
+                  // Only the multiplier whose dates hold today applies.
+                  { when: { service_tier: { equals: "ultrafast" }, date: { lt: "2020-01-01" } }, factor: 3 },
+                  { when: { service_tier: { equals: "ultrafast" }, date: { gte: "2020-01-01" } }, factor: 6 },
+                ],
+              },
+              experimental: {
+                modes: {
+                  // Kept in the catalog for versions that don't read the tiers; the tier takes its place.
+                  fast: { service_tier: "priority", body: { service_tier: "priority" }, headers: { "x-old": "1" } },
+                  pro: { body: { reasoning: { mode: "pro" } } },
+                },
+              },
+            }),
+            // A real model already has the ID the tier would take.
+            "acme-2": sourceModel("acme-2", tiers({ service_tier: ["flex"] })),
+            "acme-2-flex": sourceModel("acme-2-flex"),
+            claude: sourceModel("claude", {
+              ...tiers({ service_tier: ["fast"] }),
+              api: api("messages", "@opencode/ai/providers/anthropic"),
+            }),
+            nova: sourceModel("nova", {
+              ...tiers({ service_tier: ["priority", "ultrafast"] }),
+              api: api("converse", "@opencode/ai/providers/amazon-bedrock"),
+            }),
+            // No tier list: its mode still says how to ask for the speed.
+            kimi: sourceModel("kimi", {
+              experimental: { modes: { priority: { body: { service_tier: "priority" } } } },
+            }),
+          },
+        },
+      })
+      const [acme] = yield* ModelsDev.decodeSnapshot(catalog)
+      const model = (id: string) => acme?.models.find((item) => item.id === id)
+      const speed = (base: string, id: string, faster = true) => ({ speed: { base: Model.ID.make(base), id, faster } })
+
+      // Slowest first, whatever order the catalog lists them in. "priority" is the tier known as fast.
+      expect(acme?.models.map((item) => [item.id, item.name, item.experimental?.speed?.id])).toEqual([
+        ["acme-1", "Acme One", undefined],
+        ["acme-1-flex", "Acme One Flex", "flex"],
+        ["acme-1-fast", "Acme One Fast", "fast"],
+        ["acme-1-ultrafast", "Acme One Ultrafast", "ultrafast"],
+        ["acme-1-pro", "Acme One Pro", undefined],
+        ["acme-2", "acme-2", undefined],
+        ["acme-2-flex", "acme-2-flex", undefined],
+        ["claude", "claude", undefined],
+        ["claude-fast", "claude Fast", "fast"],
+        ["nova", "nova", undefined],
+        ["nova-fast", "nova Fast", "fast"],
+        ["nova-ultrafast", "nova Ultrafast", "ultrafast"],
+        ["kimi", "kimi", undefined],
+        ["kimi-priority", "kimi Priority", "priority"],
+      ])
+      expect(model("acme-1-flex")).toMatchObject({
+        modelID: "acme-1",
+        experimental: speed("acme-1", "flex", false),
+        settings: { serviceTier: "flex" },
+        // A tier without a multiplier keeps the base prices.
+        cost: [{ input: 2, output: 10 }],
+      })
+      expect(model("acme-1-fast")).toMatchObject({
+        experimental: speed("acme-1", "fast"),
+        settings: { serviceTier: "priority" },
+        cost: [{ input: 4, output: 20 }],
+      })
+      expect(model("acme-1-fast")?.body).toBeUndefined()
+      expect(model("acme-1-fast")?.headers).toBeUndefined()
+      expect(model("acme-1-ultrafast")?.cost[0]?.input).toBe(Money.USDPerMillionTokens.make(12))
+      expect(model("acme-1-pro")).toMatchObject({ body: { reasoning: { mode: "pro" } } })
+      // The Messages API calls its fast tier a speed, and Converse only names Bedrock's own tiers.
+      expect(model("claude-fast")?.settings).toMatchObject({ speed: "fast" })
+      expect(model("nova-fast")?.settings).toMatchObject({ serviceTier: "priority" })
+      expect(model("nova-ultrafast")?.body).toEqual({ additionalModelRequestFields: { service_tier: "ultrafast" } })
+      expect(model("kimi-priority")).toMatchObject({
+        experimental: speed("kimi", "priority"),
+        body: { service_tier: "priority" },
+      })
+
     }),
   )
 

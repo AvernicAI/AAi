@@ -3,6 +3,7 @@ import { App } from "@opencode/core/app"
 import { Artifact } from "@opencode/core/artifact"
 import { BlobStore } from "@opencode/core/blob-store"
 import { AISDK } from "@opencode/core/aisdk"
+import { Automation } from "@opencode/core/automation"
 import { Command } from "@opencode/core/command"
 import { Config } from "@opencode/core/config"
 import { Credential } from "@opencode/core/credential"
@@ -32,6 +33,7 @@ import { Plugin } from "@opencode/core/plugin"
 import { PluginHooks } from "@opencode/core/plugin/hooks"
 import { Provider } from "@opencode/core/provider"
 import { Session } from "@opencode/core/session"
+import { SessionInbox } from "@opencode/core/session/inbox"
 import { Shell } from "@opencode/core/shell"
 import { SharedCache } from "@opencode/core/shared-cache"
 import { InstructionEntry } from "@opencode/core/session/instruction-entry"
@@ -129,6 +131,7 @@ export const makePluginTestLayer = (
       Agent.node,
       Artifact.node,
       AISDK.node,
+      Automation.node,
       BlobStore.node,
       Provider.node,
       Model.node,
@@ -139,6 +142,7 @@ export const makePluginTestLayer = (
       Job.node,
       KV.node,
       Mcp.node,
+      SessionInbox.node,
       Session.node,
       Shell.node,
       SharedCache.node,

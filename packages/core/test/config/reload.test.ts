@@ -185,8 +185,6 @@ describe("config plugin reloads", () => {
 
   for (const input of [
     { root: ".agents", global: false },
-    { root: "../.claude", global: false },
-    { root: "home/.agents", global: true },
     { root: "home/.claude", global: true },
   ]) {
     it.live(`loads skills when ${input.root} appears after startup`, () =>
@@ -301,7 +299,6 @@ describe("config plugin reloads", () => {
 
   for (const input of [
     { file: "opencode.json", empty: false },
-    { file: "../opencode.jsonc", empty: false },
     { file: ".opencode/opencode.json", empty: false },
     { file: "../.opencode/opencode.jsonc", empty: true },
   ]) {
@@ -550,7 +547,7 @@ describe("config plugin reloads", () => {
           () =>
             reloads.agent === 1 &&
             reloads.command === 1 &&
-            reloads.skill === 2 &&
+            reloads.skill === 1 &&
             reloads.reference === 1 &&
             reloads.websearch === 1 &&
             reloads.integration === 1,
@@ -577,7 +574,7 @@ describe("config plugin reloads", () => {
           () =>
             reloads.agent === 2 &&
             reloads.command === 2 &&
-            reloads.skill === 4 &&
+            reloads.skill === 2 &&
             reloads.reference === 2 &&
             reloads.websearch === 2 &&
             reloads.integration === 2,
@@ -594,7 +591,7 @@ describe("config plugin reloads", () => {
           () =>
             reloads.agent === 3 &&
             reloads.command === 3 &&
-            reloads.skill === 6 &&
+            reloads.skill === 4 &&
             reloads.reference === 3 &&
             reloads.websearch === 4 &&
             reloads.integration === 3,

@@ -5,6 +5,7 @@ import { Document, Info } from "@opencode/schema/config"
 import { Effect, Layer, Stream } from "effect"
 import { SkillPlugin } from "@opencode/core/plugin/skill"
 import { Skill } from "@opencode/core/skill"
+import { Flag } from "@opencode/core/flag"
 import { testEffect } from "../lib/effect"
 import { host } from "./host"
 
@@ -31,7 +32,7 @@ describe("SkillPlugin.Plugin", () => {
             reload: skill.reload,
           },
         }),
-      ).pipe(Effect.provide(config()))
+      ).pipe(Effect.provide(config()), Effect.provide(Flag.testLayer()))
       const skills = yield* skill.list()
       const report = skills.find((item) => item.id === "report")
       expect(skills).toContainEqual(expect.objectContaining({ id: "control-mouse", name: "Desktop control" }))
@@ -76,6 +77,7 @@ describe("SkillPlugin.Plugin", () => {
       Effect.provide(
         config(["package-plugin", "-disabled", "local.ts", { package: "package-plugin", options: { enabled: true } }]),
       ),
+      Effect.provide(Flag.testLayer()),
     ),
   )
 })
