@@ -3,7 +3,7 @@ import { Agent } from "@opencode/core/agent"
 import { CapabilityDiscovery } from "@opencode/core/capability-discovery"
 import { LocationServiceMap } from "@opencode/core/location-service-map"
 import { Mcp } from "@opencode/core/mcp/index"
-import { Plugin } from "@opencode/core/plugin"
+import { Permission } from "@opencode/core/permission"
 import { PtyTicket } from "@opencode/core/pty/ticket"
 import { Skill } from "@opencode/core/skill"
 import { Tool } from "@opencode/core/tool"
@@ -116,13 +116,12 @@ export const McpHandler = HttpApiBuilder.group(Api, "server.mcp", (handlers) =>
               const skills = yield* Skill.Service
               const agents = yield* Agent.Service
               const mcpTools = yield* McpTool.Service
-              const plugins = yield* Plugin.Service
-              yield* plugins.awaitActivation
               yield* mcpTools.flush
               const agent = yield* agents.select(undefined)
               if (!agent.info) return fail(-32603, "No default agent is available")
-              const snapshot = yield* registry.snapshot(agent.info.permissions)
-              const eligible = Skill.available(yield* skills.list(), agent.info.permissions)
+              const policy = Permission.Policy.fromRules(agent.info.permissions)
+              const snapshot = yield* registry.snapshot(policy)
+              const eligible = Skill.available(yield* skills.list(), policy)
               const matches = CapabilityDiscovery.rank(
                 input.value.arguments.query,
                 CapabilityDiscovery.inventory(snapshot, eligible),
