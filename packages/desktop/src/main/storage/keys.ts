@@ -10,6 +10,8 @@ export const SPELLCHECK_ENABLED_KEY = "spellcheckEnabled"
 
 export const SPELLCHECK_LANGUAGES_KEY = "spellcheckLanguages"
 
+export const SMOOTH_SCROLLING_ENABLED_KEY = "smoothScrollingEnabled"
+
 export const BACKGROUND_COLOR_KEY = "backgroundColor"
 
 export const COLOR_SCHEME_KEY = "colorScheme"
