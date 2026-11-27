@@ -1,5 +1,6 @@
 import { BrowserWindow, WebContentsView, session, shell, type WebContents } from "electron"
 import type { Embed, Plugin } from "@opencode/plugin/gui/main"
+import { guardWorkspaceNavigation } from "../workspace-navigation"
 import { FireworksWorkspace, type Action } from "./contract"
 import { destination, home, fireworksDestination, partition, webDestination } from "./policy"
 
@@ -26,12 +27,7 @@ const setup: Plugin.MainSetup = (ctx) => {
   isolated.on("will-download", download)
 
   const guard = (contents: WebContents, window: BrowserWindow, popup = false) => {
-    const navigation = (event: Electron.Event, url: string) => {
-      if (!(popup ? webDestination(url) : fireworksDestination(url))) event.preventDefault()
-    }
-
-    contents.on("will-navigate", navigation)
-    contents.on("will-redirect", navigation)
+    guardWorkspaceNavigation(contents, popup ? webDestination : fireworksDestination, webDestination)
     contents.setWindowOpenHandler(({ url }) =>
       webDestination(url)
         ? { action: "allow", overrideBrowserWindowOptions: { parent: window, webPreferences: preferences } }

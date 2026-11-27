@@ -22,7 +22,7 @@ Every workflow has a double-clickable batch file at the repository root:
 | `run.bat`             | Launch the built AAi desktop app.                                  |
 | `build-desktop.bat`   | Run the complete desktop and installer build.                      |
 | `package-desktop.bat` | Rebuild everything and package a fresh Windows installer.          |
-| `build-cli.bat`       | Build only the standalone CLI/TUI executable.                      |
+| `build-cli.bat`       | Build the portable CLI/TUI and its Windows setup executable.        |
 | `run-cli.bat`         | Run the built CLI/TUI. Pass a directory or CLI arguments.          |
 | `desktop.bat`         | Run the desktop app in development mode.                           |
 | `web.bat`             | Run the web app in development mode.                               |
@@ -36,7 +36,8 @@ and create the Windows installer. They never substitute a downloaded OpenCode se
 
 Outputs:
 
-- `artifacts\AAi-Setup-x64.exe` (or `-arm64.exe`): Windows installer.
+- Run `artifacts\AAi-Setup-x64.exe` (or `-arm64.exe`) to install the desktop app.
+- Run `artifacts\AAi-CLI-<version>-Setup-x64.exe` (or `-arm64.exe`) to install the CLI for your account. After setup, open a new terminal and run `aai --version`.
 - `packages\desktop\dist\win-unpacked\AAi Dev.exe`: runnable desktop app; keep its adjacent files together.
 - `artifacts\aai.exe`: standalone CLI/TUI, including the embedded web app.
 
@@ -157,8 +158,8 @@ bun run check
 
 ## Connecting to OpenCode
 
-No setup is required. AAi loads the same models.dev catalog as OpenCode, and the OpenCode Zen provider remains
-available through the normal `auth login` flow. OpenCode Go models work the same way.
+AAi loads the models.dev catalog used by OpenCode. Public OpenCode free models appear without an API key when available.
+Sign in to use paid Console models or connect OpenCode Go with an active subscription.
 
 ```bash
 aai auth login   # choose OpenCode / OpenCode Go
@@ -166,6 +167,29 @@ aai models       # list what is available
 ```
 
 The `aai` command is an alias for the built-in `opencode` binary command, so either name works.
+
+For other providers, open **Settings → Providers** and look for **LLM API presets**. Use the setup method shown for the provider:
+some accept anonymous requests, while others require a free account or API key. Model access, region limits, and quotas
+are set by each provider. If OpenCode free models are missing, check that `OPENCODE_DISABLE_FREE_MODELS` is not set to
+`1` or `true` on the server and that your organization allows free models.
+
+## OmniRoute gateway
+
+Start or deploy [OmniRoute](https://github.com/cheaper-inference/OmniRoute#quick-start) and configure its provider accounts and routing combos in its dashboard. In AAi, open **Settings → Providers**, find **OmniRoute** under **Popular**, and click **Connect**. Enter the gateway URL and API key. The default is `http://127.0.0.1:20128/v1` on the AAi server's machine. For a remote gateway, use HTTPS.
+
+Chat and coding models, including any `auto` route and custom combos visible to the key, appear in the model picker. Image and embedding models are exposed through the existing model APIs. OmniRoute handles quotas, fallback, and upstream provider credentials on its side. Manage those settings in the OmniRoute dashboard.
+
+For CLI or unattended use, set `OMNIROUTE_API_KEY` on the AAi server process and optionally set `OMNIROUTE_BASE_URL`. Run `aai models` to list models. OmniRoute's entries start with `omniroute/`.
+
+## Devin cloud workspace
+
+Open **AI workspaces → Devin → Bots** or **Settings → Devin → Bots** to use Devin's cloud dashboard. Sign in with your Devin account to create and manage Bots, schedules, and connected tools available under your plan and organization permissions.
+
+**Automations**, **Security**, and **Wiki** open the corresponding official Devin pages. They share the Devin sign-in inside AAi. If your identity provider does not support signing in from an embedded browser, choose **Open in browser** on the tab to use it there instead.
+
+**Sign in to Devin CLI** opens the installed CLI's official browser login. **API & CLI** still supports the separate Devin v3 personal access token or service user key for API requests.
+
+From a terminal, use `aai devin bots` to open the dashboard, `aai devin login` to launch the official login, or `aai devin session devin-…` to resume a Cloud session ID from a Bot's activity using the installed Devin CLI.
 
 ## Optional: AvernicAi provider
 

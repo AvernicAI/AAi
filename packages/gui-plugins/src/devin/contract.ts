@@ -1,7 +1,11 @@
 import { Schema } from "effect"
 import { Ipc } from "@opencode/plugin/gui"
 
-export const Action = Schema.Literals(["chat", "signIn", "reload"])
+export const Section = Schema.Literals(["chat", "bots", "automations", "security", "wiki"])
+
+export type Section = typeof Section.Type
+
+export const Action = Schema.Literals([...Section.literals, "signIn", "reload"])
 
 export type Action = typeof Action.Type
 
@@ -16,8 +20,8 @@ export const DevinWorkspace = Ipc.define({
     },
     close: { input: Schema.Struct({ binding: Schema.String }) },
     clearSignIn: { input: Schema.Struct({ binding: Schema.String }) },
-    openBrowser: {},
+    openBrowser: { input: Schema.Struct({ section: Section }) },
     models: { output: Schema.String },
-    cli: { input: Schema.Struct({ mode: Schema.Literals(["local", "cloud"]) }), output: Schema.Boolean },
+    cli: { input: Schema.Struct({ mode: Schema.Literals(["local", "cloud", "signIn"]) }), output: Schema.Boolean },
   },
 })

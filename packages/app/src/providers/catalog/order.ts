@@ -5,6 +5,7 @@ export const popularProviders = [
   "antigravity",
   "devin",
   "fireworks-ai",
+  "omniroute",
   "opencode-go",
   "opencode",
   "anthropic",

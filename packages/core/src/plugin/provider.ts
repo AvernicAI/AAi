@@ -23,6 +23,7 @@ import { ModalPlugin } from "./provider/modal.js"
 import { NeonPlugin } from "./provider/neon.js"
 import { NvidiaPlugin } from "./provider/nvidia.js"
 import { OllamaPlugin } from "./provider/ollama.js"
+import { OmniRoutePlugin } from "./provider/omniroute.js"
 import { OpenAIPlugin } from "./provider/openai.js"
 import { OpenAICompatibilityPlugin } from "./provider/openai-compatibility.js"
 import { OpenAIContextCapsPlugin } from "./provider/openai-context-caps.js"
@@ -62,6 +63,7 @@ export const ProviderPlugins: PluginInternal.InternalPlugin[] = [
   NeonPlugin,
   NvidiaPlugin,
   OllamaPlugin,
+  OmniRoutePlugin,
   OpencodePlugin,
   SnowflakeCortexPlugin,
   OpenAIPlugin,

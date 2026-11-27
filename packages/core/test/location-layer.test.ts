@@ -496,11 +496,10 @@ describe("LocationServiceMap", () => {
           const blockedState = yield* update(blocked.path, blockedID)
           expect(blockedState.providers.some((provider) => provider.id === blockedID)).toBe(true)
           expect(blockedState.providers.some((provider) => provider.id === allowedID)).toBe(false)
-          // Code Mode and media generation depend on the bundled catalog (usable image and video models), not the location.
-          const media = ["generate_image", "generate_video"]
-          const builtIn = (name: string) => name !== "execute" && !media.includes(name)
-          const blockedTools = blockedState.tools.map((tool) => tool.name)
-          expect(blockedTools.filter(builtIn).sort()).toEqual([
+          // These tools depend on the platform, flags, or the bundled model catalog.
+          const optional = ["computer", "execute", "generate_image", "generate_video", "todowrite"]
+          const blockedTools = blockedState.tools.map((tool) => tool.name).sort()
+          expect(blockedTools.filter((name) => !optional.includes(name))).toEqual([
             "edit",
             "glob",
             "grep",
@@ -517,23 +516,7 @@ describe("LocationServiceMap", () => {
           const allowedState = yield* update(allowed.path, allowedID)
           expect(allowedState.providers.some((provider) => provider.id === allowedID)).toBe(true)
           expect(allowedState.providers.some((provider) => provider.id === blockedID)).toBe(false)
-          const allowedTools = allowedState.tools.map((tool) => tool.name)
-          expect(blockedTools.includes("execute")).toBe(allowedTools.includes("execute"))
-          media.forEach((name) => expect(allowedTools.includes(name)).toBe(blockedTools.includes(name)))
-          expect(allowedTools.filter(builtIn).sort()).toEqual([
-            "edit",
-            "glob",
-            "grep",
-            "patch",
-            "question",
-            "read",
-            "shell",
-            "skill",
-            "subagent",
-            "webfetch",
-            "websearch",
-            "write",
-          ])
+          expect(allowedState.tools.map((tool) => tool.name).sort()).toEqual(blockedTools)
         }),
       ),
     ),

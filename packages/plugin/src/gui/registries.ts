@@ -422,6 +422,8 @@ export interface SettingsPage {
    * - `about`: below About, in its group, for pages about the app itself such as release notes.
    */
   readonly group?: "about"
+  /** A root page with `"fill"` uses the available Settings area and manages its own scrolling. Omit for standard Settings sizing. */
+  readonly layout?: "fill"
   /** Nav label of a page; search shows it as the section of every entry, except rows placed in a host `section`. */
   readonly title: string
   /** The page's nav icon. */

@@ -78,7 +78,7 @@ export default function ChatBoxWorkspacePanel(props: { visible: boolean }) {
   }
 
   return (
-    <section class="flex h-full min-h-[480px] min-w-0 flex-col" aria-label={ctx.t("open")}>
+    <section class="flex size-full min-h-0 min-w-0 flex-col overflow-hidden" aria-label={ctx.t("open")}>
       <header class="flex shrink-0 flex-wrap items-center gap-2 border-b border-v2-border-border-base p-3">
         <span class="me-auto text-sm font-medium">{ctx.t("capabilities")}</span>
         <Button size="small" disabled={!screen().page || screen().busy} onClick={() => run("signIn")}>

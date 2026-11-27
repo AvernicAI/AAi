@@ -70,6 +70,9 @@ export function SettingsNavigation(props: {
 
   const current = () => props.groups.flatMap((group) => group.items).find((item) => item.value === props.value)
 
+  const fill = () =>
+    surface.plugins.pages().some((item) => item.value.id === props.value && item.value.layout === "fill")
+
   const change = (value: string) => {
     surface.search.clear()
     props.onChange(value)
@@ -110,7 +113,14 @@ export function SettingsNavigation(props: {
   )
 
   return (
-    <Tabs ref={root} orientation="vertical" variant="settings" value={props.value} onChange={change} class="settings">
+    <Tabs
+      ref={root}
+      orientation="vertical"
+      variant="settings"
+      value={props.value}
+      onChange={change}
+      class={fill() ? "settings settings--fill" : "settings"}
+    >
       <div class="settings-mobile-nav">
         <div class="flex min-w-0 items-center">
           {/* Starts after the shell's 8px inset and this row's 16px padding. Its 32px height makes the row 48px tall,

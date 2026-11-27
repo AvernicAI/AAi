@@ -1014,6 +1014,16 @@ function ProviderSteps(props: { provider: string; controller: ProviderDialogCont
             {language.t("provider.connect.fireworks.signIn")}
           </Button>
         </Show>
+        <Show when={props.provider === "omniroute"}>
+          <p>{language.t("provider.connect.omniroute.description")}</p>
+          <Button
+            type="button"
+            variant="ghost"
+            onClick={() => platform.openExternal("https://github.com/cheaper-inference/OmniRoute#quick-start")}
+          >
+            {language.t("provider.connect.omniroute.guide")}
+          </Button>
+        </Show>
         <StepActions>
           <Button
             type="submit"

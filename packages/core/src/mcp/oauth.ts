@@ -23,8 +23,7 @@ import {
 import { OAuthMetadataSchema, OpenIdProviderDiscoveryMetadataSchema } from "@modelcontextprotocol/core"
 import { Cause, Clock, Data, Deferred, Duration, Effect, Exit, Option, Schema } from "effect"
 import { FetchHttpClient } from "effect/http"
-import type { ServerResponse } from "node:http"
-import type { AddressInfo } from "node:net"
+import type { RequestListener, Server, ServerResponse } from "node:http"
 import { ConfigMCP } from "@opencode/schema/config/mcp"
 import { Credential } from "../credential.js"
 import { OauthCallbackPage } from "../oauth/page.js"
@@ -454,7 +453,7 @@ export const authorize = (input: {
 
     // Lazy so runtimes without a loopback listener (workerd) never evaluate node:http.
     const { createServer } = yield* Effect.promise(() => import("node:http"))
-    const server = createServer((request, response) => {
+    const receive: RequestListener = (request, response) => {
       const url = new URL(request.url ?? "/", "http://127.0.0.1")
       if (url.pathname !== redirectPath) {
         response.writeHead(404).end("Not found")
@@ -494,17 +493,28 @@ export const authorize = (input: {
         )
       )
         response.writeHead(409).end("OAuth callback already received")
-    })
+    }
 
     // callback_port, else the port pinned by redirect_uri, else ephemeral; a mismatch strands the browser.
     const redirectPort = Number(redirect?.port) || undefined
-    const port = yield* Effect.callback<number, Error>((resume) => {
-      server.once("error", (error) => resume(Effect.fail(error)))
-      server.listen(oauth?.callback_port ?? redirectPort ?? 0, "127.0.0.1", () => {
-        resume(Effect.succeed((server.address() as AddressInfo).port))
-      })
-    })
-    yield* Effect.addFinalizer(() => Effect.sync(() => server.close()))
+    const listen = (host: string, requestedPort: number) =>
+      Effect.acquireRelease(
+        Effect.callback<Server, Error>((resume) => {
+          const server = createServer(receive)
+          server.once("error", (error) => resume(Effect.fail(error)))
+          server.listen(requestedPort, host, () => resume(Effect.succeed(server)))
+        }),
+        (server) => Effect.sync(() => server.close()),
+      )
+    const host = redirect?.hostname === "[::1]" ? "::1" : "127.0.0.1"
+    const server = yield* listen(host, oauth?.callback_port ?? redirectPort ?? 0)
+    const address = server.address()
+
+    if (!address || typeof address === "string") return yield* Effect.fail(new Error("No TCP address for OAuth callback"))
+    const port = address.port
+
+    // A localhost redirect can reach either loopback family, even when the server advertised IPv4.
+    if (!redirect || redirect.hostname === "localhost") yield* listen("::1", port).pipe(Effect.ignore)
 
     // The server's 401 names where its resource metadata lives and which scopes it wants; without it
     // discovery can only guess the well-known path, which not every server layout answers.

@@ -259,6 +259,8 @@ A plugin bundle cannot require `@opencode/ui`, so it renders the app's buttons, 
 
 Every SDK icon field (`SettingsPage.icon`, `ComposerPillView.icon`, `ComposerNote.icon`, `ToastOptions.icon`, …) and `ctx.ui.Icon` takes an `IconName`. Any other string fails to compile.
 
+Root settings pages that embed an application can set `layout: "fill"` to use the available settings area. Their content owns scrolling.
+
 | Name             | What it is                                                              | Where it comes from                               |
 | ---------------- | ----------------------------------------------------------------------- | ------------------------------------------------- |
 | `AppIconName`    | One of the app's own icons, such as `"folder"`                          | The app's icon catalog                            |

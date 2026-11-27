@@ -39,6 +39,7 @@ const setup: Plugin.Setup<typeof definition> = (ctx) => {
     run: open,
   })
   ctx.add(SettingsPage, {
+    layout: "fill",
     id: "orlon",
     icon: "outline-globe",
     get title() {
@@ -83,6 +84,7 @@ const setup: Plugin.Setup<typeof definition> = (ctx) => {
     id: "workspace",
     region: "side",
     wide: true,
+    width: 1280,
     mobile: {
       get title() {
         return ctx.t("title")

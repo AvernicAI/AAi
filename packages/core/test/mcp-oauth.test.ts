@@ -281,6 +281,33 @@ describe("MCP OAuth", () => {
     expect(await authorize(redirect)).toBe(redirect)
   })
 
+  test.each(["[::1]", "localhost"])("receives a configured %s redirect over IPv6 loopback", async (host) => {
+    const reservation = Bun.serve({ hostname: "::1", port: 0, fetch: () => new Response() })
+    const redirect = `http://${host}:${reservation.port}/fixed-callback`
+    reservation.stop(true)
+    const { server, tokenRequests } = authorizationServer({})
+
+    const status = await Effect.runPromise(
+      Effect.scoped(
+        Effect.gen(function* () {
+          const { url, authorization } = yield* start(server, { client_id: "client", redirect_uri: redirect })
+          expect(url.searchParams.get("redirect_uri")).toBe(redirect)
+
+          const callback = new URL(redirect)
+          callback.hostname = "[::1]"
+          callback.searchParams.set("code", "test-code")
+          callback.searchParams.set("state", url.searchParams.get("state")!)
+          const response = yield* Effect.promise(() => fetch(callback, { headers: { host: new URL(redirect).host } }))
+          yield* authorization.callback
+          return response.status
+        }),
+      ),
+    ).finally(() => server.stop(true))
+
+    expect(status).toBe(200)
+    expect(tokenRequests[0]?.get("redirect_uri")).toBe(redirect)
+  })
+
   test("rejects an invalid redirect URL", async () => {
     await expect(authorize("not a URL")).rejects.toThrow(TypeError)
   })

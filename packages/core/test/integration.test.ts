@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test"
 import path from "path"
-import { Cause, Clock, Duration, Effect, Exit, Fiber, Layer, Scope, Stream } from "effect"
+import { Cause, Clock, Deferred, Duration, Effect, Exit, Fiber, Layer, Scope, Stream } from "effect"
 import { TestClock } from "effect/testing"
 import { Credential } from "@opencode/core/credential"
 import { AppNodeBuilder } from "@opencode/core/effect/app-node-builder"
@@ -390,6 +390,44 @@ describe("Integration", () => {
     }),
   )
 
+  it.effect("does not report OAuth success when the user cancels during the code exchange", () =>
+    Effect.gen(function* () {
+      const integrations = yield* Integration.Service
+      const credentials = yield* Credential.Service
+      const integrationID = Integration.ID.make("openai")
+      const methodID = Integration.MethodID.make("code")
+      const exchanging = yield* Deferred.make<void>()
+      const finish = yield* Deferred.make<void>()
+      yield* integrations.transform((editor) =>
+        editor.method.update({
+          integrationID,
+          method: { id: methodID, type: "oauth", label: "Code" },
+          authorize: () =>
+            Effect.succeed({
+              mode: "code" as const,
+              url: "https://example.com/authorize",
+              instructions: "Paste the code",
+              callback: () =>
+                Deferred.succeed(exchanging, undefined).pipe(
+                  Effect.andThen(Deferred.await(finish)),
+                  Effect.as(Credential.OAuth.make({ type: "oauth", methodID, access: "a", refresh: "r", expires: 1 })),
+                ),
+            }),
+        }),
+      )
+      const attempt = yield* integrations.oauth.connect({ integrationID, methodID })
+      const input = { integrationID, attemptID: attempt.attemptID, code: "1234" }
+      const completing = yield* integrations.oauth.complete(input).pipe(Effect.flip, Effect.forkScoped)
+      yield* Deferred.await(exchanging)
+      expect(yield* integrations.oauth.complete(input).pipe(Effect.flip)).toBeInstanceOf(Integration.AuthorizationError)
+      yield* integrations.oauth.cancel(input)
+      yield* Deferred.succeed(finish, undefined)
+
+      expect(yield* Fiber.join(completing)).toBeInstanceOf(Integration.AttemptNotFoundError)
+      expect(yield* credentials.list(integrationID)).toEqual([])
+    }),
+  )
+
   it.effect("completes auto OAuth in the background", () =>
     Effect.gen(function* () {
       const integrations = yield* Integration.Service
@@ -451,14 +489,17 @@ describe("Integration", () => {
       )
 
       const attempt = yield* integrations.oauth.connect({ integrationID, methodID })
-      const exit = yield* integrations.oauth
-        .complete({ integrationID, attemptID: attempt.attemptID, code: "1234" })
-        .pipe(Effect.exit)
+      const complete = integrations.oauth.complete({ integrationID, attemptID: attempt.attemptID, code: "1234" })
+      const exit = yield* complete.pipe(Effect.exit)
       expect(Exit.isFailure(exit) && Cause.hasDies(exit.cause)).toBe(true)
       expect(yield* integrations.oauth.status({ integrationID, attemptID: attempt.attemptID })).toEqual({
         status: "failed",
         message: "credential persistence failed",
         time: attempt.time,
+      })
+      expect(yield* complete.pipe(Effect.flip)).toMatchObject({
+        _tag: "Integration.Authorization",
+        message: "credential persistence failed",
       })
     }),
   )
@@ -544,6 +585,11 @@ describe("Integration", () => {
 
       const attempt = yield* integrations.oauth.connect({ integrationID, methodID })
       expect(attempt.time.expires - attempt.time.created).toBe(Duration.toMillis(Duration.minutes(10)))
+      const complete = integrations.oauth.complete({ integrationID, attemptID: attempt.attemptID, code: "invalid" })
+      expect(yield* complete.pipe(Effect.flip)).toBeInstanceOf(Integration.AuthorizationError)
+      expect(yield* integrations.oauth.status({ integrationID, attemptID: attempt.attemptID })).toMatchObject({
+        status: "pending",
+      })
       yield* TestClock.adjust(Duration.minutes(10))
       yield* Effect.yieldNow
       expect(yield* integrations.oauth.status({ integrationID, attemptID: attempt.attemptID })).toEqual({
@@ -552,6 +598,10 @@ describe("Integration", () => {
       })
       expect(closed).toBe(true)
       expect(yield* credentials.list(integrationID)).toEqual([])
+      expect(yield* complete.pipe(Effect.flip)).toMatchObject({
+        _tag: "Integration.Authorization",
+        message: "Authorization expired",
+      })
     }),
   )
 

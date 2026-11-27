@@ -476,7 +476,8 @@ const layer = Layer.effect(
 
     const settle = Effect.fnUntraced(function* (attemptID: AttemptID, exit: Exit.Exit<Credential.OAuth, unknown>) {
       const attempt = yield* claim(attempts, attemptID, exit)
-      if (!attempt || Exit.isFailure(exit)) return
+      if (!attempt) return false
+      if (Exit.isFailure(exit)) return true
       yield* Effect.gen(function* () {
         const persistence = yield* Effect.suspend(() => {
           const implementation = state
@@ -493,6 +494,7 @@ const layer = Layer.effect(
         yield* record(attempts, attemptID, attempt, persistence)
         yield* persistence
       }).pipe(Effect.ensuring(close(attempt.scope)))
+      return true
     }, Effect.uninterruptible)
 
     const settleCommand = Effect.fnUntraced(function* (attemptID: AttemptID, exit: Exit.Exit<string, unknown>) {
@@ -571,7 +573,9 @@ const layer = Layer.effect(
     }) {
       const method = state.get().integrations.get(input.integrationID)?.implementations.get(input.methodID)
       if (!method) {
-        return yield* Effect.die(new Error(`OAuth method not found: ${input.integrationID}/${input.methodID}`))
+        return yield* new AuthorizationError({
+          cause: new Error(`OAuth method not found: ${input.integrationID}/${input.methodID}`),
+        })
       }
       const answer = input.answer ?? {}
       const invalid = answerError(method.method.form, answer)
@@ -798,25 +802,39 @@ const layer = Layer.effect(
             const match = current.get(input.attemptID)
             if (!match || match.integrationID !== input.integrationID) return [undefined, current]
             if (match.status !== "pending" || match.completing) return [match, current]
-            if (match.authorization.mode === "code" && input.code === undefined) return [match, current]
+            if (match.authorization.mode !== "code" || input.code === undefined) return [match, current]
             return [match, new Map(current).set(input.attemptID, { ...match, completing: true })]
           })
           if (!attempt) return yield* new AttemptNotFoundError(input)
-          if (attempt.status !== "pending") return
-          // The attempt still settles through its callback; clients keep polling status for the result.
-          if (attempt.authorization.mode === "auto" && attempt.authorization.submit && input.code !== undefined)
+          if (attempt.status === "complete") return
+          if (attempt.status !== "pending")
+            return yield* new AuthorizationError({
+              cause: new Error(
+                attempt.message ?? (attempt.status === "expired" ? "Authorization expired" : "Authorization failed"),
+              ),
+            })
+          if (attempt.authorization.mode === "auto") {
+            if (!attempt.authorization.submit)
+              return yield* new AuthorizationError({
+                cause: new Error("This authorization method does not accept a redirect URL"),
+              })
+            if (input.code === undefined) return yield* new CodeRequiredError({ attemptID: input.attemptID })
+            // Submitting a redirect unblocks the callback; status reports whether the exchange succeeds.
             return yield* authorize(attempt.authorization.submit(input.code))
-          if (attempt.authorization.mode === "code" && input.code === undefined) {
+          }
+          if (input.code === undefined) {
             return yield* new CodeRequiredError({ attemptID: input.attemptID })
           }
           if (attempt.completing)
-            return yield* Effect.die(new Error(`OAuth attempt already completing: ${input.attemptID}`))
-          const callback =
-            attempt.authorization.mode === "auto"
-              ? attempt.authorization.callback
-              : attempt.authorization.callback(input.code as string)
-          const exit = yield* authorize(callback).pipe(Effect.exit)
-          yield* settle(input.attemptID, exit)
+            return yield* new AuthorizationError({ cause: new Error("Authorization is already being completed") })
+          const exit = yield* authorize(attempt.authorization.callback(input.code)).pipe(Effect.exit)
+          const settled = yield* settle(input.attemptID, exit)
+          if (!settled) {
+            const current = (yield* SynchronizedRef.get(attempts)).get(input.attemptID)
+            if (current?.status === "expired")
+              return yield* new AuthorizationError({ cause: new Error("Authorization expired") })
+            return yield* new AttemptNotFoundError(input)
+          }
           if (Exit.isFailure(exit)) return yield* exit
         }),
         cancel: Effect.fn("Integration.oauth.cancel")((input) =>

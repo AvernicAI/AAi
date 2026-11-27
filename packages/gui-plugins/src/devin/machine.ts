@@ -1,4 +1,4 @@
-import type { Action } from "./contract"
+import type { Action, Section } from "./contract"
 
 type Page = { binding: string; embed: string }
 
@@ -13,7 +13,7 @@ export type State =
 
 export type Event =
   | { type: "open"; attempt: string }
-  | { type: "opened"; attempt: string; page: Page }
+  | { type: "opened"; attempt: string; page: Page; section: Section }
   | { type: "run"; attempt: string; action: Action | "clear" }
   | { type: "confirm" }
   | { type: "cancel" }
@@ -41,7 +41,7 @@ export function transition(state: State, event: Event): State {
   if (event.type === "opened") {
     if (state.status !== "opening" || state.attempt !== event.attempt) return state
 
-    return { status: "working", attempt: event.attempt, page: event.page, action: "chat" }
+    return { status: "working", attempt: event.attempt, page: event.page, action: event.section }
   }
 
   if (event.type === "run") {

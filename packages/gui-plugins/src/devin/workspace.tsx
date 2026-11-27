@@ -1,14 +1,23 @@
-import { createMemo, createSignal, For, onCleanup, Show } from "solid-js"
+import { createMemo, createSignal, onCleanup, Show } from "solid-js"
 import { createKeyed, usePlugin } from "@opencode/plugin/gui"
 import { Button } from "@opencode/ui/button"
 import { Loader } from "@opencode/ui/loader"
 import { showToast } from "@opencode/ui/toast"
 import { uuid } from "@opencode/util/uuid"
-import { DevinWorkspace, type Action } from "./contract"
+import { DevinWorkspace, type Action, type Section } from "./contract"
 import { transition, view, type Event, type State } from "./machine"
+import { sections, templates } from "./policy"
 import type definition from "./index"
 
-export default function DevinWorkspacePanel(props: { visible: boolean }) {
+const help = {
+  chat: "limits",
+  bots: "botsHelp",
+  automations: "automationsHelp",
+  security: "securityHelp",
+  wiki: "wikiHelp",
+} as const
+
+export default function DevinWorkspacePanel(props: { visible: boolean; section: Section }) {
   const ctx = usePlugin<typeof definition>()
   const client = ctx.use(DevinWorkspace)
   const embeds = ctx.embeds
@@ -39,8 +48,8 @@ export default function DevinWorkspacePanel(props: { visible: boolean }) {
         }
 
         controller.signal.addEventListener("abort", close, { once: true })
-        dispatch({ type: "opened", attempt, page })
-        await service.navigate({ binding: page.binding, action: "chat" }, { signal })
+        dispatch({ type: "opened", attempt, page, section: props.section })
+        await service.navigate({ binding: page.binding, action: props.section }, { signal })
         dispatch({ type: "done", attempt })
       })
       .catch(() => dispatch({ type: "failed", attempt }))
@@ -73,29 +82,56 @@ export default function DevinWorkspacePanel(props: { visible: boolean }) {
   const browser = () => {
     const live = client()
 
-    if (live.status !== "active") return ctx.system.openExternal("https://app.devin.ai/")
-    void live.value.openBrowser().catch(() => showToast({ title: ctx.t("title"), description: ctx.t("failed") }))
+    if (live.status !== "active") return ctx.system.openExternal(sections[props.section])
+
+    void live.value
+      .openBrowser({ section: props.section })
+      .catch(() => showToast({ title: ctx.t("title"), description: ctx.t("failed") }))
+  }
+
+  const cliSignIn = async () => {
+    const live = client()
+
+    if (live.status !== "active") return
+
+    const opened = await live.value.cli({ mode: "signIn" }, { signal: lifetime.signal }).catch(() => false)
+
+    if (!opened && !lifetime.signal.aborted) showToast({ title: ctx.t("cliFailed") })
   }
 
   return (
-    <section class="flex h-full min-h-[480px] min-w-0 flex-col" aria-label={ctx.t("open")}>
+    <section class="flex size-full min-h-0 min-w-0 flex-col overflow-hidden" aria-label={ctx.t("open")}>
       <header class="flex shrink-0 flex-wrap items-center gap-2 border-b border-v2-border-border-base p-3">
         <span class="me-auto text-sm font-medium">{ctx.t("capabilities")}</span>
         <Button size="small" disabled={!screen().page || screen().busy} onClick={() => run("signIn")}>
           {ctx.t("signIn")}
         </Button>
+        <Show when={client().status === "active"}>
+          <Button size="small" variant="ghost" onClick={() => void cliSignIn()}>
+            {ctx.t("cliSignIn")}
+          </Button>
+        </Show>
         <Button size="small" onClick={browser}>
           {ctx.t("browser")}
         </Button>
       </header>
       <nav class="flex shrink-0 flex-wrap gap-2 px-3 py-2" aria-label={ctx.t("title")}>
-        <For each={["chat", "reload"] as const}>
-          {(action) => (
-            <Button size="small" variant="ghost" disabled={!screen().page || screen().busy} onClick={() => run(action)}>
-              {ctx.t(action)}
-            </Button>
-          )}
-        </For>
+        <Button
+          size="small"
+          variant="ghost"
+          disabled={!screen().page || screen().busy}
+          onClick={() => run(props.section)}
+        >
+          {ctx.t(props.section === "bots" ? "botsHome" : props.section)}
+        </Button>
+        <Button size="small" variant="ghost" disabled={!screen().page || screen().busy} onClick={() => run("reload")}>
+          {ctx.t("reload")}
+        </Button>
+        <Show when={props.section === "bots"}>
+          <Button size="small" variant="ghost" onClick={() => ctx.system.openExternal(templates)}>
+            {ctx.t("botTemplates")}
+          </Button>
+        </Show>
         <Button
           size="small"
           variant="ghost"
@@ -106,7 +142,7 @@ export default function DevinWorkspacePanel(props: { visible: boolean }) {
           {ctx.t("signOut")}
         </Button>
       </nav>
-      <p class="shrink-0 px-3 pb-2 text-sm text-v2-text-text-muted">{ctx.t("limits")}</p>
+      <p class="shrink-0 px-3 pb-2 text-sm text-v2-text-text-muted">{ctx.t(help[props.section])}</p>
       <Show when={screen().confirming}>
         <div
           role="alertdialog"
@@ -122,7 +158,7 @@ export default function DevinWorkspacePanel(props: { visible: boolean }) {
           </Button>
         </div>
       </Show>
-      <Show when={screen().busy}>
+      <Show when={screen().busy || client().status === "pending"}>
         <div role="status" class="flex shrink-0 items-center gap-2 px-3 py-2 text-sm">
           <Loader />
           {ctx.t("loading")}
@@ -130,10 +166,13 @@ export default function DevinWorkspacePanel(props: { visible: boolean }) {
       </Show>
       <Show when={screen().failed}>
         <p role="alert" class="shrink-0 px-3 py-2 text-sm">
-          {ctx.t("failed")}
+          {ctx.t(screen().page ? "failed" : "openFailed")}
         </p>
       </Show>
-      <Show when={client().status === "active"} fallback={<p class="p-3 text-sm">{ctx.t("unavailable")}</p>}>
+      <Show when={client().status === "inactive"}>
+        <p class="p-3 text-sm">{ctx.t("unavailable")}</p>
+      </Show>
+      <Show when={client().status === "active"}>
         <embeds.View
           id={screen().page?.embed}
           visible={props.visible && !screen().busy && !screen().confirming}

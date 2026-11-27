@@ -5,6 +5,9 @@ export const dict = {
   "provider.connect.fireworks.signIn": "Sign in to Fireworks",
   "provider.connect.fireworks.description":
     "Sign in on Fireworks to access its console. Create an API key there, then connect it here for native chat, tools and training.",
+  "provider.connect.omniroute.description":
+    "Use an API key from your OmniRoute dashboard. For a local gateway with key authentication disabled, enter sk_omniroute.",
+  "provider.connect.omniroute.guide": "Open OmniRoute setup guide",
   "experiment.voiceCalls": "Voice calls",
   "automations.title": "Automations",
   "automations.new": "New automation",

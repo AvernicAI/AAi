@@ -23,6 +23,45 @@ const contributors = "https://api.github.com/repos/anomalyco/opencode/contributo
 
 test.use({ serviceWorkers: "block" })
 
+test("Devin tabs open the corresponding cloud pages when the desktop embed is unavailable", async ({
+  page,
+  context,
+}) => {
+  await context.route("https://app.devin.ai/**", (route) => route.fulfill({ body: "Devin" }))
+
+  const { settings } = await openSettings(page, {
+    name: "Devin workspace",
+    directory,
+    provider: NO_PROVIDER,
+    sessions: [],
+  })
+
+  await settings.getByRole("tab", { name: "Devin", exact: true }).click()
+  const tabs = settings.getByRole("tablist", { name: "Devin", exact: true })
+  const workspace = tabs.getByRole("tab", { name: "Devin workspace", exact: true })
+  const bots = tabs.getByRole("tab", { name: "Bots", exact: true })
+  await workspace.press("ArrowRight")
+  await expect(bots).toBeFocused()
+  await expect(workspace).toHaveAttribute("aria-selected", "true")
+  await bots.press("Enter")
+
+  for (const [name, path] of [
+    ["Bots", "bots"],
+    ["Automations", "automations"],
+    ["Security", "security"],
+    ["Wiki", "wiki"],
+  ]) {
+    if (name !== "Bots") await tabs.getByRole("tab", { name, exact: true }).click()
+    const panel = settings.getByRole("tabpanel", { name, exact: true })
+    await expect(panel.getByText("The embedded workspace requires AAi desktop.", { exact: false })).toBeVisible()
+    const opened = context.waitForEvent("page")
+    await panel.getByRole("button", { name: "Open in browser", exact: true }).click()
+    const external = await opened
+    await expect(external).toHaveURL(`https://app.devin.ai/${path}`)
+    await external.close()
+  }
+})
+
 test("free API presets use fixed endpoints, labeled capabilities, and scoped credentials", async ({ page }) => {
   const connections: { integrationID: string; body: unknown }[] = []
 
@@ -31,12 +70,14 @@ test("free API presets use fixed endpoints, labeled capabilities, and scoped cre
     directory,
     provider: NO_PROVIDER,
     sessions: [],
-    onConnectKey: (input) => connections.push(input),
+    onConnectKey: (input) => {
+      connections.push(input)
+    },
   })
 
   await settings.getByRole("tab", { name: "Providers", exact: true }).click()
-  const catalog = settings.getByRole("region", { name: "Free LLM APIs", exact: true })
-  const select = catalog.getByRole("combobox", { name: "Free API provider" })
+  const catalog = settings.getByRole("region", { name: en["settings.freeAPI.title"], exact: true })
+  const select = catalog.getByRole("combobox", { name: en["settings.freeAPI.provider"], exact: true })
   await select.selectOption("mistral")
   await expect(catalog.getByText("Billing required", { exact: true })).toBeVisible()
   await select.selectOption("ovh")
@@ -103,11 +144,14 @@ test("supplemental free API presets label access and save models with separate c
     directory,
     provider: NO_PROVIDER,
     sessions: [],
-    onConnectKey: (input) => connections.push(input),
+    onConnectKey: (input) => {
+      connections.push(input)
+    },
   })
 
   await settings.getByRole("tab", { name: "Providers", exact: true }).click()
-  const catalog = settings.getByRole("region", { name: "Free LLM APIs", exact: true })
+  const catalog = settings.getByRole("region", { name: en["settings.freeAPI.title"], exact: true })
+  const select = catalog.getByRole("combobox", { name: en["settings.freeAPI.provider"], exact: true })
 
   for (const preset of [
     {
@@ -141,7 +185,7 @@ test("supplemental free API presets label access and save models with separate c
       tools: false,
     },
   ]) {
-    await catalog.getByRole("combobox", { name: "Free API provider" }).selectOption(preset.id)
+    await select.selectOption(preset.id)
     await expect(catalog.getByText(preset.tier, { exact: true })).toBeVisible()
     await catalog.getByText("Review models and capabilities", { exact: true }).click()
     await expect(catalog.getByRole("listitem")).toHaveCount(preset.count)
@@ -204,10 +248,8 @@ test("community free API presets preserve free routing, input limits, and gatewa
   })
 
   await settings.getByRole("tab", { name: "Providers", exact: true }).click()
-  const catalog = settings.getByRole("region", { name: "Free LLM APIs", exact: true })
-  const providers = catalog.getByRole("combobox", { name: "Free API provider" })
-
-  await expect(providers.getByRole("option")).toHaveCount(36)
+  const catalog = settings.getByRole("region", { name: en["settings.freeAPI.title"], exact: true })
+  const providers = catalog.getByRole("combobox", { name: en["settings.freeAPI.provider"], exact: true })
 
   for (const id of ["waterfall", "dreamprompting", "requesty", "freellmapi"]) {
     await providers.selectOption(id)

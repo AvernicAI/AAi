@@ -25,7 +25,10 @@ const setup: Plugin.Setup<typeof definition> = (ctx) => {
       run: open,
     }),
   )
-  ctx.add(TitlebarItem, (): TitlebarItem => ({ id: `${ctx.id}:open`, label: ctx.t("title"), group: workspaceTitlebar, run: open }))
+  ctx.add(
+    TitlebarItem,
+    (): TitlebarItem => ({ id: `${ctx.id}:open`, label: ctx.t("title"), group: workspaceTitlebar, run: open }),
+  )
   ctx.add(MenuItem, {
     id: "open",
     menu: "session.panel",
@@ -36,6 +39,7 @@ const setup: Plugin.Setup<typeof definition> = (ctx) => {
     run: open,
   })
   ctx.add(SettingsPage, {
+    layout: "fill",
     id: "meta-ai",
     icon: "outline-globe",
     get title() {
@@ -80,6 +84,7 @@ const setup: Plugin.Setup<typeof definition> = (ctx) => {
     id: "workspace",
     region: "side",
     wide: true,
+    width: 1280,
     mobile: {
       get title() {
         return ctx.t("title")

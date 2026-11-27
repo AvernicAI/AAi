@@ -84,6 +84,7 @@ const Handlers = Runtime.handlers(Commands, {
   },
   themes: () => import("./commands/handlers/themes"),
   models: () => import("./commands/handlers/models"),
+  devin: () => import("./commands/handlers/devin"),
   stats: () => import("./commands/handlers/stats"),
   mini: () => import("./commands/handlers/mini"),
   run: () => import("./commands/handlers/run"),

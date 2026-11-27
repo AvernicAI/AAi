@@ -39,7 +39,7 @@ async function main() {
   if (mode === "--help" || (["build", "build-cli"].includes(mode) && args.includes("--help"))) {
     console.log("[AAi] Windows workflows: build, build-cli, run, run-cli, install, dev, desktop-dev, web, check, sync.")
     console.log(
-      "[AAi] build.bat creates the matching CLI, desktop executable, and installer. run.bat opens the desktop.",
+      "[AAi] build-cli.bat creates the portable CLI and its installer. build.bat also builds desktop and its installer.",
     )
     console.log("[AAi] Set OPENCODE_CHANNEL=dev, beta, or prod to choose the application identity; the default is dev.")
     return
@@ -73,7 +73,8 @@ async function main() {
       `Install ${missing === "node" ? "Node.js 24 or newer" : "Git for Windows"} and reopen the terminal before building.`,
     )
 
-  console.log(`[AAi] Building ${pkg.version} (${channel}, Windows ${arch}) from this checkout.`)
+  const version = env.OPENCODE_VERSION
+  console.log(`[AAi] Building ${version} (${channel}, Windows ${arch}) from this checkout.`)
   await run([process.execPath, "install", "--frozen-lockfile"])
   // The desktop calls its stable channel "prod"; the CLI calls it "latest" and uses that to discover service.json.
   await script(path.join(root, "packages/cli"), "build", ["--skip-install"], {
@@ -89,10 +90,18 @@ async function main() {
     XDG_STATE_HOME: path.join(verify, "state"),
     OPENCODE_CONFIG_DIR: path.join(verify, "config/opencode"),
   })
-  await mkdir(path.join(root, "artifacts"), { recursive: true })
-  await Bun.write(path.join(root, "artifacts/aai.exe"), Bun.file(cli))
+  const artifacts = path.join(root, "artifacts")
+  await mkdir(artifacts, { recursive: true })
+  const cliSetup = path.join(artifacts, `AAi-CLI-${version}-Setup-${arch}.exe`)
+  const cliPortable = path.join(artifacts, `AAi-CLI-${version}-${arch}.exe`)
+  const { packageWindowsCli } = await import("../packages/desktop/script/package-windows-cli")
+  await packageWindowsCli(cli, cliSetup, version)
+  await Bun.write(cliPortable, Bun.file(cli))
+  await Bun.write(path.join(artifacts, "aai.exe"), Bun.file(cli))
+  console.log(`[AAi] CLI setup ready: ${cliSetup}`)
+  console.log(`[AAi] Portable CLI ready: ${cliPortable}`)
 
-  if (mode === "build-cli") return console.log(`[AAi] CLI ready: ${path.join(root, "artifacts/aai.exe")}`)
+  if (mode === "build-cli") return
 
   const directory = path.join(root, "packages/desktop")
   await script(directory, "install-electron")
@@ -103,7 +112,7 @@ async function main() {
   const installer = path.join(directory, `dist/opencode-desktop-win-${arch}.exe`)
   if (!(await Bun.file(installer).exists())) throw new Error(`Windows installer missing: ${installer}`)
   const releaseName = channel === "dev" ? "AAi-Dev" : channel === "beta" ? "AAi-Beta" : "AAi"
-  await Bun.write(path.join(root, `artifacts/${releaseName}-${pkg.version}-Setup-${arch}.exe`), Bun.file(installer))
+  await Bun.write(path.join(root, `artifacts/${releaseName}-${version}-Setup-${arch}.exe`), Bun.file(installer))
   await Bun.write(path.join(root, `artifacts/AAi-Setup-${arch}.exe`), Bun.file(installer))
   console.log(`[AAi] Desktop ready: ${desktop}`)
   console.log(`[AAi] Installer ready: ${path.join(root, `artifacts/AAi-Setup-${arch}.exe`)}`)

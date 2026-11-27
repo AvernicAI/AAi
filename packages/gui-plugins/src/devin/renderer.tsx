@@ -20,14 +20,19 @@ const setup: Plugin.Setup<typeof definition> = (ctx) => {
       id: "open",
       title: ctx.t("open"),
       group: ctx.t("title"),
-      keywords: "Devin Cognition account models chat web workspace account web sign in",
+      keywords: "Devin Cognition account models chat web workspace sign in cloud bots",
       featured: true,
       run: open,
     }),
   )
   ctx.add(
     TitlebarItem,
-    (): TitlebarItem => ({ id: `${ctx.id}:open`, label: ctx.t("title"), group: workspaceTitlebar, run: open }),
+    (): TitlebarItem => ({
+      id: `${ctx.id}:open`,
+      label: ctx.t(ctx.desktop && ctx.sessions.current() ? "sessionBots" : "title"),
+      group: workspaceTitlebar,
+      run: open,
+    }),
   )
   ctx.add(MenuItem, {
     id: "open",
@@ -39,6 +44,7 @@ const setup: Plugin.Setup<typeof definition> = (ctx) => {
     run: open,
   })
   ctx.add(SettingsPage, {
+    layout: "fill",
     id: "devin",
     icon: "outline-globe",
     get title() {
@@ -49,7 +55,7 @@ const setup: Plugin.Setup<typeof definition> = (ctx) => {
         {
           id: "devin",
           title: ctx.t("open"),
-          keywords: "Devin Cognition account models chat web workspace account sign in",
+          keywords: "Devin Cognition account models chat web workspace sign in cloud bots",
         },
       ]
     },
@@ -80,7 +86,7 @@ const setup: Plugin.Setup<typeof definition> = (ctx) => {
 
     return (
       <Suspense>
-        <Workspace visible={panel.visible()} />
+        <Workspace visible={panel.visible()} initialSection="bots" />
       </Suspense>
     )
   }
@@ -89,6 +95,7 @@ const setup: Plugin.Setup<typeof definition> = (ctx) => {
     id: "workspace",
     region: "side",
     wide: true,
+    width: 1280,
     mobile: {
       get title() {
         return ctx.t("title")

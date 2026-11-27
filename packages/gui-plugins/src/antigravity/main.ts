@@ -3,6 +3,7 @@ import { existsSync } from "node:fs"
 import path from "node:path"
 import { BrowserWindow, WebContentsView, dialog, session, shell, type WebContents } from "electron"
 import type { Embed, Plugin } from "@opencode/plugin/gui/main"
+import { guardWorkspaceNavigation } from "../workspace-navigation"
 import { AntigravityWorkspace, type Action } from "./contract"
 import { home, accountDestination, partition, webDestination } from "./policy"
 
@@ -70,12 +71,7 @@ const setup: Plugin.MainSetup = (ctx) => {
   isolated.on("will-download", download)
 
   const guard = (contents: WebContents, window: BrowserWindow, popup = false) => {
-    const navigation = (event: Electron.Event, url: string) => {
-      if (!(popup ? webDestination(url) : accountDestination(url))) event.preventDefault()
-    }
-
-    contents.on("will-navigate", navigation)
-    contents.on("will-redirect", navigation)
+    guardWorkspaceNavigation(contents, popup ? webDestination : accountDestination, webDestination)
     contents.setWindowOpenHandler(({ url }) =>
       webDestination(url)
         ? { action: "allow", overrideBrowserWindowOptions: { parent: window, webPreferences: preferences } }

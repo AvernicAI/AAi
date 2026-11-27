@@ -1,5 +1,6 @@
 import { BrowserWindow, WebContentsView, dialog, session, shell, type WebContents } from "electron"
 import type { Embed, Plugin } from "@opencode/plugin/gui/main"
+import { guardWorkspaceNavigation } from "../workspace-navigation"
 import { DeepAI, type Action } from "./contract"
 import { destination, home, deepaiDestination, partition, webDestination } from "./policy"
 
@@ -65,12 +66,7 @@ const setup: Plugin.MainSetup = (ctx) => {
   isolated.on("will-download", download)
 
   const guard = (contents: WebContents, window: BrowserWindow, popup = false) => {
-    const navigation = (event: Electron.Event, url: string) => {
-      if (!(popup ? webDestination(url) : deepaiDestination(url))) event.preventDefault()
-    }
-
-    contents.on("will-navigate", navigation)
-    contents.on("will-redirect", navigation)
+    guardWorkspaceNavigation(contents, popup ? webDestination : deepaiDestination, webDestination)
     contents.setWindowOpenHandler(({ url }) =>
       webDestination(url)
         ? {

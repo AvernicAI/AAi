@@ -359,6 +359,22 @@ const Root = Spec.make(typeof OPENCODE_CLI_NAME === "string" ? OPENCODE_CLI_NAME
       description: "List all available models",
       globalFlags: ServerFlags,
     }),
+    Spec.make("devin", {
+      description: "Open Devin Bots, sign in to Devin, or resume a Devin Cloud session",
+      params: {
+        action: Argument.ChoiceWithValue("action", [
+          ["bots", "bots"],
+          ["login", "login"],
+          ["session", "session"],
+        ]).pipe(
+          Argument.withDescription("bots opens the dashboard, login opens Devin sign-in, session resumes cloud work"),
+        ),
+        session: Argument.String("session-id").pipe(
+          Argument.withDescription("Devin Cloud session ID (required with session)"),
+          Argument.optional,
+        ),
+      },
+    }),
     Spec.make("stats", {
       description: "Show shareable usage statistics",
       globalFlags: ServerFlags,

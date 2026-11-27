@@ -8,11 +8,14 @@ const setup: Plugin.Setup<typeof definition> = (ctx) => {
   if (ctx.app.platform !== "desktop") return
   const Workspace = lazy(() => import("./panel"))
   onCleanup(onIdle(() => void Workspace.preload()))
+
   const open = () => {
     const session = ctx.sessions.current()
+
     if (session) return ctx.layout.open("merlin:workspace", session, { tab: "select" })
     showToast({ title: ctx.t("open"), description: ctx.t("sessionRequired") })
   }
+
   ctx.add(
     BuiltinCommand,
     (): BuiltinCommand => ({
@@ -33,16 +36,19 @@ const setup: Plugin.Setup<typeof definition> = (ctx) => {
     icon: "outline-globe",
     run: open,
   })
+
   const tab = {
     id: "workspace",
     get title() {
       return ctx.t("title")
     },
   }
+
   ctx.add(BuiltinPanel, {
     id: "workspace",
     region: "side",
     wide: true,
+    width: 1280,
     mobile: {
       get title() {
         return ctx.t("title")
